@@ -1,11 +1,12 @@
 <script lang="ts">
-	import type { LibraryItemMinified } from '@koalashelf/abs-client';
+	import type { LibraryItem, LibraryItemMinified } from '@koalashelf/abs-client';
 	import { view } from '#lib/items.ts';
 	import { progress } from '#lib/progress.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from './Cover.svelte';
 
-	let { item, eager = false }: { item: LibraryItemMinified; eager?: boolean } = $props();
+	let { item, eager = false }: { item: LibraryItem | LibraryItemMinified; eager?: boolean } =
+		$props();
 
 	const v = $derived(view(item));
 	const p = $derived(progress.get(item.id));

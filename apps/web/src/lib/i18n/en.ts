@@ -16,7 +16,29 @@ export const en = {
 		themeLight: 'Theme: light',
 		themeDark: 'Theme: dark',
 		language: 'Language',
-		settings: 'Settings'
+		settings: 'Settings',
+		collections: 'Collections',
+		stats: 'Statistics'
+	},
+	collections: {
+		title: 'Collections',
+		books: (n: number) => plural(n, 'book', 'books'),
+		empty: 'No collections in this library yet. Create them in Audiobookshelf.',
+		notFound: 'This collection does not exist (anymore).'
+	},
+	stats: {
+		title: 'Statistics',
+		total: 'Listened in total',
+		today: 'Today',
+		days: 'Days with listening',
+		streak: 'Current streak',
+		streakDays: (n: number) => plural(n, 'day', 'days'),
+		year: 'Last 12 months',
+		top: 'Most listened',
+		weekdays: 'By weekday',
+		less: 'less',
+		more: 'more',
+		empty: 'No listening sessions yet.'
 	},
 	signin: {
 		title: 'Sign in',
@@ -151,6 +173,7 @@ export const en = {
 		newestAuthors: 'Newest authors',
 		thisWeek: 'this week',
 		empty: 'Nothing here yet. Start something from the library.',
+		hide: 'Remove from continue listening',
 		toLibrary: 'Go to library'
 	},
 	series: {

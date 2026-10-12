@@ -14,8 +14,9 @@
 	let {
 		title,
 		note = '',
+		href,
 		entries
-	}: { title: string; note?: string; entries: CrateEntry[] } = $props();
+	}: { title: string; note?: string; href?: string; entries: CrateEntry[] } = $props();
 </script>
 
 <!-- "Kiste": covers stand in a row, a dark ledge hides their lower part (titles sit on top). -->
@@ -28,10 +29,10 @@
 			</a>
 		{/each}
 	</div>
-	<div class="ledge">
+	<svelte:element this={href ? 'a' : 'div'} class="ledge" class:link={href} {href}>
 		<strong>{title}</strong>
 		{#if note}<span>{note}</span>{/if}
-	</div>
+	</svelte:element>
 </section>
 
 <style>
@@ -82,6 +83,15 @@
 		color: var(--c-ctrl-ink);
 		font-size: var(--fs-13);
 		pointer-events: none;
+	}
+
+	.ledge.link {
+		pointer-events: auto;
+	}
+
+	.ledge.link:hover strong {
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.ledge strong {

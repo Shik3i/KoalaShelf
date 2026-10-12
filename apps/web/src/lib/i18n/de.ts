@@ -14,7 +14,29 @@ export const de: Messages = {
 		themeLight: 'Theme: Hell',
 		themeDark: 'Theme: Dunkel',
 		language: 'Sprache',
-		settings: 'Einstellungen'
+		settings: 'Einstellungen',
+		collections: 'Sammlungen',
+		stats: 'Statistik'
+	},
+	collections: {
+		title: 'Sammlungen',
+		books: (n) => (n === 1 ? '1 Buch' : `${n} Bücher`),
+		empty: 'In dieser Bibliothek gibt es noch keine Sammlungen. Lege sie in Audiobookshelf an.',
+		notFound: 'Diese Sammlung gibt es nicht (mehr).'
+	},
+	stats: {
+		title: 'Statistik',
+		total: 'Insgesamt gehört',
+		today: 'Heute',
+		days: 'Tage mit Hören',
+		streak: 'Aktuelle Serie',
+		streakDays: (n) => (n === 1 ? '1 Tag' : `${n} Tage`),
+		year: 'Letzte 12 Monate',
+		top: 'Am meisten gehört',
+		weekdays: 'Nach Wochentag',
+		less: 'weniger',
+		more: 'mehr',
+		empty: 'Noch keine Hörsitzungen.'
 	},
 	signin: {
 		title: 'Anmelden',
@@ -149,6 +171,7 @@ export const de: Messages = {
 		newestAuthors: 'Neue Autor:innen',
 		thisWeek: 'diese Woche',
 		empty: 'Hier ist noch nichts. Starte etwas aus der Bibliothek.',
+		hide: 'Aus „Weiterhören“ entfernen',
 		toLibrary: 'Zur Bibliothek'
 	},
 	series: {

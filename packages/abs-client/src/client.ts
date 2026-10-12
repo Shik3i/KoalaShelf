@@ -1,12 +1,14 @@
 import type {
 	Author,
 	Bookmark,
+	Collection,
 	DeviceInfo,
 	FilterData,
 	Library,
 	LibraryItem,
 	LibraryItemMinified,
 	LoginResponse,
+	ListeningStats,
 	MediaProgress,
 	Paged,
 	PlaybackSession,
@@ -238,6 +240,23 @@ export class AbsClient {
 
 	updateProgress(itemId: string, update: ProgressUpdate) {
 		return this.request<void>(`/api/me/progress/${itemId}`, { method: 'PATCH', body: update });
+	}
+
+	/** Hides an item from "continue listening" without touching its progress. */
+	hideFromContinueListening(progressId: string) {
+		return this.request<void>(`/api/me/progress/${progressId}/remove-from-continue-listening`);
+	}
+
+	listeningStats() {
+		return this.request<ListeningStats>('/api/me/listening-stats');
+	}
+
+	collections(libraryId: string) {
+		return this.request<Paged<Collection>>(`/api/libraries/${libraryId}/collections`).then((r) => r.results);
+	}
+
+	collection(id: string) {
+		return this.request<Collection>(`/api/collections/${id}`);
 	}
 
 	bookmarks(itemId: string) {

@@ -10,6 +10,7 @@
 	import Crate, { type CrateEntry } from '#lib/components/Crate.svelte';
 	import Play from '@lucide/svelte/icons/play';
 	import Pause from '@lucide/svelte/icons/pause';
+	import X from '@lucide/svelte/icons/x';
 	import Settings from '@lucide/svelte/icons/settings';
 
 	const t = $derived(i18n.m.home);
@@ -88,6 +89,14 @@
 		});
 	});
 
+	/** Hide from "continue listening" (progress stays), then refresh the shelves. */
+	async function hideHero() {
+		const p = hero && progress.get(hero.id);
+		if (!p || !session.libraryId) return;
+		await session.api.hideFromContinueListening(p.id);
+		shelves = await session.api.personalized(session.libraryId, 16);
+	}
+
 	function resume() {
 		if (!hero) return;
 		if (heroIsPlaying) player.toggle();
@@ -130,7 +139,12 @@
 			/>
 		</a>
 		<div class="hero-info">
-			<span class="label accent">{t.continue}</span>
+			<div class="hero-top">
+				<span class="label accent">{t.continue}</span>
+				<button class="hide" onclick={hideHero} title={t.hide} aria-label={t.hide}
+					><X size={16} /></button
+				>
+			</div>
 			<h2><a href="/book/{hero.id}">{heroView.title}</a></h2>
 			<p class="muted">{heroView.author}{heroView.narrator ? ` · ${heroView.narrator}` : ''}</p>
 			<div class="bar" style:--p={heroPct}></div>
@@ -190,6 +204,35 @@
 		padding: var(--sp-24);
 		margin-bottom: var(--sp-40);
 		border-radius: var(--r-card-lg);
+	}
+
+	.hero-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.hide {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		border: 0;
+		border-radius: 50%;
+		background: transparent;
+		color: var(--c-muted);
+		position: relative;
+	}
+
+	.hide::after {
+		content: '';
+		position: absolute;
+		inset: -4px;
+	}
+
+	.hide:hover {
+		background: var(--c-bg);
+		color: var(--c-ink);
 	}
 
 	.hero-info {

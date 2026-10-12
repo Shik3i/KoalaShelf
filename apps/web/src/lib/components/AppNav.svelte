@@ -7,6 +7,8 @@
 	import Layers from '@lucide/svelte/icons/layers';
 	import Users from '@lucide/svelte/icons/users';
 	import Search from '@lucide/svelte/icons/search';
+	import FolderHeart from '@lucide/svelte/icons/folder-heart';
+	import ChartColumn from '@lucide/svelte/icons/chart-column';
 	import SunMoon from '@lucide/svelte/icons/sun-moon';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';
@@ -20,6 +22,8 @@
 		{ href: '/library', label: t.library, icon: LibraryBig, tab: true },
 		{ href: '/series', label: t.series, icon: Layers, tab: true },
 		{ href: '/authors', label: t.authors, icon: Users, tab: false },
+		{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
+		{ href: '/stats', label: t.stats, icon: ChartColumn, tab: false },
 		{ href: '/search', label: t.search, icon: Search, tab: true }
 	]);
 

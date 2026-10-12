@@ -254,3 +254,22 @@ export interface SessionSync {
 	timeListened: number;
 	duration: number;
 }
+
+export interface Collection {
+	id: string;
+	libraryId: string;
+	name: string;
+	description: string | null;
+	books: LibraryItem[];
+	lastUpdate: number;
+}
+
+export interface ListeningStats {
+	/** Seconds. */
+	totalTime: number;
+	today: number;
+	/** "YYYY-MM-DD" -> seconds. */
+	days: Record<string, number>;
+	dayOfWeek: Record<string, number>;
+	items: Record<string, { id: string; timeListening: number; mediaMetadata: BookMetadata }>;
+}
