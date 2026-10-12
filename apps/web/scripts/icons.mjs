@@ -1,5 +1,6 @@
 // Renders the PWA icons from SVG sources (run: pnpm icons). Output is committed.
 import sharp from 'sharp';
+import { fileURLToPath } from 'node:url';
 
 const disc = (cx, cy, r) => `
   <circle cx="${cx}" cy="${cy}" r="${r}" fill="#161820"/>
@@ -32,11 +33,16 @@ const jobs = [
 	['maskable-512.png', maskable(512)],
 	['apple-touch-icon.png', maskable(180)]
 ];
+const toPath = (url) => fileURLToPath(url);
 await Promise.all(
 	jobs.map(([name, svg]) =>
 		sharp(Buffer.from(svg))
 			.png({ compressionLevel: 9 })
-			.toFile(new URL(name, out).pathname.replace(/^\/(\w:)/, '$1'))
+			.toFile(toPath(new URL(name, out)))
 	)
 );
+// Source for the desktop icon set: pnpm --filter @koalashelf/desktop tauri icon src-tauri/app-icon.png
+await sharp(Buffer.from(any(1024)))
+	.png()
+	.toFile(toPath(new URL('../../desktop/src-tauri/app-icon.png', import.meta.url)));
 console.log('icons written');

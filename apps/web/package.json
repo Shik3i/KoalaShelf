@@ -45,6 +45,7 @@
 		"@fontsource/gloock": "^5.3.0",
 		"@koalashelf/abs-client": "workspace:*",
 		"@koalashelf/design-tokens": "workspace:*",
-		"@lucide/svelte": "^1.55.0"
+		"@lucide/svelte": "^1.55.0",
+		"@tauri-apps/plugin-http": "2.8.2"
 	}
 }

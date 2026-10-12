@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => {
 						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 				},
 				adapter: adapter({ fallback: 'index.html' }),
+				// Registered in +layout.svelte (skipped in the desktop app).
+				serviceWorker: { register: false },
 				// Strict CSP: SvelteKit hashes its own inline bootstrap script.
 				csp: {
 					mode: 'hash',
@@ -29,7 +31,7 @@ export default defineConfig(({ mode }) => {
 						'style-src': ['self', 'unsafe-inline'],
 						'img-src': ['self', 'data:', 'blob:', 'https:', 'http:'],
 						'media-src': ['self', 'blob:', 'https:', 'http:'],
-						'connect-src': ['self', 'https:', 'http:', 'wss:', 'ws:'],
+						'connect-src': ['self', 'https:', 'http:', 'wss:', 'ws:', 'ipc:'],
 						'font-src': ['self', 'data:'],
 						'worker-src': ['self'],
 						'manifest-src': ['self'],

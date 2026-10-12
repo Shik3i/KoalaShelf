@@ -7,6 +7,8 @@
 	import MiniPlayer from '#lib/player/MiniPlayer.svelte';
 	import FullPlayer from '#lib/player/FullPlayer.svelte';
 	import { player } from '#lib/player/player.svelte.ts';
+	import { isTauri } from '#lib/platform.ts';
+	import { dev } from '$app/env';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -14,6 +16,11 @@
 	const isPublic = $derived(page.url.pathname.startsWith('/signin'));
 
 	let full = $state<FullPlayer>();
+
+	// Offline shell for the browser/PWA; the desktop app ships its files locally anyway.
+	if (!dev && !isTauri && 'serviceWorker' in navigator) {
+		navigator.serviceWorker.register('/service-worker.js', { type: 'module' }).catch(() => undefined);
+	}
 
 	session.restore().then(() => session.client && player.restoreLast());
 

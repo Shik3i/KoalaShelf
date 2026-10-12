@@ -6,8 +6,10 @@ import {
 	login,
 	normalizeBaseUrl,
 	type Library,
+	type FetchFn,
 	type Tokens
 } from '@koalashelf/abs-client';
+import { apiFetch, isTauri } from './platform.ts';
 
 /**
  * Persisted login. Privacy: only what is needed to resume the session is stored,
@@ -51,6 +53,7 @@ export class ServerTooOldError extends Error {
 
 /** Detects whether the app is served by a proxy in front of Audiobookshelf. */
 export async function detectSameOrigin() {
+	if (isTauri) return false;
 	try {
 		await getServerStatus('', fetch, AbortSignal.timeout(2500));
 		return true;
@@ -100,10 +103,13 @@ class Session {
 
 	#refreshToken: string | null = null;
 
+	#fetch: FetchFn = globalThis.fetch.bind(globalThis);
+
 	#makeClient(baseUrl: string, tokens: Tokens) {
 		this.#refreshToken = tokens.refreshToken;
 		return new AbsClient({
 			baseUrl,
+			fetch: this.#fetch,
 			tokens,
 			onTokens: (t) => {
 				this.#refreshToken = t.refreshToken;
@@ -114,6 +120,7 @@ class Session {
 	}
 
 	async restore() {
+		this.#fetch = await apiFetch();
 		const stored = load();
 		if (stored) {
 			this.client = this.#makeClient(stored.baseUrl, stored.tokens);
@@ -131,12 +138,13 @@ class Session {
 
 	async signIn(serverUrl: string, username: string, password: string) {
 		const baseUrl = normalizeBaseUrl(serverUrl);
-		const status = await getServerStatus(baseUrl);
+		this.#fetch = await apiFetch();
+		const status = await getServerStatus(baseUrl, this.#fetch);
 		if (!isVersionAtLeast(status.serverVersion, MIN_SERVER_VERSION)) {
 			throw new ServerTooOldError(status.serverVersion, MIN_SERVER_VERSION);
 		}
 		const cookieMode = baseUrl === '';
-		const res = await login(baseUrl, username, password, { cookieMode });
+		const res = await login(baseUrl, username, password, { cookieMode, fetchFn: this.#fetch });
 		this.client = this.#makeClient(baseUrl, {
 			accessToken: res.user.accessToken,
 			refreshToken: cookieMode ? null : res.user.refreshToken
