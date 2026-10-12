@@ -35,7 +35,11 @@
 	// All view state lives in the URL: shareable, bookmarkable, back button works.
 	const q = $derived(page.url.searchParams);
 	const layout = $derived(q.get('view') === 'list' ? 'list' : 'shelf');
-	const sort = $derived(SORTS.find((s) => s.id === q.get('sort')) ?? SORTS[0]);
+	// Inside a series the natural order is the volume number.
+	const sort = $derived(
+		SORTS.find((s) => s.id === q.get('sort')) ??
+			(q.get('series') ? { id: 'sequence', key: 'sequence', label: t.series, desc: false } : SORTS[0])
+	);
 	const desc = $derived(q.has('desc') ? q.get('desc') === '1' : sort.desc);
 	const status = $derived(STATUS.find((s) => s.id === (q.get('status') ?? '')) ?? STATUS[0]);
 	const genre = $derived(q.get('genre') ?? '');
@@ -198,6 +202,17 @@
 	</div>
 </div>
 
+{#await filterData then fd}
+	{@const authorName = author && fd?.authors.find((a) => a.id === author)?.name}
+	{@const seriesName = series && fd?.series.find((x) => x.id === series)?.name}
+	{#if authorName || seriesName}
+		<div class="chips active">
+			{#if authorName}<button class="chip on" onclick={() => set({ author: null })}>{authorName} ✕</button>{/if}
+			{#if seriesName}<button class="chip on" onclick={() => set({ series: null })}>{seriesName} ✕</button>{/if}
+		</div>
+	{/if}
+{/await}
+
 {#if error}
 	<p class="error" role="alert">{t.loadError(error)}</p>
 {:else if !loading && items.length === 0}
@@ -263,6 +278,10 @@
 
 	.chips.end {
 		margin-left: auto;
+	}
+
+	.chips.active {
+		margin: calc(-1 * var(--sp-16)) 0 var(--sp-24);
 	}
 
 	.select {
