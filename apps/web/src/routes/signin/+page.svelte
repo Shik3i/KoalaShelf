@@ -29,7 +29,8 @@
 	detectSameOrigin().then((v) => (sameOrigin = v));
 
 	$effect(() => {
-		if (session.ready && session.client) goto(page.url.searchParams.get('next') ?? '/', { replace: true });
+		if (session.ready && session.client)
+			goto(page.url.searchParams.get('next') ?? '/', { replace: true });
 	});
 
 	// Translated at render time, so switching the language also translates a shown error.

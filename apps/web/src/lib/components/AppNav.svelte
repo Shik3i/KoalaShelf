@@ -62,14 +62,21 @@
 		{/if}
 		<LocaleSwitch />
 		<div class="me">
-			<span class="avatar" aria-hidden="true">{session.user?.username.slice(0, 1).toUpperCase()}</span>
+			<span class="avatar" aria-hidden="true"
+				>{session.user?.username.slice(0, 1).toUpperCase()}</span
+			>
 			<span class="name">{session.user?.username}</span>
 			<button class="icon" onclick={() => theme.cycle()} title={themeLabel} aria-label={themeLabel}>
 				{#if theme.choice === 'light'}<Sun size={18} />{:else if theme.choice === 'dark'}<Moon
 						size={18}
 					/>{:else}<SunMoon size={18} />{/if}
 			</button>
-			<button class="icon" onclick={async () => (await player.stop(), await session.signOut())} title={t.signOut} aria-label={t.signOut}>
+			<button
+				class="icon"
+				onclick={async () => (await player.stop(), await session.signOut())}
+				title={t.signOut}
+				aria-label={t.signOut}
+			>
 				<LogOut size={18} />
 			</button>
 		</div>

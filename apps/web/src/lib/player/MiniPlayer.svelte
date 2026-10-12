@@ -14,7 +14,7 @@
 	const sub = $derived(
 		player.chapter
 			? `${player.chapter.title} · −${clock(player.chapter.end - player.currentTime)}`
-			: v?.author ?? ''
+			: (v?.author ?? '')
 	);
 </script>
 
@@ -22,7 +22,15 @@
 	<div class="mini" role="region" aria-label={t.player}>
 		<div class="line"><Timeline compact /></div>
 		<button class="open" onclick={() => (player.expanded = true)} aria-label={t.open}>
-			<div class="disc"><Vinyl title={v.title} author={v.author} src={v.cover} playing={player.playing} label={0.5} /></div>
+			<div class="disc">
+				<Vinyl
+					title={v.title}
+					author={v.author}
+					src={v.cover}
+					playing={player.playing}
+					label={0.5}
+				/>
+			</div>
 			<span class="text">
 				<strong>{v.title}</strong>
 				<span class="muted tabular">{sub}</span>
@@ -31,8 +39,15 @@
 		<button class="ctl back" onclick={() => player.skip(-30)} aria-label={t.back30}>
 			<RotateCcw size={20} />
 		</button>
-		<button class="ctl play" onclick={() => player.toggle()} aria-label={player.playing ? t.pause : t.play}>
-			{#if player.playing}<Pause size={22} fill="currentColor" />{:else}<Play size={22} fill="currentColor" />{/if}
+		<button
+			class="ctl play"
+			onclick={() => player.toggle()}
+			aria-label={player.playing ? t.pause : t.play}
+		>
+			{#if player.playing}<Pause size={22} fill="currentColor" />{:else}<Play
+					size={22}
+					fill="currentColor"
+				/>{/if}
 		</button>
 	</div>
 {/if}

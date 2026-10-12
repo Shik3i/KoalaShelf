@@ -13,9 +13,19 @@
 
 <a class="tile" href="/book/{item.id}">
 	<div class="cover" style:view-transition-name="cover-{item.id}">
-		<Cover title={v.title} author={v.author} src={v.cover} {eager} sizes="(max-width: 800px) 44vw, 180px" />
+		<Cover
+			title={v.title}
+			author={v.author}
+			src={v.cover}
+			{eager}
+			sizes="(max-width: 800px) 44vw, 180px"
+		/>
 		{#if p && !p.isFinished && p.progress > 0}
-			<span class="bar" style:--p={p.progress} aria-label={i18n.m.library.listened(Math.round(p.progress * 100))}></span>
+			<span
+				class="bar"
+				style:--p={p.progress}
+				aria-label={i18n.m.library.listened(Math.round(p.progress * 100))}
+			></span>
 		{:else if p?.isFinished}
 			<span class="done label">{i18n.m.library.done}</span>
 		{/if}

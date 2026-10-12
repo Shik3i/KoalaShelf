@@ -11,7 +11,11 @@
 <script lang="ts">
 	import Cover from './Cover.svelte';
 
-	let { title, note = '', entries }: { title: string; note?: string; entries: CrateEntry[] } = $props();
+	let {
+		title,
+		note = '',
+		entries
+	}: { title: string; note?: string; entries: CrateEntry[] } = $props();
 </script>
 
 <!-- "Kiste": covers stand in a row, a dark ledge hides their lower part (titles sit on top). -->

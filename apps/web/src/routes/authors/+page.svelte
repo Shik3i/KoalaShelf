@@ -40,7 +40,12 @@
 			<div class="portrait" style:--bg={art.bg} style:--ink={art.ink}>
 				<span>{initials(a.name)}</span>
 				{#if a.imagePath}
-					<img src={session.api.authorImageUrl(a.id, { width: 240, updatedAt: a.updatedAt })} alt="" loading="lazy" decoding="async" />
+					<img
+						src={session.api.authorImageUrl(a.id, { width: 240, updatedAt: a.updatedAt })}
+						alt=""
+						loading="lazy"
+						decoding="async"
+					/>
 				{/if}
 			</div>
 			<strong>{a.name}</strong>

@@ -122,7 +122,9 @@
 	}
 
 	input:focus-visible::-webkit-slider-thumb {
-		box-shadow: 0 0 0 3px var(--c-bg), 0 0 0 5px var(--c-accent);
+		box-shadow:
+			0 0 0 3px var(--c-bg),
+			0 0 0 5px var(--c-accent);
 	}
 
 	/* 32px hit area, 12x18 visual pin. */

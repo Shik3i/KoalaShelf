@@ -14,7 +14,14 @@
 		titleTop?: boolean;
 	}
 
-	let { title, author = '', src = null, sizes = '200px', eager = false, titleTop = false }: Props = $props();
+	let {
+		title,
+		author = '',
+		src = null,
+		sizes = '200px',
+		eager = false,
+		titleTop = false
+	}: Props = $props();
 
 	const art = $derived(coverArt(`${title}|${author}`));
 	// Load state is tracked per URL, so a recycled list item never shows a stale state.
@@ -25,7 +32,13 @@
 	const failed = $derived(key !== null && failedFor === key);
 </script>
 
-<div class="cover" style:--bg={art.bg} style:--fg={art.fg} style:--ink={art.ink} style:--alt={art.alt}>
+<div
+	class="cover"
+	style:--bg={art.bg}
+	style:--fg={art.fg}
+	style:--ink={art.ink}
+	style:--alt={art.alt}
+>
 	{#if !src || failed || !loaded}
 		<div class="art" aria-hidden="true">
 			<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">

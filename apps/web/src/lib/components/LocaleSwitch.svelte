@@ -6,7 +6,12 @@
 
 <div class="seg" role="group" aria-label={i18n.m.nav.language}>
 	{#each locales as l (l)}
-		<button aria-pressed={i18n.locale === l} onclick={() => i18n.set(l)} lang={l} title={LOCALES[l]}>
+		<button
+			aria-pressed={i18n.locale === l}
+			onclick={() => i18n.set(l)}
+			lang={l}
+			title={LOCALES[l]}
+		>
 			{l.toUpperCase()}
 		</button>
 	{/each}

@@ -69,7 +69,11 @@
 				<button class="icon" onclick={() => (player.expanded = false)} aria-label={t.close}>
 					<ChevronDown size={26} />
 				</button>
-				<span class="label">{player.chapter ? t.chapterOf(player.chapterIndex + 1, player.chapters.length) : ''}</span>
+				<span class="label"
+					>{player.chapter
+						? t.chapterOf(player.chapterIndex + 1, player.chapters.length)
+						: ''}</span
+				>
 				<span class="icon-spacer"></span>
 			</header>
 
@@ -105,33 +109,59 @@
 					<Timeline />
 
 					<div class="transport">
-						<button class="ctl" onclick={() => player.prevChapter()} aria-label={t.prevChapter}><SkipBack size={22} /></button>
+						<button class="ctl" onclick={() => player.prevChapter()} aria-label={t.prevChapter}
+							><SkipBack size={22} /></button
+						>
 						<button class="ctl" onclick={() => player.skip(-30)} aria-label={t.back30}>
 							<RotateCcw size={26} /><span class="n">30</span>
 						</button>
-						<button class="ctl play" onclick={() => player.toggle()} aria-label={player.playing ? t.pause : t.play}>
-							{#if player.playing}<Pause size={30} fill="currentColor" />{:else}<Play size={30} fill="currentColor" />{/if}
+						<button
+							class="ctl play"
+							onclick={() => player.toggle()}
+							aria-label={player.playing ? t.pause : t.play}
+						>
+							{#if player.playing}<Pause size={30} fill="currentColor" />{:else}<Play
+									size={30}
+									fill="currentColor"
+								/>{/if}
 						</button>
 						<button class="ctl" onclick={() => player.skip(30)} aria-label={t.forward30}>
 							<RotateCw size={26} /><span class="n">30</span>
 						</button>
-						<button class="ctl" onclick={() => player.nextChapter()} aria-label={t.nextChapter}><SkipForward size={22} /></button>
+						<button class="ctl" onclick={() => player.nextChapter()} aria-label={t.nextChapter}
+							><SkipForward size={22} /></button
+						>
 					</div>
 
 					<div class="rates" role="group" aria-label={t.speed}>
 						{#each RATES as r (r)}
-							<button aria-pressed={player.rate === r} onclick={() => player.setRate(r)}>{speed(r)}</button>
+							<button aria-pressed={player.rate === r} onclick={() => player.setRate(r)}
+								>{speed(r)}</button
+							>
 						{/each}
 					</div>
 
 					<div class="actions">
-						<button class="action" class:on={player.sleep.kind !== 'off'} aria-expanded={panel === 'timer'} onclick={() => toggle('timer')}>
+						<button
+							class="action"
+							class:on={player.sleep.kind !== 'off'}
+							aria-expanded={panel === 'timer'}
+							onclick={() => toggle('timer')}
+						>
 							<Timer size={20} /><span>{timerLabel}</span>
 						</button>
-						<button class="action" aria-expanded={panel === 'chapters'} onclick={() => toggle('chapters')}>
+						<button
+							class="action"
+							aria-expanded={panel === 'chapters'}
+							onclick={() => toggle('chapters')}
+						>
 							<ListMusic size={20} /><span>{t.chapters}</span>
 						</button>
-						<button class="action" aria-expanded={panel === 'bookmarks'} onclick={() => toggle('bookmarks')}>
+						<button
+							class="action"
+							aria-expanded={panel === 'bookmarks'}
+							onclick={() => toggle('bookmarks')}
+						>
 							<Bookmark size={20} /><span>{t.bookmarks}</span>
 						</button>
 					</div>
@@ -142,15 +172,28 @@
 						{#if panel === 'timer'}
 							<h3 class="label">{t.timer}</h3>
 							<div class="opts">
-								<button class="chip" aria-pressed={player.sleep.kind === 'off'} onclick={() => player.setSleep({ kind: 'off' })}>{t.timerOff}</button>
-								<button class="chip" aria-pressed={player.sleep.kind === 'chapter'} onclick={() => player.setSleep({ kind: 'chapter' })}>
+								<button
+									class="chip"
+									aria-pressed={player.sleep.kind === 'off'}
+									onclick={() => player.setSleep({ kind: 'off' })}>{t.timerOff}</button
+								>
+								<button
+									class="chip"
+									aria-pressed={player.sleep.kind === 'chapter'}
+									onclick={() => player.setSleep({ kind: 'chapter' })}
+								>
 									{t.timerEndOfChapter}
 								</button>
 								{#each [5, 10, 15, 30, 45, 60] as m (m)}
 									<button
 										class="chip"
 										aria-pressed={player.sleep.kind === 'minutes' && player.sleep.minutes === m}
-										onclick={() => player.setSleep({ kind: 'minutes', minutes: m, endsAt: Date.now() + m * 60_000 })}
+										onclick={() =>
+											player.setSleep({
+												kind: 'minutes',
+												minutes: m,
+												endsAt: Date.now() + m * 60_000
+											})}
 									>
 										{t.timerMinutes(m)}
 									</button>
@@ -161,7 +204,10 @@
 							<ol class="list">
 								{#each player.chapters as c, i (c.id)}
 									<li>
-										<button aria-current={player.chapter === c} onclick={() => player.seek(c.start)}>
+										<button
+											aria-current={player.chapter === c}
+											onclick={() => player.seek(c.start)}
+										>
 											<span class="num display">{i + 1}</span>
 											<span class="ttl">{c.title}</span>
 											<span class="tabular muted">{clock(c.end - c.start)}</span>
@@ -179,7 +225,9 @@
 									aria-label={t.bookmarkTitle}
 									maxlength="200"
 								/>
-								<button class="btn primary" type="submit">{t.addBookmark} · {clock(player.currentTime)}</button>
+								<button class="btn primary" type="submit"
+									>{t.addBookmark} · {clock(player.currentTime)}</button
+								>
 							</form>
 							<ul class="list">
 								{#each player.bookmarks as b (b.time)}
@@ -188,7 +236,11 @@
 											<span class="tabular pin">{clock(b.time)}</span>
 											<span class="ttl">{b.title}</span>
 										</button>
-										<button class="icon" onclick={() => player.deleteBookmark(b.time)} aria-label={t.delete}>
+										<button
+											class="icon"
+											onclick={() => player.deleteBookmark(b.time)}
+											aria-label={t.delete}
+										>
 											<Trash2 size={16} />
 										</button>
 									</li>

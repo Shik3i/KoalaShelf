@@ -23,8 +23,12 @@
 	const p = $derived(item ? progress.get(item.id) : undefined);
 	const isCurrent = $derived(!!item && player.item?.id === item.id);
 	const position = $derived(isCurrent ? player.currentTime : (p?.currentTime ?? 0));
-	const pct = $derived(item ? (isCurrent ? player.progress : p?.isFinished ? 1 : (p?.progress ?? 0)) : 0);
-	const marks = $derived(item ? item.media.chapters.slice(1).map((c) => c.start / item.media.duration) : []);
+	const pct = $derived(
+		item ? (isCurrent ? player.progress : p?.isFinished ? 1 : (p?.progress ?? 0)) : 0
+	);
+	const marks = $derived(
+		item ? item.media.chapters.slice(1).map((c) => c.start / item.media.duration) : []
+	);
 
 	type Tab = 'chapters' | 'bookmarks' | 'more';
 	let tab = $state<Tab>('chapters');
@@ -37,12 +41,19 @@
 		const it = item;
 		if (!it) return;
 		progress.load();
-		session.api.bookmarks(it.id).then((b) => (ownBookmarks = b.sort((a, c) => a.time - c.time))).catch(() => (ownBookmarks = []));
+		session.api
+			.bookmarks(it.id)
+			.then((b) => (ownBookmarks = b.sort((a, c) => a.time - c.time)))
+			.catch(() => (ownBookmarks = []));
 		const author = it.media.metadata.authors[0];
 		more = [];
 		if (author && session.libraryId)
 			session.api
-				.libraryItems(session.libraryId, { filter: encodeFilter('authors', author.id), limit: 13, sort: 'media.metadata.title' })
+				.libraryItems(session.libraryId, {
+					filter: encodeFilter('authors', author.id),
+					limit: 13,
+					sort: 'media.metadata.title'
+				})
 				.then((r) => (more = r.results.filter((x) => x.id !== it.id).slice(0, 12)))
 				.catch(() => undefined);
 	});
@@ -56,12 +67,24 @@
 	async function toggleFinished() {
 		if (!item) return;
 		const done = !p?.isFinished;
-		await session.api.updateProgress(item.id, { isFinished: done, ...(done ? {} : { currentTime: 0, progress: 0 }) });
+		await session.api.updateProgress(item.id, {
+			isFinished: done,
+			...(done ? {} : { currentTime: 0, progress: 0 })
+		});
 		await progress.load(true);
 	}
 
 	const formats = $derived(
-		item ? [...new Set(item.media.audioFiles.map((f) => `${f.format || f.metadata.ext.slice(1).toUpperCase()} · ${Math.round(f.bitRate / 1000)} kbit/s`))] : []
+		item
+			? [
+					...new Set(
+						item.media.audioFiles.map(
+							(f) =>
+								`${f.format || f.metadata.ext.slice(1).toUpperCase()} · ${Math.round(f.bitRate / 1000)} kbit/s`
+						)
+					)
+				]
+			: []
 	);
 </script>
 
@@ -73,30 +96,53 @@
 	<article>
 		<section class="hero">
 			<div class="art" class:spinning={isCurrent && player.playing}>
-				<div class="vinyl"><Vinyl title={v.title} author={v.author} src={v.cover} playing={isCurrent && player.playing} {marks} /></div>
+				<div class="vinyl">
+					<Vinyl
+						title={v.title}
+						author={v.author}
+						src={v.cover}
+						playing={isCurrent && player.playing}
+						{marks}
+					/>
+				</div>
 				<div class="cover" style:view-transition-name="cover-{item.id}">
-					<Cover title={v.title} author={v.author} src={v.cover} sizes="(max-width: 800px) 70vw, 300px" eager />
+					<Cover
+						title={v.title}
+						author={v.author}
+						src={v.cover}
+						sizes="(max-width: 800px) 70vw, 300px"
+						eager
+					/>
 				</div>
 			</div>
 
 			<div class="info">
 				{#if meta.series[0]}
-					<a class="label series" href="/library?series={meta.series[0].id}">{t.seriesBook(meta.series[0].name, meta.series[0].sequence)}</a>
+					<a class="label series" href="/library?series={meta.series[0].id}"
+						>{t.seriesBook(meta.series[0].name, meta.series[0].sequence)}</a
+					>
 				{/if}
 				<h1>{v.title}</h1>
 				{#if meta.subtitle}<p class="subtitle">{meta.subtitle}</p>{/if}
 				<p class="people">
-					{#each meta.authors as a, i (a.id)}{i ? ', ' : ''}<a href="/library?author={a.id}">{a.name}</a>{/each}
+					{#each meta.authors as a, i (a.id)}{i ? ', ' : ''}<a href="/library?author={a.id}"
+							>{a.name}</a
+						>{/each}
 				</p>
 				{#if meta.narrators.length}
-					<p class="muted">{t.readBy}
-						{#each meta.narrators as n, i (n)}{i ? ', ' : ''}<a href="/library?narrator={encodeURIComponent(n)}">{n}</a>{/each}
+					<p class="muted">
+						{t.readBy}
+						{#each meta.narrators as n, i (n)}{i ? ', ' : ''}<a
+								href="/library?narrator={encodeURIComponent(n)}">{n}</a
+							>{/each}
 					</p>
 				{/if}
 
 				<div class="chips">
 					<span class="chip outline">{duration(item.media.duration)}</span>
-					{#if item.media.chapters.length}<span class="chip outline">{t.chapterCount(item.media.chapters.length)}</span>{/if}
+					{#if item.media.chapters.length}<span class="chip outline"
+							>{t.chapterCount(item.media.chapters.length)}</span
+						>{/if}
 					{#if meta.language}<span class="chip outline">{meta.language}</span>{/if}
 					{#if meta.publishedYear}<span class="chip outline">{meta.publishedYear}</span>{/if}
 				</div>
@@ -104,7 +150,9 @@
 				<div class="progress">
 					<div class="bar" style:--p={pct}></div>
 					<span class="muted tabular">
-						{Math.round(pct * 100)} % · {t.remaining(duration(Math.max(0, item.media.duration - position)))}
+						{Math.round(pct * 100)} % · {t.remaining(
+							duration(Math.max(0, item.media.duration - position))
+						)}
 					</span>
 				</div>
 
@@ -128,12 +176,20 @@
 		<div class="lower">
 			<section class="tabs-wrap">
 				<div class="tabs" role="tablist">
-					<button role="tab" aria-selected={tab === 'chapters'} onclick={() => (tab = 'chapters')}>{t.chapters}</button>
-					<button role="tab" aria-selected={tab === 'bookmarks'} onclick={() => (tab = 'bookmarks')}>
+					<button role="tab" aria-selected={tab === 'chapters'} onclick={() => (tab = 'chapters')}
+						>{t.chapters}</button
+					>
+					<button
+						role="tab"
+						aria-selected={tab === 'bookmarks'}
+						onclick={() => (tab = 'bookmarks')}
+					>
 						{t.bookmarks}{bookmarks.length ? ` · ${bookmarks.length}` : ''}
 					</button>
 					{#if more.length}
-						<button role="tab" aria-selected={tab === 'more'} onclick={() => (tab = 'more')}>{t.moreByAuthor}</button>
+						<button role="tab" aria-selected={tab === 'more'} onclick={() => (tab = 'more')}
+							>{t.moreByAuthor}</button
+						>
 					{/if}
 				</div>
 
@@ -183,11 +239,16 @@
 					<dd>{formats.join(', ')} · {t.files(item.media.audioFiles.length)}</dd>
 					<dt>{t.size}</dt>
 					<dd>{bytes(item.media.size)}</dd>
-					{#if meta.genres.length}<dt>{t.genre}</dt><dd>{meta.genres.join(', ')}</dd>{/if}
-					{#if meta.publishedYear}<dt>{t.published}</dt><dd>{meta.publishedYear}</dd>{/if}
-					{#if meta.publisher}<dt>{t.publisher}</dt><dd>{meta.publisher}</dd>{/if}
-					{#if meta.language}<dt>{t.language}</dt><dd>{meta.language}</dd>{/if}
-					{#if session.library}<dt>{t.library}</dt><dd>{session.library.name}</dd>{/if}
+					{#if meta.genres.length}<dt>{t.genre}</dt>
+						<dd>{meta.genres.join(', ')}</dd>{/if}
+					{#if meta.publishedYear}<dt>{t.published}</dt>
+						<dd>{meta.publishedYear}</dd>{/if}
+					{#if meta.publisher}<dt>{t.publisher}</dt>
+						<dd>{meta.publisher}</dd>{/if}
+					{#if meta.language}<dt>{t.language}</dt>
+						<dd>{meta.language}</dd>{/if}
+					{#if session.library}<dt>{t.library}</dt>
+						<dd>{session.library.name}</dd>{/if}
 				</dl>
 			</aside>
 		</div>

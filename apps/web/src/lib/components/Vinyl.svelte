@@ -13,7 +13,14 @@
 		label?: number;
 	}
 
-	let { title, author = '', src = null, playing = false, marks = [], label = 0.4 }: Props = $props();
+	let {
+		title,
+		author = '',
+		src = null,
+		playing = false,
+		marks = [],
+		label = 0.4
+	}: Props = $props();
 
 	const ticks = $derived.by(() => {
 		if (!marks.length) return 'none';

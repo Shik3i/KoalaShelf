@@ -2,4 +2,6 @@
 try {
 	const t = localStorage.getItem('ks.theme');
 	if (t === 'light' || t === 'dark') document.documentElement.classList.add('th-' + t);
-} catch {}
+} catch {
+	// Storage blocked: fall back to the system theme.
+}

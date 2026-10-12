@@ -26,7 +26,8 @@ export const en = {
 		password: 'Password',
 		submit: 'Sign in',
 		connecting: 'Connecting …',
-		privacy: 'Your data stays between this device and your server. No trackers, no third-party services.',
+		privacy:
+			'Your data stays between this device and your server. No trackers, no third-party services.',
 		errWrongCredentials: 'Wrong username or password.',
 		errRateLimited: 'Too many attempts. Please wait a moment.',
 		errNotAbs: 'There is no Audiobookshelf server at this address.',

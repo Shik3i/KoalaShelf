@@ -24,14 +24,16 @@ export const de: Messages = {
 		password: 'Passwort',
 		submit: 'Anmelden',
 		connecting: 'Verbinde …',
-		privacy: 'Deine Daten bleiben zwischen diesem Gerät und deinem Server. Keine Tracker, keine fremden Dienste.',
+		privacy:
+			'Deine Daten bleiben zwischen diesem Gerät und deinem Server. Keine Tracker, keine fremden Dienste.',
 		errWrongCredentials: 'Benutzername oder Passwort stimmt nicht.',
 		errRateLimited: 'Zu viele Versuche. Bitte kurz warten.',
 		errNotAbs: 'Unter dieser Adresse läuft kein Audiobookshelf.',
 		errServer: (msg) => `Der Server meldet: ${msg}`,
 		errUnreachable:
 			'Server nicht erreichbar. Adresse prüfen. Läuft die Web-App auf einer anderen Adresse, muss sie in Audiobookshelf unter „Allowed Origins“ eingetragen sein.',
-		errTooOld: (version, min) => `Audiobookshelf ${version} ist zu alt. KoalaShelf braucht mindestens ${min}.`,
+		errTooOld: (version, min) =>
+			`Audiobookshelf ${version} ist zu alt. KoalaShelf braucht mindestens ${min}.`,
 		errUnknown: 'Unbekannter Fehler.'
 	},
 	library: {
@@ -171,4 +173,3 @@ export const de: Messages = {
 		minutes: 'Min.'
 	}
 };
-

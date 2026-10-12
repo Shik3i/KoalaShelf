@@ -1,6 +1,12 @@
 // Audio engine: one <audio> element, multi-track books mapped to one global timeline,
 // periodic progress sync, sleep timer, Media Session integration.
-import type { AudioTrack, Bookmark, Chapter, LibraryItem, PlaybackSession } from '@koalashelf/abs-client';
+import type {
+	AudioTrack,
+	Bookmark,
+	Chapter,
+	LibraryItem,
+	PlaybackSession
+} from '@koalashelf/abs-client';
 import { AbsError } from '@koalashelf/abs-client';
 import { session } from '../session.svelte.ts';
 import { progress } from '../progress.svelte.ts';
@@ -14,7 +20,8 @@ const FADE_SECONDS = 10;
 
 export const RATES = [0.8, 1, 1.2, 1.5, 2] as const;
 
-export type SleepTimer = { kind: 'off' } | { kind: 'minutes'; endsAt: number; minutes: number } | { kind: 'chapter' };
+export type SleepTimer =
+	{ kind: 'off' } | { kind: 'minutes'; endsAt: number; minutes: number } | { kind: 'chapter' };
 
 function storage<T>(key: string, fallback: T): T {
 	try {
@@ -45,9 +52,18 @@ function deviceId() {
 /** MIME types this browser can play directly; everything else the server would transcode. */
 function supportedMimeTypes() {
 	const probe = new Audio();
-	return ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/flac', 'audio/ogg', 'audio/opus', 'audio/webm', 'audio/wav', 'audio/x-m4a', 'audio/x-m4b'].filter(
-		(t) => probe.canPlayType(t) !== ''
-	);
+	return [
+		'audio/mpeg',
+		'audio/mp4',
+		'audio/aac',
+		'audio/flac',
+		'audio/ogg',
+		'audio/opus',
+		'audio/webm',
+		'audio/wav',
+		'audio/x-m4a',
+		'audio/x-m4b'
+	].filter((t) => probe.canPlayType(t) !== '');
 }
 
 class Player {
@@ -151,7 +167,12 @@ class Player {
 		this.buffering = true;
 		const s = await session.api.play(
 			id,
-			{ deviceId: deviceId(), clientName: 'KoalaShelf Web', clientVersion: '0.1.0', model: navigator.userAgent.slice(0, 64) },
+			{
+				deviceId: deviceId(),
+				clientName: 'KoalaShelf Web',
+				clientVersion: '0.1.0',
+				model: navigator.userAgent.slice(0, 64)
+			},
 			supportedMimeTypes()
 		);
 		this.#session = s;
@@ -274,7 +295,8 @@ class Player {
 
 		// Count real listening time (wall clock while playing), robust against seeks.
 		const now = performance.now();
-		if (this.playing && this.#lastTick) this.#listened += Math.min(2, (now - this.#lastTick) / 1000);
+		if (this.playing && this.#lastTick)
+			this.#listened += Math.min(2, (now - this.#lastTick) / 1000);
 		this.#lastTick = now;
 
 		this.#checkSleep();
@@ -313,7 +335,9 @@ class Player {
 		void this.#sync();
 		if (this.item) {
 			const id = this.item.id;
-			session.api.updateProgress(id, { isFinished: true, currentTime: this.duration, progress: 1 }).catch(() => undefined);
+			session.api
+				.updateProgress(id, { isFinished: true, currentTime: this.duration, progress: 1 })
+				.catch(() => undefined);
 			const p = progress.get(id);
 			if (p) progress.set({ ...p, isFinished: true, progress: 1 });
 		}
@@ -383,7 +407,11 @@ class Player {
 		this.#session = null;
 		this.#audio?.pause();
 		await session.api
-			.closeSession(s.id, { currentTime: this.currentTime, timeListened: Math.round(this.#listened), duration: this.duration })
+			.closeSession(s.id, {
+				currentTime: this.currentTime,
+				timeListened: Math.round(this.#listened),
+				duration: this.duration
+			})
 			.catch(() => undefined);
 		this.#listened = 0;
 	}
@@ -405,7 +433,9 @@ class Player {
 			title: v.title,
 			artist: v.author,
 			album: v.series || v.title,
-			artwork: v.cover ? [96, 256, 512].map((w) => ({ src: v.cover!(w), sizes: `${w}x${w}`, type: 'image/webp' })) : []
+			artwork: v.cover
+				? [96, 256, 512].map((w) => ({ src: v.cover!(w), sizes: `${w}x${w}`, type: 'image/webp' }))
+				: []
 		});
 		const ms = navigator.mediaSession;
 		const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [

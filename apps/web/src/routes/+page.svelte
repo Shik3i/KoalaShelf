@@ -41,8 +41,12 @@
 	const hero = $derived<LibraryItemMinified | undefined>(continueItems[0]);
 	const heroView = $derived(hero ? view(hero) : null);
 	const heroIsPlaying = $derived(!!hero && player.item?.id === hero.id);
-	const heroPos = $derived(hero ? (heroIsPlaying ? player.currentTime : (progress.get(hero.id)?.currentTime ?? 0)) : 0);
-	const heroPct = $derived(hero ? (heroIsPlaying ? player.progress : (progress.get(hero.id)?.progress ?? 0)) : 0);
+	const heroPos = $derived(
+		hero ? (heroIsPlaying ? player.currentTime : (progress.get(hero.id)?.currentTime ?? 0)) : 0
+	);
+	const heroPct = $derived(
+		hero ? (heroIsPlaying ? player.progress : (progress.get(hero.id)?.progress ?? 0)) : 0
+	);
 
 	const LABELS = $derived<Record<string, string>>({
 		'continue-listening': t.continue,
@@ -68,9 +72,20 @@
 			if (s.type === 'book') {
 				const list = s.id === 'continue-listening' ? s.entities.slice(1) : s.entities;
 				entries = list.map((i) => entry(i));
-				if (s.id === 'recently-added' && list.length && list.every((i) => Date.now() - i.addedAt < WEEK)) note = t.thisWeek;
+				if (
+					s.id === 'recently-added' &&
+					list.length &&
+					list.every((i) => Date.now() - i.addedAt < WEEK)
+				)
+					note = t.thisWeek;
 			} else if (s.type === 'series') {
-				entries = s.entities.filter((se) => se.books?.length).map((se) => ({ ...entry(se.books[0], `/library?series=${se.id}`), id: se.id, title: se.name }));
+				entries = s.entities
+					.filter((se) => se.books?.length)
+					.map((se) => ({
+						...entry(se.books[0], `/library?series=${se.id}`),
+						id: se.id,
+						title: se.name
+					}));
 			}
 			return entries.length ? [{ id: s.id, label, note, entries }] : [];
 		});
@@ -92,8 +107,20 @@
 	</div>
 	<div class="tools">
 		<LocaleSwitch />
-		<button class="round" onclick={() => theme.cycle()} aria-label={{ system: i18n.m.nav.themeSystem, light: i18n.m.nav.themeLight, dark: i18n.m.nav.themeDark }[theme.choice]}><SunMoon size={18} /></button>
-		<button class="round" onclick={async () => (await player.stop(), await session.signOut())} aria-label={i18n.m.nav.signOut}>
+		<button
+			class="round"
+			onclick={() => theme.cycle()}
+			aria-label={{
+				system: i18n.m.nav.themeSystem,
+				light: i18n.m.nav.themeLight,
+				dark: i18n.m.nav.themeDark
+			}[theme.choice]}><SunMoon size={18} /></button
+		>
+		<button
+			class="round"
+			onclick={async () => (await player.stop(), await session.signOut())}
+			aria-label={i18n.m.nav.signOut}
+		>
 			<LogOut size={18} />
 		</button>
 	</div>
@@ -111,7 +138,13 @@
 {#if hero && heroView}
 	<section class="hero card">
 		<a class="deck" href="/book/{hero.id}" aria-label={heroView.title}>
-			<Turntable title={heroView.title} author={heroView.author} src={heroView.cover} playing={heroIsPlaying && player.playing} progress={heroPct} />
+			<Turntable
+				title={heroView.title}
+				author={heroView.author}
+				src={heroView.cover}
+				playing={heroIsPlaying && player.playing}
+				progress={heroPct}
+			/>
 		</a>
 		<div class="hero-info">
 			<span class="label accent">{t.continue}</span>
@@ -119,7 +152,9 @@
 			<p class="muted">{heroView.author}{heroView.narrator ? ` · ${heroView.narrator}` : ''}</p>
 			<div class="bar" style:--p={heroPct}></div>
 			<p class="muted tabular small">
-				{Math.round(heroPct * 100)} % · {i18n.m.book.remaining(duration(Math.max(0, heroView.duration - heroPos)))}
+				{Math.round(heroPct * 100)} % · {i18n.m.book.remaining(
+					duration(Math.max(0, heroView.duration - heroPos))
+				)}
 			</p>
 			<button class="btn primary big" onclick={resume}>
 				{#if heroIsPlaying && player.playing}

@@ -29,8 +29,9 @@
 		} else if (key === 'ArrowLeft' || key === 'ArrowRight') {
 			e.preventDefault();
 			const dir = key === 'ArrowLeft' ? -1 : 1;
-			if (e.shiftKey) dir < 0 ? player.prevChapter() : player.nextChapter();
-			else player.skip(dir * 30);
+			if (!e.shiftKey) player.skip(dir * 30);
+			else if (dir < 0) player.prevChapter();
+			else player.nextChapter();
 		} else if (key === 'b' || key === 'B') {
 			e.preventDefault();
 			full?.openBookmarks();
@@ -40,12 +41,14 @@
 	// Auth guard: everything except /signin needs a session.
 	$effect(() => {
 		if (!session.ready) return;
-		if (!session.client && !isPublic) goto(`/signin?next=${encodeURIComponent(page.url.pathname)}`, { replace: true });
+		if (!session.client && !isPublic)
+			goto(`/signin?next=${encodeURIComponent(page.url.pathname)}`, { replace: true });
 	});
 
 	// Smooth page changes via the View Transitions API (skipped when unsupported or reduced motion).
 	onNavigate((nav) => {
-		if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+		if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches)
+			return;
 		if (nav.from?.url.pathname === nav.to?.url.pathname) return;
 		return new Promise((resolve) => {
 			document.startViewTransition(async () => {

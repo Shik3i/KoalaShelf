@@ -38,7 +38,9 @@
 	// Inside a series the natural order is the volume number.
 	const sort = $derived(
 		SORTS.find((s) => s.id === q.get('sort')) ??
-			(q.get('series') ? { id: 'sequence', key: 'sequence', label: t.series, desc: false } : SORTS[0])
+			(q.get('series')
+				? { id: 'sequence', key: 'sequence', label: t.series, desc: false }
+				: SORTS[0])
 	);
 	const desc = $derived(q.has('desc') ? q.get('desc') === '1' : sort.desc);
 	const status = $derived(STATUS.find((s) => s.id === (q.get('status') ?? '')) ?? STATUS[0]);
@@ -48,6 +50,7 @@
 	const author = $derived(q.get('author') ?? '');
 
 	function set(changes: Record<string, string | null>) {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not reactive state
 		const next = new URLSearchParams(page.url.search);
 		for (const [k, v] of Object.entries(changes)) {
 			if (v === null || v === '') next.delete(k);
@@ -57,7 +60,9 @@
 	}
 
 	const filterData = $derived(
-		session.libraryId ? cached(`fd:${session.libraryId}`, () => session.api.filterData(session.libraryId!), 300_000) : null
+		session.libraryId
+			? cached(`fd:${session.libraryId}`, () => session.api.filterData(session.libraryId!), 300_000)
+			: null
 	);
 
 	let items = $state.raw<LibraryItemMinified[]>([]);
@@ -86,7 +91,10 @@
 			});
 		if ('local' in status) {
 			const local = status.local;
-			active.push({ server: encodeFilter('progress', status.id), local: (i) => progress.status(i.id) === local });
+			active.push({
+				server: encodeFilter('progress', status.id),
+				local: (i) => progress.status(i.id) === local
+			});
 		}
 		const [primary, ...rest] = active;
 		return {
@@ -107,7 +115,14 @@
 			const all = plan.local.length > 0;
 			const res = await session.api.libraryItems(
 				session.libraryId,
-				{ page: pageNo, limit: all ? 0 : PAGE, sort: sort.key, desc, filter: plan.filter, collapseSeries: false },
+				{
+					page: pageNo,
+					limit: all ? 0 : PAGE,
+					sort: sort.key,
+					desc,
+					filter: plan.filter,
+					collapseSeries: false
+				},
 				signal
 			);
 			const found = all ? res.results.filter((i) => plan.local.every((f) => f(i))) : res.results;
@@ -148,7 +163,9 @@
 <div class="toolbar">
 	<div class="chips" role="group" aria-label={t.statusGroup}>
 		{#each STATUS as s (s.id)}
-			<button class="chip" aria-pressed={status.id === s.id} onclick={() => set({ status: s.id })}>{s.label}</button>
+			<button class="chip" aria-pressed={status.id === s.id} onclick={() => set({ status: s.id })}
+				>{s.label}</button
+			>
 		{/each}
 	</div>
 
@@ -188,14 +205,26 @@
 				{#each SORTS as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
 			</select>
 		</label>
-		<button class="chip outline" onclick={() => set({ desc: desc ? '0' : '1' })} aria-label={t.reverse}>
+		<button
+			class="chip outline"
+			onclick={() => set({ desc: desc ? '0' : '1' })}
+			aria-label={t.reverse}
+		>
 			{desc ? '↓' : '↑'}
 		</button>
 		<div class="seg" role="group" aria-label={t.view}>
-			<button aria-pressed={layout === 'shelf'} onclick={() => set({ view: null })} aria-label={t.viewShelf}>
+			<button
+				aria-pressed={layout === 'shelf'}
+				onclick={() => set({ view: null })}
+				aria-label={t.viewShelf}
+			>
 				<LayoutGrid size={16} />
 			</button>
-			<button aria-pressed={layout === 'list'} onclick={() => set({ view: 'list' })} aria-label={t.viewList}>
+			<button
+				aria-pressed={layout === 'list'}
+				onclick={() => set({ view: 'list' })}
+				aria-label={t.viewList}
+			>
 				<Rows3 size={16} />
 			</button>
 		</div>
@@ -207,8 +236,12 @@
 	{@const seriesName = series && fd?.series.find((x) => x.id === series)?.name}
 	{#if authorName || seriesName}
 		<div class="chips active">
-			{#if authorName}<button class="chip on" onclick={() => set({ author: null })}>{authorName} ✕</button>{/if}
-			{#if seriesName}<button class="chip on" onclick={() => set({ series: null })}>{seriesName} ✕</button>{/if}
+			{#if authorName}<button class="chip on" onclick={() => set({ author: null })}
+					>{authorName} ✕</button
+				>{/if}
+			{#if seriesName}<button class="chip on" onclick={() => set({ series: null })}
+					>{seriesName} ✕</button
+				>{/if}
 		</div>
 	{/if}
 {/await}
@@ -232,13 +265,16 @@
 			{@const p = progress.get(item.id)}
 			<li>
 				<a href="/book/{item.id}">
-					<div class="mini"><Cover title={v.title} author={v.author} src={v.cover} sizes="56px" /></div>
+					<div class="mini">
+						<Cover title={v.title} author={v.author} src={v.cover} sizes="56px" />
+					</div>
 					<div class="meta">
 						<strong>{v.title}</strong>
 						<span class="muted">{v.author}{v.narrator ? ` · ${t.readBy(v.narrator)}` : ''}</span>
 					</div>
 					<span class="muted tabular dur">{duration(v.duration)}</span>
-					<span class="pbar" style:--p={p?.isFinished ? 1 : (p?.progress ?? 0)} aria-hidden="true"></span>
+					<span class="pbar" style:--p={p?.isFinished ? 1 : (p?.progress ?? 0)} aria-hidden="true"
+					></span>
 				</a>
 			</li>
 		{/each}
@@ -294,7 +330,8 @@
 		background: transparent;
 		font-weight: inherit;
 		padding: 0 var(--sp-16) 0 0;
-		background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+		background-image:
+			linear-gradient(45deg, transparent 50%, currentColor 50%),
 			linear-gradient(135deg, currentColor 50%, transparent 50%);
 		background-position:
 			right 6px center,

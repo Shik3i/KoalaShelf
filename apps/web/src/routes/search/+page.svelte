@@ -42,7 +42,11 @@
 	});
 
 	const empty = $derived(
-		!!result && !result.book.length && !result.series.length && !result.authors.length && !result.narrators.length
+		!!result &&
+			!result.book.length &&
+			!result.series.length &&
+			!result.authors.length &&
+			!result.narrators.length
 	);
 </script>
 
@@ -68,7 +72,9 @@
 			{#each result.book as { libraryItem: item } (item.id)}
 				{@const v = view(item)}
 				<a href="/book/{item.id}" class="book">
-					<div class="c"><Cover title={v.title} author={v.author} src={coverSrc(item)} sizes="72px" /></div>
+					<div class="c">
+						<Cover title={v.title} author={v.author} src={coverSrc(item)} sizes="72px" />
+					</div>
 					<span class="meta">
 						<strong>{v.title}</strong>
 						<span class="muted">{v.author}</span>
