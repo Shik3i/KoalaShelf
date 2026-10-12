@@ -13,6 +13,7 @@
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import LocaleSwitch from './LocaleSwitch.svelte';
+	import { player } from '#lib/player/player.svelte.ts';
 
 	const t = $derived(i18n.m.nav);
 	const items = $derived([
@@ -68,7 +69,7 @@
 						size={18}
 					/>{:else}<SunMoon size={18} />{/if}
 			</button>
-			<button class="icon" onclick={() => session.signOut()} title={t.signOut} aria-label={t.signOut}>
+			<button class="icon" onclick={async () => (await player.stop(), await session.signOut())} title={t.signOut} aria-label={t.signOut}>
 				<LogOut size={18} />
 			</button>
 		</div>

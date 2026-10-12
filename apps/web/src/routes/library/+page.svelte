@@ -41,6 +41,7 @@
 	const genre = $derived(q.get('genre') ?? '');
 	const narrator = $derived(q.get('narrator') ?? '');
 	const series = $derived(q.get('series') ?? '');
+	const author = $derived(q.get('author') ?? '');
 
 	function set(changes: Record<string, string | null>) {
 		const next = new URLSearchParams(page.url.search);
@@ -67,6 +68,8 @@
 	const plan = $derived.by(() => {
 		const active: { server: string; local?: (i: LibraryItemMinified) => boolean }[] = [];
 		if (series) active.push({ server: encodeFilter('series', series) });
+		// Minified items carry no author ids, so the author filter only works server-side.
+		if (author) active.push({ server: encodeFilter('authors', author) });
 		if (narrator)
 			active.push({
 				server: encodeFilter('narrators', narrator),

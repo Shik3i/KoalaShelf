@@ -85,6 +85,8 @@ button {
 }
 
 .label {
+	font-family: var(--font-text);
+	line-height: 1.4;
 	font-size: var(--fs-label);
 	font-weight: var(--fw-bold);
 	text-transform: uppercase;
