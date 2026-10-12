@@ -74,6 +74,7 @@
 		if (e instanceof ProbeError) {
 			if (e.kind === 'cors') return t.errCors(location.origin);
 			if (e.kind === 'not-abs') return t.errNotAbs;
+			if (e.kind === 'local-disabled') return t.errLocalDisabled;
 			return t.errUnreachable;
 		}
 		if (e instanceof AbsError) {
@@ -126,6 +127,7 @@
 		</div>
 		<h1>KoalaShelf</h1>
 		<p class="muted">{t.intro}</p>
+		{#if session.expired}<p class="error" role="status">{t.expired}</p>{/if}
 
 		<form onsubmit={submit}>
 			<label class="field">

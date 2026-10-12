@@ -27,6 +27,7 @@
 	let dialog = $state<HTMLDialogElement>();
 	let note = $state('');
 	let noteInput = $state<HTMLInputElement>();
+	let bookmarkError = $state(false);
 	/** Bookmark being renamed (its time) and the draft note. */
 	let editing = $state<number | null>(null);
 	let draft = $state('');
@@ -63,14 +64,20 @@
 	const timerLabel = $derived.by(() => {
 		const s = player.sleep;
 		if (s.kind === 'chapter') return t.timerAtChapterEnd;
-		if (s.kind === 'minutes') return t.timerLeft(clock((s.endsAt - now) / 1000));
+		if (s.kind === 'minutes')
+			return t.timerLeft(clock((player.sleepPausedLeft ?? s.endsAt - now) / 1000));
 		return t.timer;
 	});
 
 	async function saveBookmark(e: SubmitEvent) {
 		e.preventDefault();
-		await player.addBookmark(note.trim() || clock(player.currentTime));
-		note = '';
+		bookmarkError = false;
+		try {
+			await player.addBookmark(note.trim() || clock(player.currentTime));
+			note = '';
+		} catch {
+			bookmarkError = true;
+		}
 	}
 </script>
 
@@ -246,6 +253,7 @@
 									>{t.addBookmark} · {clock(player.currentTime)}</button
 								>
 							</form>
+							{#if bookmarkError}<p class="err">{t.bookmarkFailed}</p>{/if}
 							<ul class="list">
 								{#each player.bookmarks as b (b.time)}
 									<li>

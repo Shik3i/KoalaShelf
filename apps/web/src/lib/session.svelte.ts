@@ -75,6 +75,8 @@ class Session {
 	libraries = $state.raw<Library[]>([]);
 	libraryId = $state<string | null>(null);
 	ready = $state(false);
+	/** Set when the server rejected the refresh token (shown on the sign-in page). */
+	expired = $state(false);
 
 	#readyPromise: Promise<void>;
 	#resolveReady!: () => void;
@@ -122,7 +124,10 @@ class Session {
 				this.#refreshToken = t.refreshToken;
 				this.#persist();
 			},
-			onAuthLost: () => this.#clear()
+			onAuthLost: () => {
+				this.expired = true;
+				this.#clear();
+			}
 		});
 	}
 
@@ -160,6 +165,7 @@ class Session {
 		}
 		const cookieMode = baseUrl === '';
 		const res = await login(baseUrl, username, password, { cookieMode, fetchFn: this.#fetch });
+		this.expired = false;
 		this.client = this.#makeClient(baseUrl, {
 			accessToken: res.user.accessToken,
 			refreshToken: cookieMode ? null : res.user.refreshToken

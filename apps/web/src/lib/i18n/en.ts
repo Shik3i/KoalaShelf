@@ -65,7 +65,10 @@ export const en = {
 			'Server not reachable. Check the address. If the web app runs on a different address, add it to “Allowed origins” in Audiobookshelf.',
 		errTooOld: (version: string, min: string) =>
 			`Audiobookshelf ${version} is too old. KoalaShelf needs at least ${min}.`,
-		errUnknown: 'Unknown error.'
+		errUnknown: 'Unknown error.',
+		errLocalDisabled:
+			'This server only allows single sign-on (OpenID). KoalaShelf supports username and password sign-in; ask the admin to enable it.',
+		expired: 'Your session has expired. Please sign in again.'
 	},
 	library: {
 		title: 'Library',
@@ -123,6 +126,8 @@ export const en = {
 		markUnfinished: 'Mark as not finished',
 		back: 'Back',
 		showMore: 'Show more',
+		noAudio: 'This title has no audio files (e-book only).',
+		noChapters: 'This title has no chapters.',
 		showLess: 'Show less',
 		notFound: 'This title does not exist (anymore).',
 		seriesBook: (name: string, seq: string | null) => (seq ? `${name} · Book ${seq}` : name)
@@ -159,6 +164,7 @@ export const en = {
 		error: 'Playback failed. Retrying …',
 		errorFatal: 'Playback failed. Press play to try again.',
 		edit: 'Edit note',
+		bookmarkFailed: 'Bookmark could not be saved. Is there already one at this second?',
 		syncFailed: 'Progress could not be saved. Will retry.',
 		shortcuts: 'Space play/pause · ← → skip · Shift ← → chapter · B bookmark'
 	},
@@ -230,6 +236,7 @@ export const en = {
 		error: (msg: string) => `Something went wrong: ${msg}`,
 		retry: 'Retry',
 		loading: 'Loading …',
+		noLibrary: 'There is no audiobook library on this server for your account.',
 		offline: 'You are offline. Playback and updates resume once the connection is back.'
 	},
 	format: {

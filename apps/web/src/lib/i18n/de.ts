@@ -63,7 +63,10 @@ export const de: Messages = {
 			'Server nicht erreichbar. Adresse prüfen. Läuft die Web-App auf einer anderen Adresse, muss sie in Audiobookshelf unter „Allowed Origins“ eingetragen sein.',
 		errTooOld: (version, min) =>
 			`Audiobookshelf ${version} ist zu alt. KoalaShelf braucht mindestens ${min}.`,
-		errUnknown: 'Unbekannter Fehler.'
+		errUnknown: 'Unbekannter Fehler.',
+		errLocalDisabled:
+			'Dieser Server erlaubt nur Single Sign-on (OpenID). KoalaShelf meldet sich mit Benutzername und Passwort an; bitte die Admin-Person, das zu aktivieren.',
+		expired: 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.'
 	},
 	library: {
 		title: 'Bibliothek',
@@ -121,6 +124,8 @@ export const de: Messages = {
 		markUnfinished: 'Als ungehört markieren',
 		back: 'Zurück',
 		showMore: 'Mehr anzeigen',
+		noAudio: 'Dieser Titel hat keine Audiodateien (nur E-Book).',
+		noChapters: 'Dieser Titel hat keine Kapitel.',
 		showLess: 'Weniger anzeigen',
 		notFound: 'Diesen Titel gibt es nicht (mehr).',
 		seriesBook: (name, seq) => (seq ? `${name} · Band ${seq}` : name)
@@ -157,6 +162,7 @@ export const de: Messages = {
 		error: 'Wiedergabe fehlgeschlagen. Neuer Versuch …',
 		errorFatal: 'Wiedergabe fehlgeschlagen. Zum erneuten Versuch auf Play drücken.',
 		edit: 'Notiz bearbeiten',
+		bookmarkFailed: 'Marke konnte nicht gespeichert werden. Gibt es an dieser Sekunde schon eine?',
 		syncFailed: 'Fortschritt konnte nicht gespeichert werden. Neuer Versuch folgt.',
 		shortcuts: 'Leertaste Play/Pause · ← → springen · Shift ← → Kapitel · B Marke'
 	},
@@ -228,6 +234,7 @@ export const de: Messages = {
 		error: (msg) => `Etwas ist schiefgelaufen: ${msg}`,
 		retry: 'Nochmal versuchen',
 		loading: 'Lade …',
+		noLibrary: 'Auf diesem Server gibt es für dein Konto keine Hörbuch-Bibliothek.',
 		offline:
 			'Du bist offline. Wiedergabe und Aktualisierung laufen weiter, sobald die Verbindung zurück ist.'
 	},

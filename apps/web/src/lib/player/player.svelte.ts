@@ -87,6 +87,10 @@ class Player {
 	#audio: HTMLAudioElement | null = null;
 	#hls: { destroy(): void } | null = null;
 	#pausedAt = 0;
+	/** Increments per play request; stale requests (user picked another book meanwhile) bail out. */
+	#request = 0;
+	/** Sleep timer time left while paused (the countdown only runs while playing). */
+	sleepPausedLeft = $state<number | null>(null);
 	#session: PlaybackSession | null = null;
 	#tracks: AudioTrack[] = [];
 	#track = 0;
@@ -139,6 +143,10 @@ class Player {
 				this.#retries = 0;
 				this.error = null;
 				this.#lastTick = performance.now();
+				if (this.sleep.kind === 'minutes' && this.sleepPausedLeft !== null) {
+					this.sleep = { ...this.sleep, endsAt: Date.now() + this.sleepPausedLeft };
+				}
+				this.sleepPausedLeft = null;
 				this.#positionState();
 			});
 			a.addEventListener('pause', () => {
@@ -146,6 +154,7 @@ class Player {
 				this.loadingId = null;
 				this.#lastTick = 0;
 				this.#pausedAt = Date.now();
+				if (this.sleep.kind === 'minutes') this.sleepPausedLeft = this.sleep.endsAt - Date.now();
 				this.#sync();
 			});
 			a.addEventListener('waiting', () => (this.buffering = true));
@@ -168,6 +177,7 @@ class Player {
 	async play(itemId?: string, startAt?: number) {
 		const id = itemId ?? this.item?.id;
 		if (!id) return;
+		const req = ++this.#request;
 		this.loadingId = id;
 		this.error = null;
 		if (this.#session && this.#session.libraryItemId === id) {
@@ -177,10 +187,14 @@ class Player {
 				if (back) this.skip(-back);
 			}
 			this.#pausedAt = 0;
-			await this.audio.play().catch(() => undefined);
+			await this.#start();
 			return;
 		}
+		// Position chosen in the restored mini player (before any session existed) wins.
+		const preset =
+			startAt ?? (this.item?.id === id && !this.#session ? this.currentTime : undefined);
 		await this.#close();
+		if (req !== this.#request) return;
 		this.buffering = true;
 		let s: PlaybackSession;
 		try {
@@ -195,9 +209,15 @@ class Player {
 				supportedMimeTypes()
 			);
 		} catch {
+			if (req !== this.#request) return;
 			this.error = 'fatal';
 			this.buffering = false;
 			this.loadingId = null;
+			return;
+		}
+		if (req !== this.#request) {
+			// Another book was requested meanwhile: discard this session.
+			void session.api.closeSession(s.id).catch(() => undefined);
 			return;
 		}
 		this.#session = s;
@@ -205,14 +225,27 @@ class Player {
 		this.item = s.libraryItem;
 		this.chapters = s.chapters?.length ? s.chapters : s.libraryItem.media.chapters;
 		this.duration = s.duration;
-		this.currentTime = startAt ?? s.currentTime ?? 0;
+		let start = preset ?? s.currentTime ?? 0;
+		// A finished book starts over instead of ending immediately.
+		if (start >= s.duration - 2) start = 0;
+		this.currentTime = start;
 		this.#listened = 0;
 		store(LAST_KEY, id);
 		this.#updateMediaSession();
 		this.#loadBookmarks();
 		this.#loadTrackAt(this.currentTime);
 		this.#syncTimer = setInterval(() => this.#sync(), SYNC_INTERVAL_MS);
-		await this.audio.play().catch(() => undefined);
+		await this.#start();
+	}
+
+	/** audio.play() can be refused (autoplay policy); never leave a spinner behind. */
+	async #start() {
+		try {
+			await this.audio.play();
+		} catch {
+			this.loadingId = null;
+			this.buffering = false;
+		}
 	}
 
 	pause() {
@@ -269,6 +302,7 @@ class Player {
 
 	setSleep(t: SleepTimer) {
 		this.sleep = t;
+		this.sleepPausedLeft = t.kind === 'minutes' && !this.playing ? t.endsAt - Date.now() : null;
 		if (this.#audio) this.#audio.volume = 1;
 	}
 

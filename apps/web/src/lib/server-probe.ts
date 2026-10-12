@@ -2,7 +2,7 @@
 import { AbsError, getServerStatus, normalizeBaseUrl } from '@koalashelf/abs-client';
 import { apiFetch, isTauri } from './platform.ts';
 
-export type ProbeFailure = 'not-abs' | 'cors' | 'unreachable';
+export type ProbeFailure = 'not-abs' | 'cors' | 'unreachable' | 'local-disabled';
 
 export class ProbeError extends Error {
 	constructor(readonly kind: ProbeFailure) {
@@ -38,9 +38,10 @@ export async function probeServer(input: string, signal?: AbortSignal) {
 	for (const url of candidates(input)) {
 		try {
 			const status = await getServerStatus(url, fetchFn, signal);
+			assertLocalLogin(status.authMethods);
 			return { url, version: status.serverVersion };
 		} catch (e) {
-			if (signal?.aborted) throw e;
+			if (signal?.aborted || e instanceof ProbeError) throw e;
 			if (e instanceof AbsError) failure = 'not-abs';
 			else if (!isTauri && (await reachableWithoutCors(url, signal))) failure = 'cors';
 		}
@@ -48,9 +49,15 @@ export async function probeServer(input: string, signal?: AbortSignal) {
 	throw new ProbeError(failure);
 }
 
+/** KoalaShelf signs in with username/password; SSO-only servers get a clear message. */
+function assertLocalLogin(methods: string[] | undefined) {
+	if (methods && !methods.includes('local')) throw new ProbeError('local-disabled');
+}
+
 /** The preconfigured server, reached through the app's own origin (proxy). */
 export async function probeProxy(signal?: AbortSignal) {
 	const status = await getServerStatus('', fetch, signal);
+	assertLocalLogin(status.authMethods);
 	return { url: '', version: status.serverVersion };
 }
 

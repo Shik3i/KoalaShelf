@@ -158,8 +158,10 @@
 					</span>
 				</div>
 
+				{#if !item.media.audioFiles.length}<p class="muted">{t.noAudio}</p>{/if}
 				<div class="cta">
 					<button
+						disabled={!item.media.audioFiles.length}
 						class="btn primary big"
 						class:is-loading={player.loadingId === item.id}
 						onclick={() => playAt()}
@@ -200,7 +202,9 @@
 				</div>
 
 				<div role="tabpanel">
-					{#if tab === 'chapters'}
+					{#if tab === 'chapters' && !item.media.chapters.length}
+						<p class="muted">{t.noChapters}</p>
+					{:else if tab === 'chapters'}
 						<ol class="rows">
 							{#each item.media.chapters as c, i (c.id)}
 								{@const current = isCurrent && player.chapter?.id === c.id}
