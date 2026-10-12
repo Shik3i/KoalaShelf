@@ -1,0 +1,34 @@
+# Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+build/
+.svelte-kit/
+.vite/
+coverage/
+*.log
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Tauri / Rust
+target/
+
+# Android / Gradle
+.gradle/
+local.properties
+*.iml
+.idea/
+captures/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
