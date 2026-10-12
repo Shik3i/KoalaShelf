@@ -1,9 +1,14 @@
 # apps/web
 
-Website und PWA von KoalaShelf. SvelteKit 3 als SPA (`adapter-static`).
+KoalaShelf web app / PWA. SvelteKit 3 as a client-side SPA (`adapter-static`), Svelte 5 runes, Vite 8.
 
-- Ab Phase 2: Login, Bibliothek, Detail
-- Ab Phase 3: Player
-- Ab Phase 4: Start, Kisten, Filter, Theme, PWA und Docker-Image (Caddy liefert die SPA aus und leitet die API an Audiobookshelf weiter)
+```bash
+pnpm dev      # dev server, proxies the Audiobookshelf API (see dev/README.md)
+pnpm check    # svelte-check
+pnpm test     # unit tests
+pnpm build    # static build in build/
+```
 
-Der Build (`build/`) wird auch von `apps/desktop` genutzt.
+- `src/lib/i18n/`: UI strings (English base, German). Every string goes through `i18n.m`.
+- `src/lib/session.svelte.ts`: sign-in, token rotation, library selection.
+- `src/lib/components/`: Cover (with generated placeholder art), Vinyl, Turntable, BookTile, AppNav.

@@ -78,7 +78,8 @@ Jede Phase endet mit lauffähigem Stand, Test-Anleitung und Commit. Dazwischen c
 - **Audio-Auth:** `<audio>` kann keine Header senden, deshalb `?token=`. Läuft der Token ab, erneuern und an derselben Stelle weiterspielen.
 - **Server-Version:** ABS ≥ 2.26 vorausgesetzt (Access/Refresh-Tokens).
 - **Filter:** Der Server nimmt nur einen Filter pro Anfrage. Kombinationen schneidet der Client.
-- **Status „Neu“** = `not-started`. Die Kiste „Neu“ = `recently-added`.
+- **Status „New“** = `not-started`. Die Kiste „New“ = `recently-added`.
+- **Routen** englisch: `/signin`, `/library`, `/series`, `/authors`, `/search`, `/book/:id`. Nicht `/login`, denn das ist der Login-Endpunkt von ABS (Proxy-Konflikt).
 - **„Notiz“ am Lesezeichen** = Lesezeichen-Titel.
 - **„Clip teilen“** kann der Server nicht. Bleibt draußen bis zur Klärung.
 - **Android-Paketname:** `net.koalastuff.koalashelf`.

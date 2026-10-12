@@ -57,3 +57,9 @@ Regel: aktuelle stabile Version, keine Alpha/Beta/RC. Genaue Versionen stehen sp
 | Coil | 3.6 | |
 | Koin | 4.2 | DI ohne Annotation-Processing |
 | KSP | 2.3.12 | für Room |
+
+## Internationalisierung
+
+Alles ist international: Routen, Code und Doku-Kommentare sind englisch. Jeder UI-Text kommt aus `apps/web/src/lib/i18n/` (Englisch als Basis, Deutsch). Fehlt in einer Sprache ein Schlüssel, schlägt die Typprüfung fehl.
+
+Eigene, abhängigkeitsfreie Lösung statt Paraglide: Paraglide lädt beim Build Plugins von einem CDN. Das passt nicht zu offline baubaren, selbst gehosteten Builds. Die Sprache folgt dem Browser und lässt sich manuell umschalten. Die Wahl liegt nur lokal.
