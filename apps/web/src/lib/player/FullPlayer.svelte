@@ -105,7 +105,7 @@
 					<div class="meta">
 						<h2>{v.title}</h2>
 						<p class="muted">
-							{v.author}{#if v.narrator}<span> · {v.narrator}</span>{/if}
+							{v.narrator ? `${v.author} · ${v.narrator}` : v.author}
 						</p>
 					</div>
 
@@ -129,6 +129,7 @@
 						</button>
 						<button
 							class="ctl play"
+							class:is-loading={player.loadingId !== null}
 							onclick={() => player.toggle()}
 							aria-label={player.playing ? t.pause : t.play}
 						>

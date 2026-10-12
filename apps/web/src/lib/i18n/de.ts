@@ -120,6 +120,8 @@ export const de: Messages = {
 		markFinished: 'Als gehört markieren',
 		markUnfinished: 'Als ungehört markieren',
 		back: 'Zurück',
+		showMore: 'Mehr anzeigen',
+		showLess: 'Weniger anzeigen',
 		notFound: 'Diesen Titel gibt es nicht (mehr).',
 		seriesBook: (name, seq) => (seq ? `${name} · Band ${seq}` : name)
 	},

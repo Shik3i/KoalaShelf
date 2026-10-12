@@ -5,7 +5,6 @@
 	import { clock } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Vinyl from '#lib/components/Vinyl.svelte';
-	import Timeline from './Timeline.svelte';
 	import Play from '@lucide/svelte/icons/play';
 	import Pause from '@lucide/svelte/icons/pause';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
@@ -21,7 +20,7 @@
 
 {#if v}
 	<div class="mini" role="region" aria-label={t.player}>
-		<div class="line"><Timeline compact /></div>
+		<div class="line" style:--p={player.progress} aria-hidden="true"></div>
 		<button class="open" onclick={() => (player.expanded = true)} aria-label={t.open}>
 			<div class="disc">
 				<Vinyl
@@ -46,6 +45,7 @@
 		</button>
 		<button
 			class="ctl play"
+			class:is-loading={player.loadingId !== null}
 			onclick={() => player.toggle()}
 			aria-label={player.playing ? t.pause : t.play}
 		>
@@ -76,15 +76,25 @@
 		overflow: hidden;
 	}
 
+	/* Read-only progress line along the top edge; seeking happens in the full player. */
 	.line {
 		position: absolute;
-		left: 56px;
-		right: 72px;
+		left: 28px;
+		right: 28px;
 		top: 0;
+		height: 3px;
+		border-radius: 0 0 3px 3px;
+		background: color-mix(in oklab, var(--c-ctrl-ink) 18%, transparent);
+		overflow: hidden;
 	}
 
-	.line :global(.track) {
-		background: color-mix(in oklab, var(--c-ctrl-ink) 18%, transparent);
+	.line::before {
+		content: '';
+		position: absolute;
+		inset: 0 auto 0 0;
+		width: calc(var(--p) * 100%);
+		background: var(--c-accent);
+		transition: width 1s linear;
 	}
 
 	.open {

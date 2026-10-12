@@ -153,7 +153,11 @@
 					duration(Math.max(0, heroView.duration - heroPos))
 				)}
 			</p>
-			<button class="btn primary big" onclick={resume}>
+			<button
+				class="btn primary big"
+				class:is-loading={hero && player.loadingId === hero.id}
+				onclick={resume}
+			>
 				{#if heroIsPlaying && player.playing}
 					<Pause size={18} fill="currentColor" /> {i18n.m.player.pause}
 				{:else}

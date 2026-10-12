@@ -32,3 +32,20 @@ export function bytes(n: number) {
 
 /** Playback rate as shown on the toggle, e.g. 1.2 -> "1.2×" / "1,2×". */
 export const speed = (r: number) => `${r.toLocaleString(i18n.tag, { minimumFractionDigits: 1 })}×`;
+
+/**
+ * Audiobookshelf descriptions are HTML. Render them as plain text with paragraph breaks:
+ * DOMParser builds an inert document (no scripts, no network), so this is XSS-safe.
+ */
+export function htmlToText(html: string | null | undefined) {
+	if (!html) return '';
+	const marked = html
+		.replace(/<br\s*\/?>/gi, '\n')
+		.replace(/<\/(p|div|li|h[1-6])>/gi, '\n\n')
+		.replace(/<li[^>]*>/gi, '• ');
+	const text = new DOMParser().parseFromString(marked, 'text/html').body.textContent ?? '';
+	return text
+		.replace(/[ \t]+\n/g, '\n')
+		.replace(/\n{3,}/g, '\n\n')
+		.trim();
+}

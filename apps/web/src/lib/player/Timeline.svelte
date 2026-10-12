@@ -3,19 +3,18 @@
 	import { clock } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 
-	let { compact = false }: { compact?: boolean } = $props();
-
 	/** Local value while dragging, so we seek once on release instead of on every pixel. */
 	let scrub = $state<number | null>(null);
 	const value = $derived(scrub ?? player.currentTime);
-	const pct = (t: number) => (player.duration ? (t / player.duration) * 100 : 0);
+	/** Fraction of the book; positions map onto the thumb's travel (see --x in CSS). */
+	const frac = (t: number) => (player.duration ? Math.min(1, Math.max(0, t / player.duration)) : 0);
 </script>
 
-<div class="timeline" class:compact style:--p="{pct(value)}%">
+<div class="timeline" style:--f={frac(value)}>
 	<div class="track" aria-hidden="true">
 		<div class="fill"></div>
 		{#each player.chapters.slice(1) as c (c.id)}
-			<span class="tick" style:left="{pct(c.start)}%"></span>
+			<span class="tick" style:--f={frac(c.start)}></span>
 		{/each}
 	</div>
 	<input
@@ -32,21 +31,26 @@
 			scrub = null;
 		}}
 	/>
-	{#if !compact}
-		{#each player.bookmarks as b (b.time)}
-			<button
-				class="pin"
-				style:left="{pct(b.time)}%"
-				title="{clock(b.time)} · {b.title}"
-				aria-label="{clock(b.time)} {b.title}"
-				onclick={() => player.seek(b.time)}
-			></button>
-		{/each}
-	{/if}
+	{#each player.bookmarks as b (b.time)}
+		<button
+			class="pin"
+			style:--f={frac(b.time)}
+			title="{clock(b.time)} · {b.title}"
+			aria-label="{clock(b.time)} {b.title}"
+			onclick={() => player.seek(b.time)}
+		></button>
+	{/each}
 	{#if scrub !== null}<output class="bubble tabular">{clock(scrub)}</output>{/if}
 </div>
 
 <style>
+	/* The range thumb (14px) travels from 7px to 100% - 7px; everything aligns to that. */
+	.timeline,
+	.tick,
+	.pin {
+		--x: calc(7px + var(--f) * (100% - 14px));
+	}
+
 	.timeline {
 		position: relative;
 		height: 28px;
@@ -67,20 +71,21 @@
 	.fill {
 		position: absolute;
 		inset: 0 auto 0 0;
-		width: var(--p);
+		width: var(--x);
 		border-radius: inherit;
 		background: var(--c-accent);
 	}
 
 	.tick {
 		position: absolute;
-		top: -6px;
+		left: var(--x);
+		top: -4px;
 		width: 2px;
-		height: 16px;
+		height: 12px;
 		translate: -1px 0;
 		border-radius: 1px;
 		background: var(--c-ink);
-		opacity: 0.55;
+		opacity: 0.35;
 	}
 
 	input {
@@ -130,6 +135,7 @@
 	/* 32px hit area, 12x18 visual pin. */
 	.pin {
 		position: absolute;
+		left: var(--x);
 		top: -20px;
 		width: 32px;
 		height: 32px;
@@ -160,7 +166,7 @@
 	.bubble {
 		position: absolute;
 		bottom: 100%;
-		left: var(--p);
+		left: var(--x);
 		translate: -50% -4px;
 		padding: 2px 8px;
 		border-radius: var(--r-pill);
@@ -169,17 +175,5 @@
 		font-size: var(--fs-12);
 		font-weight: var(--fw-bold);
 		pointer-events: none;
-	}
-
-	.compact {
-		height: 4px;
-	}
-
-	.compact .tick {
-		display: none;
-	}
-
-	.compact .track {
-		border-radius: 0;
 	}
 </style>

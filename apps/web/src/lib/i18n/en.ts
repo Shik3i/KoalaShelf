@@ -122,6 +122,8 @@ export const en = {
 		markFinished: 'Mark as finished',
 		markUnfinished: 'Mark as not finished',
 		back: 'Back',
+		showMore: 'Show more',
+		showLess: 'Show less',
 		notFound: 'This title does not exist (anymore).',
 		seriesBook: (name: string, seq: string | null) => (seq ? `${name} · Book ${seq}` : name)
 	},

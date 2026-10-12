@@ -75,6 +75,8 @@ class Player {
 	duration = $state(0);
 	playing = $state(false);
 	buffering = $state(false);
+	/** Item whose playback was requested but has not started yet (shows a loading state). */
+	loadingId = $state<string | null>(null);
 	rate = $state<number>(storage(RATE_KEY, 1));
 	sleep = $state<SleepTimer>({ kind: 'off' });
 	/** 'retrying' while recovering (e.g. token refresh), 'fatal' once giving up. */
@@ -133,6 +135,7 @@ class Player {
 			a.addEventListener('playing', () => {
 				this.playing = true;
 				this.buffering = false;
+				this.loadingId = null;
 				this.#retries = 0;
 				this.error = null;
 				this.#lastTick = performance.now();
@@ -140,6 +143,7 @@ class Player {
 			});
 			a.addEventListener('pause', () => {
 				this.playing = false;
+				this.loadingId = null;
 				this.#lastTick = 0;
 				this.#pausedAt = Date.now();
 				this.#sync();
@@ -164,6 +168,7 @@ class Player {
 	async play(itemId?: string, startAt?: number) {
 		const id = itemId ?? this.item?.id;
 		if (!id) return;
+		this.loadingId = id;
 		this.error = null;
 		if (this.#session && this.#session.libraryItemId === id) {
 			if (startAt !== undefined) this.seek(startAt);
@@ -177,16 +182,24 @@ class Player {
 		}
 		await this.#close();
 		this.buffering = true;
-		const s = await session.api.play(
-			id,
-			{
-				deviceId: deviceId(),
-				clientName: 'KoalaShelf Web',
-				clientVersion: '0.1.0',
-				model: navigator.userAgent.slice(0, 64)
-			},
-			supportedMimeTypes()
-		);
+		let s: PlaybackSession;
+		try {
+			s = await session.api.play(
+				id,
+				{
+					deviceId: deviceId(),
+					clientName: 'KoalaShelf Web',
+					clientVersion: '0.1.0',
+					model: navigator.userAgent.slice(0, 64)
+				},
+				supportedMimeTypes()
+			);
+		} catch {
+			this.error = 'fatal';
+			this.buffering = false;
+			this.loadingId = null;
+			return;
+		}
 		this.#session = s;
 		this.#tracks = [...s.audioTracks].sort((a, b) => a.startOffset - b.startOffset);
 		this.item = s.libraryItem;
@@ -396,6 +409,7 @@ class Player {
 		if (!this.#session || this.#retries >= 3) {
 			this.error = 'fatal';
 			this.playing = false;
+			this.loadingId = null;
 			return;
 		}
 		this.#retries++;

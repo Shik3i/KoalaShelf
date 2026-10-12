@@ -208,6 +208,17 @@ button {
 	border-color: var(--c-accent);
 }
 
+/* Playback requested but not started yet (initial buffering can take seconds). */
+.is-loading {
+	animation: pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+	to {
+		opacity: 0.6;
+	}
+}
+
 @keyframes spin {
 	to {
 		rotate: 360deg;

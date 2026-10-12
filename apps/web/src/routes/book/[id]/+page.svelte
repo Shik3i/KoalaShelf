@@ -4,7 +4,7 @@
 	import { progress } from '#lib/progress.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
 	import { view } from '#lib/items.ts';
-	import { bytes, clock, duration } from '#lib/format.ts';
+	import { bytes, clock, duration, htmlToText } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from '#lib/components/Cover.svelte';
 	import Vinyl from '#lib/components/Vinyl.svelte';
@@ -32,6 +32,8 @@
 
 	type Tab = 'chapters' | 'bookmarks' | 'more';
 	let tab = $state<Tab>('chapters');
+	let descOpen = $state(false);
+	const description = $derived(htmlToText(meta?.description));
 
 	let ownBookmarks = $state.raw<Bookmark[]>([]);
 	const bookmarks = $derived(isCurrent ? player.bookmarks : ownBookmarks);
@@ -157,7 +159,11 @@
 				</div>
 
 				<div class="cta">
-					<button class="btn primary big" onclick={() => playAt()}>
+					<button
+						class="btn primary big"
+						class:is-loading={player.loadingId === item.id}
+						onclick={() => playAt()}
+					>
 						{#if isCurrent && player.playing}
 							<Pause size={18} fill="currentColor" /> {i18n.m.player.pause}
 						{:else}
@@ -231,7 +237,12 @@
 			<aside class="facts">
 				{#if meta.description}
 					<h2 class="label">{t.description}</h2>
-					<p class="desc">{meta.description}</p>
+					<p class="desc" class:open={descOpen}>{description}</p>
+					{#if description.length > 420}
+						<button class="more" onclick={() => (descOpen = !descOpen)}>
+							{descOpen ? t.showLess : t.showMore}
+						</button>
+					{/if}
 				{/if}
 				<h2 class="label">{t.details}</h2>
 				<dl>
@@ -469,6 +480,25 @@
 	.desc {
 		font-size: var(--fs-14);
 		white-space: pre-line;
+		display: -webkit-box;
+		-webkit-line-clamp: 10;
+		line-clamp: 10;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	.desc.open {
+		display: block;
+	}
+
+	.more {
+		justify-self: start;
+		padding: var(--sp-8) 0;
+		border: 0;
+		background: transparent;
+		color: var(--c-accent);
+		font-weight: var(--fw-bold);
+		font-size: var(--fs-13);
 	}
 
 	dl {

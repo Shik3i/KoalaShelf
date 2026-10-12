@@ -13,6 +13,13 @@
 
 	let { progress = 0, ...rest }: Props = $props();
 
+	/*
+	 * Geometry in deck units (0..100). Disc: centre (47, 50), radius 41, label radius ~16.
+	 * Pivot (93, 5), arm length 44. Rotating the arm clockwise from straight down puts the
+	 * stylus at r ≈ 33 for 18° (outer grooves) and r ≈ 21 for 40° (just outside the label).
+	 */
+	const PIVOT = { x: 93, y: 5 };
+	const LENGTH = 44;
 	const angle = $derived(18 + Math.min(1, Math.max(0, progress)) * 22);
 </script>
 
@@ -20,22 +27,29 @@
 	<div class="platter">
 		<Vinyl {...rest} />
 	</div>
-	<svg class="arm" viewBox="0 0 40 100" aria-hidden="true" style:rotate="{angle}deg">
-		<circle cx="20" cy="10" r="9" class="base" />
-		<path d="M20 10 L20 82" class="rod" />
-		<rect x="15" y="80" width="10" height="14" rx="2" class="head" />
-		<circle cx="20" cy="10" r="3.5" class="pin" />
+	<svg class="arm" viewBox="0 0 100 100" aria-hidden="true">
+		<circle cx={PIVOT.x} cy={PIVOT.y} r="4.6" class="base" />
+		<g class="swing" style:rotate="{angle}deg" style:transform-origin="{PIVOT.x}px {PIVOT.y}px">
+			<path d="M{PIVOT.x} {PIVOT.y} V{PIVOT.y + LENGTH - 4}" class="rod" />
+			<rect
+				x={PIVOT.x - 2.4}
+				y={PIVOT.y + LENGTH - 6}
+				width="4.8"
+				height="7.5"
+				rx="1"
+				class="head"
+			/>
+		</g>
+		<circle cx={PIVOT.x} cy={PIVOT.y} r="1.8" class="pin" />
 	</svg>
 </div>
 
 <style>
 	.deck {
-		--arm-color: var(--c-ink);
 		position: relative;
 		aspect-ratio: 1;
 		border-radius: var(--r-card-lg);
 		background: var(--c-platter);
-		container-type: inline-size;
 	}
 
 	.platter {
@@ -47,22 +61,28 @@
 
 	.arm {
 		position: absolute;
-		top: 1%;
-		right: 0%;
-		width: 16%;
-		transform-origin: 50% 10%;
-		transition: rotate 1.2s var(--motion-ease);
-		filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.35));
+		inset: 0;
+		width: 100%;
+		height: 100%;
 		overflow: visible;
+		pointer-events: none;
+		filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.35));
+	}
+
+	.swing {
+		transform-box: view-box;
+		transition: rotate 1.2s var(--motion-ease);
 	}
 
 	.base {
 		fill: var(--c-ctrl);
+		stroke: color-mix(in oklab, var(--c-ink) 18%, transparent);
+		stroke-width: 0.5;
 	}
 
 	.rod {
 		stroke: var(--c-muted);
-		stroke-width: 2.6;
+		stroke-width: 1.3;
 		stroke-linecap: round;
 	}
 
