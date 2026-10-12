@@ -50,6 +50,11 @@
 {#if done && !list.length}<p class="muted">{t.empty}</p>{/if}
 
 <div class="grid">
+	{#if !list.length && !done && !error}
+		{#each Array.from({ length: 10 }, (_, i) => i) as i (i)}
+			<div class="skeleton" style="aspect-ratio: 1"></div>
+		{/each}
+	{/if}
 	{#each list as s (s.id)}
 		{@const books = s.books.slice(0, 3)}
 		<a class="series" href="/library?series={s.id}">

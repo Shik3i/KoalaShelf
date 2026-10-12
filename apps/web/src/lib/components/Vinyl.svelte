@@ -35,7 +35,8 @@
 <div class="disc" class:playing style:--ticks={ticks} style:--label="{label * 100}%">
 	<div class="ticks" aria-hidden="true"></div>
 	<div class="label">
-		<Cover {title} {author} {src} sizes="160px" titleTop />
+		<!-- A single small image: load it right away (lazy loading stalls inside dialogs). -->
+		<Cover {title} {author} {src} sizes="160px" titleTop eager />
 	</div>
 	<div class="spindle" aria-hidden="true"></div>
 </div>

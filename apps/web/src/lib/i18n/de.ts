@@ -227,7 +227,9 @@ export const de: Messages = {
 	common: {
 		error: (msg) => `Etwas ist schiefgelaufen: ${msg}`,
 		retry: 'Nochmal versuchen',
-		loading: 'Lade …'
+		loading: 'Lade …',
+		offline:
+			'Du bist offline. Wiedergabe und Aktualisierung laufen weiter, sobald die Verbindung zurück ist.'
 	},
 	format: {
 		hours: 'Std.',

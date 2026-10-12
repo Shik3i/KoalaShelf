@@ -168,6 +168,13 @@
 	</section>
 {/if}
 
+{#if !shelves && !error}
+	<div class="skeleton hero-skel" aria-busy="true"></div>
+	<div class="crates">
+		{#each [0, 1] as i (i)}<div class="skeleton crate-skel"></div>{/each}
+	</div>
+{/if}
+
 <div class="crates">
 	{#each crates as c (c.id)}
 		<Crate title={c.label} note={c.note} entries={c.entries} />
@@ -272,6 +279,17 @@
 		padding: 0 var(--sp-24);
 	}
 
+	.hero-skel {
+		height: 260px;
+		margin-bottom: var(--sp-40);
+		border-radius: var(--r-card-lg);
+	}
+
+	.crate-skel {
+		height: 190px;
+		border-radius: var(--r-card-lg);
+	}
+
 	.crates {
 		display: grid;
 		gap: var(--sp-32);
@@ -284,14 +302,16 @@
 		padding: var(--sp-64) 0;
 	}
 
-	@container page (max-width: 700px) {
+	/* Without the sidebar (phones) settings are reached from here. */
+	@media (max-width: 800px) {
 		.tools {
 			display: flex;
 		}
+	}
 
+	@container page (max-width: 700px) {
 		.top {
 			align-items: start;
-			flex-direction: column;
 		}
 
 		.top h1 {

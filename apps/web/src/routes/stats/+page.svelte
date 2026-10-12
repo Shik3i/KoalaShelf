@@ -80,6 +80,13 @@
 
 {#if error}
 	<p class="muted">{i18n.m.common.error(error)}</p>
+{:else if !stats}
+	<div class="tiles" aria-busy="true">
+		{#each [0, 1, 2, 3] as i (i)}<div
+				class="skeleton"
+				style="height: 92px; border-radius: 22px"
+			></div>{/each}
+	</div>
 {:else if stats}
 	<div class="tiles">
 		<div class="tile card">
@@ -194,23 +201,24 @@
 		min-width: 0;
 	}
 
+	/* 53 weeks always fit the card: cells shrink instead of scrolling. */
 	.heat {
 		display: grid;
 		grid-auto-flow: column;
-		grid-auto-columns: minmax(8px, 1fr);
-		gap: 3px;
-		overflow-x: auto;
+		grid-auto-columns: minmax(0, 1fr);
+		gap: 2px;
 	}
 
 	.col {
 		display: grid;
-		gap: 3px;
+		gap: 2px;
 	}
 
 	.cell {
-		display: inline-block;
+		display: block;
 		aspect-ratio: 1;
-		min-width: 8px;
+		width: 100%;
+		min-width: 0;
 		border-radius: 2px;
 		background: var(--c-track);
 	}
@@ -240,6 +248,7 @@
 	}
 
 	.legend .cell {
+		display: inline-block;
 		width: 12px;
 	}
 

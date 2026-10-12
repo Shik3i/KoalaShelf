@@ -229,7 +229,8 @@ export const en = {
 	common: {
 		error: (msg: string) => `Something went wrong: ${msg}`,
 		retry: 'Retry',
-		loading: 'Loading …'
+		loading: 'Loading …',
+		offline: 'You are offline. Playback and updates resume once the connection is back.'
 	},
 	format: {
 		hours: 'h',

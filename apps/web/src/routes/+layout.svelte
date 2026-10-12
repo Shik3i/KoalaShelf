@@ -8,6 +8,7 @@
 	import FullPlayer from '#lib/player/FullPlayer.svelte';
 	import { player } from '#lib/player/player.svelte.ts';
 	import { isTauri } from '#lib/platform.ts';
+	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { dev } from '$app/env';
 	import type { LayoutProps } from './$types';
 
@@ -16,6 +17,7 @@
 	const isPublic = $derived(page.url.pathname.startsWith('/signin'));
 
 	let full = $state<FullPlayer>();
+	let online = $state(navigator.onLine);
 
 	// Offline shell for the browser/PWA; the desktop app ships its files locally anyway.
 	if (!dev && !isTauri && 'serviceWorker' in navigator) {
@@ -68,7 +70,15 @@
 	});
 </script>
 
-<svelte:window onkeydown={onKey} />
+<svelte:window
+	onkeydown={onKey}
+	ononline={() => (online = true)}
+	onoffline={() => (online = false)}
+/>
+
+{#if !online}
+	<div class="offline" role="status">{i18n.m.common.offline}</div>
+{/if}
 
 {#if isPublic}
 	{@render children()}
@@ -97,6 +107,18 @@
 		container: page / inline-size;
 		padding: var(--sp-32) var(--sp-40) var(--sp-64);
 		view-transition-name: main;
+	}
+
+	.offline {
+		position: sticky;
+		top: 0;
+		z-index: 30;
+		padding: var(--sp-8) var(--sp-16);
+		background: var(--c-ctrl);
+		color: var(--c-ctrl-ink);
+		font-size: var(--fs-13);
+		font-weight: var(--fw-semibold);
+		text-align: center;
 	}
 
 	main.has-player {

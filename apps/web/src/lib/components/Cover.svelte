@@ -142,6 +142,14 @@
 		overflow: hidden;
 	}
 
+	/* Thumbnails: text would be unreadable, the motif alone identifies the placeholder. */
+	@container (max-width: 96px) {
+		.author,
+		.title {
+			display: none;
+		}
+	}
+
 	img {
 		position: absolute;
 		inset: 0;

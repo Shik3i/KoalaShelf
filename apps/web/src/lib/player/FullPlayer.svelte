@@ -449,7 +449,7 @@
 
 	.rates button {
 		flex: 1;
-		min-height: 40px;
+		min-height: var(--layout-touch);
 		border: 0;
 		border-radius: var(--r-pill);
 		background: transparent;
@@ -646,17 +646,35 @@
 		.body.with-panel {
 			grid-template-columns: 1fr;
 			align-content: start;
-			gap: var(--sp-20);
-			padding: var(--sp-8) 0;
+			gap: var(--sp-16);
+			padding: var(--sp-4) 0;
 		}
 
+		.controls {
+			gap: var(--sp-12);
+		}
+
+		/* Keep transport, speed and actions on one phone screen. */
 		.deck {
-			width: min(100%, 360px);
+			width: min(100%, 360px, 34dvh);
 			justify-self: center;
 		}
 
 		.meta h2 {
 			font-size: var(--fs-24);
+			display: -webkit-box;
+			-webkit-line-clamp: 2;
+			line-clamp: 2;
+			-webkit-box-orient: vertical;
+			overflow: hidden;
+		}
+
+		.meta p {
+			margin-top: var(--sp-4);
+		}
+
+		.action {
+			min-height: 56px;
 		}
 
 		.keys {

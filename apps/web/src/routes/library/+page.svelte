@@ -69,6 +69,8 @@
 	let total = $state(0);
 	let pageNo = 0;
 	let loading = $state(false);
+	/** True until the first page for the current filters arrived (skeleton instead of "empty"). */
+	let firstLoad = $state(true);
 	let error = $state<string | null>(null);
 	let done = $state(false);
 	let controller: AbortController | null = null;
@@ -133,7 +135,10 @@
 		} catch (e) {
 			if ((e as Error).name !== 'AbortError') error = (e as Error).message;
 		} finally {
-			if (!signal?.aborted) loading = false;
+			if (!signal?.aborted) {
+				loading = false;
+				firstLoad = false;
+			}
 		}
 	}
 
@@ -146,6 +151,7 @@
 		done = false;
 		error = null;
 		loading = false;
+		firstLoad = true;
 		progress.load().then(loadMore);
 	});
 </script>
@@ -248,11 +254,17 @@
 
 {#if error}
 	<p class="error" role="alert">{t.loadError(error)}</p>
-{:else if !loading && items.length === 0}
+{:else if !firstLoad && !loading && items.length === 0}
 	<p class="empty muted">{t.empty}</p>
 {/if}
 
-{#if layout === 'shelf'}
+{#if firstLoad && items.length === 0 && !error}
+	<div class="shelf" aria-busy="true">
+		{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}
+			<div class="skel-tile"><div class="skeleton"></div></div>
+		{/each}
+	</div>
+{:else if layout === 'shelf'}
 	<div class="shelf">
 		{#each items as item, i (item.id)}
 			<BookTile {item} eager={i < 12} />
@@ -362,8 +374,8 @@
 	.seg button {
 		display: grid;
 		place-items: center;
-		width: 40px;
-		height: 32px;
+		width: 44px;
+		height: 40px;
 		border: 0;
 		border-radius: var(--r-pill);
 		background: transparent;
@@ -380,6 +392,14 @@
 		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 		row-gap: var(--sp-32);
 		margin: 0 calc(-1 * var(--sp-12));
+	}
+
+	.skel-tile {
+		padding: 0 var(--sp-12) var(--sp-48);
+	}
+
+	.skel-tile .skeleton {
+		aspect-ratio: 1;
 	}
 
 	.list {

@@ -34,6 +34,11 @@
 {#if authors && !authors.length}<p class="muted">{t.empty}</p>{/if}
 
 <div class="grid">
+	{#if !authors && !error}
+		{#each Array.from({ length: 12 }, (_, i) => i) as i (i)}
+			<div class="skeleton" style="aspect-ratio: 1; border-radius: 50%"></div>
+		{/each}
+	{/if}
 	{#each authors ?? [] as a (a.id)}
 		{@const art = coverArt(a.name)}
 		<a href="/library?author={a.id}" class="author">
