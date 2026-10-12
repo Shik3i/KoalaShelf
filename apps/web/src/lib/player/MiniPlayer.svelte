@@ -33,7 +33,11 @@
 			</div>
 			<span class="text">
 				<strong>{v.title}</strong>
-				<span class="muted tabular">{sub}</span>
+				{#if player.error}
+					<span class="err" role="status">{player.error === 'fatal' ? t.errorFatal : t.error}</span>
+				{:else}
+					<span class="muted tabular">{sub}</span>
+				{/if}
 			</span>
 		</button>
 		<button class="ctl back" onclick={() => player.skip(-30)} aria-label={t.back30}>
@@ -119,6 +123,12 @@
 	.text .muted {
 		font-size: var(--fs-12);
 		color: color-mix(in oklab, var(--c-ctrl-ink) 70%, transparent);
+	}
+
+	.err {
+		font-size: var(--fs-12);
+		font-weight: var(--fw-bold);
+		color: var(--c-accent);
 	}
 
 	.ctl {

@@ -10,6 +10,7 @@ import {
 	type Tokens
 } from '@koalashelf/abs-client';
 import { apiFetch, isTauri } from './platform.ts';
+import { invalidate } from './cache.ts';
 
 /**
  * Persisted login. Privacy: only what is needed to resume the session is stored,
@@ -177,7 +178,22 @@ class Session {
 		if (!libs.some((l) => l.id === this.libraryId)) this.libraryId = libs[0]?.id ?? null;
 	}
 
+	#signOutHooks = new Set<() => void>();
+
+	/** Runs before the session is cleared (sign-out or lost auth), e.g. to stop playback. */
+	onSignOut(fn: () => void) {
+		this.#signOutHooks.add(fn);
+	}
+
 	#clear() {
+		for (const fn of this.#signOutHooks) {
+			try {
+				fn();
+			} catch {
+				/* keep clearing */
+			}
+		}
+		invalidate();
 		this.client = null;
 		this.user = null;
 		this.libraries = [];

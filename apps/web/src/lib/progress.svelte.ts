@@ -7,6 +7,15 @@ class ProgressStore {
 	byItem = new SvelteMap<string, MediaProgress>();
 	#loaded: Promise<void> | null = null;
 
+	constructor() {
+		session.onSignOut(() => this.reset());
+		// Coming back to the tab: pick up progress made on other devices meanwhile.
+		document.addEventListener('visibilitychange', () => {
+			if (!document.hidden && session.client && this.#loaded)
+				void this.load(true).catch(() => undefined);
+		});
+	}
+
 	load(force = false) {
 		if (!this.#loaded || force) {
 			this.#loaded = session.api.me().then((me) => {
@@ -15,6 +24,12 @@ class ProgressStore {
 			});
 		}
 		return this.#loaded;
+	}
+
+	/** Forget everything (sign-out / user switch). */
+	reset() {
+		this.#loaded = null;
+		this.byItem.clear();
 	}
 
 	get(itemId: string) {

@@ -130,6 +130,8 @@ export const de: Messages = {
 		remainingChapter: (t) => `noch ${t} im Kapitel`,
 		seek: 'Position',
 		error: 'Wiedergabe fehlgeschlagen. Neuer Versuch …',
+		errorFatal: 'Wiedergabe fehlgeschlagen. Zum erneuten Versuch auf Play drücken.',
+		edit: 'Notiz bearbeiten',
 		syncFailed: 'Fortschritt konnte nicht gespeichert werden. Neuer Versuch folgt.',
 		shortcuts: 'Leertaste Play/Pause · ← → 30 s · Shift ← → Kapitel · B Marke'
 	},

@@ -46,6 +46,7 @@
 		"@koalashelf/abs-client": "workspace:*",
 		"@koalashelf/design-tokens": "workspace:*",
 		"@lucide/svelte": "^1.55.0",
-		"@tauri-apps/plugin-http": "2.8.2"
+		"@tauri-apps/plugin-http": "2.8.2",
+		"hls.js": "1.7.3"
 	}
 }

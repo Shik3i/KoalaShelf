@@ -132,6 +132,8 @@ export const en = {
 		remainingChapter: (t: string) => `${t} left in chapter`,
 		seek: 'Position',
 		error: 'Playback failed. Retrying …',
+		errorFatal: 'Playback failed. Press play to try again.',
+		edit: 'Edit note',
 		syncFailed: 'Progress could not be saved. Will retry.',
 		shortcuts: 'Space play/pause · ← → 30 s · Shift ← → chapter · B bookmark'
 	},

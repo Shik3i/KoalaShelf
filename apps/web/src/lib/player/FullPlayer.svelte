@@ -16,6 +16,7 @@
 	import ListMusic from '@lucide/svelte/icons/list-music';
 	import Bookmark from '@lucide/svelte/icons/bookmark';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import Pencil from '@lucide/svelte/icons/pencil';
 
 	type Panel = 'chapters' | 'bookmarks' | 'timer' | null;
 
@@ -25,6 +26,16 @@
 	let dialog = $state<HTMLDialogElement>();
 	let note = $state('');
 	let noteInput = $state<HTMLInputElement>();
+	/** Bookmark being renamed (its time) and the draft note. */
+	let editing = $state<number | null>(null);
+	let draft = $state('');
+
+	async function saveEdit(e: SubmitEvent) {
+		e.preventDefault();
+		if (editing === null) return;
+		await player.renameBookmark(editing, draft.trim() || clock(editing));
+		editing = null;
+	}
 
 	// Live clock for the sleep timer countdown.
 	let now = $state(Date.now());
@@ -232,10 +243,33 @@
 							<ul class="list">
 								{#each player.bookmarks as b (b.time)}
 									<li>
-										<button onclick={() => player.seek(b.time)}>
-											<span class="tabular pin">{clock(b.time)}</span>
-											<span class="ttl">{b.title}</span>
-										</button>
+										{#if editing === b.time}
+											<form class="edit" onsubmit={saveEdit}>
+												<span class="tabular pin">{clock(b.time)}</span>
+												<!-- svelte-ignore a11y_autofocus -->
+												<input
+													bind:value={draft}
+													aria-label={t.bookmarkTitle}
+													maxlength="200"
+													autofocus
+													onkeydown={(e) =>
+														e.key === 'Escape' && (e.stopPropagation(), (editing = null))}
+												/>
+												<button class="btn primary sm" type="submit">{t.save}</button>
+											</form>
+										{:else}
+											<button onclick={() => player.seek(b.time)}>
+												<span class="tabular pin">{clock(b.time)}</span>
+												<span class="ttl">{b.title}</span>
+											</button>
+											<button
+												class="icon"
+												onclick={() => ((editing = b.time), (draft = b.title))}
+												aria-label={t.edit}
+											>
+												<Pencil size={16} />
+											</button>
+										{/if}
 										<button
 											class="icon"
 											onclick={() => player.deleteBookmark(b.time)}
@@ -252,6 +286,9 @@
 					</aside>
 				{/if}
 			</div>
+			{#if player.error}
+				<p class="err" role="status">{player.error === 'fatal' ? t.errorFatal : t.error}</p>
+			{/if}
 			<p class="keys muted">{t.shortcuts}</p>
 		</div>
 	{/if}
@@ -548,6 +585,35 @@
 	.empty {
 		padding: var(--sp-12);
 		font-size: var(--fs-13);
+	}
+
+	.edit {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: var(--sp-8);
+		padding-left: var(--sp-12);
+	}
+
+	.edit input {
+		flex: 1;
+		min-width: 0;
+		min-height: 40px;
+		padding: 0 var(--sp-12);
+		border: 1.5px solid var(--c-accent);
+		border-radius: var(--r-card);
+		background: var(--c-bg);
+	}
+
+	.sm {
+		min-height: 40px;
+		padding: 0 var(--sp-16);
+	}
+
+	.err {
+		text-align: center;
+		color: var(--c-accent);
+		font-weight: var(--fw-bold);
 	}
 
 	.keys {

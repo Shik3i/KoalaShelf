@@ -51,6 +51,8 @@ type Query = Record<string, string | number | boolean | undefined | null>;
 
 interface RequestOptions {
 	method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+	/** Let the request outlive the page (final progress sync on tab close). */
+	keepalive?: boolean;
 	query?: Query;
 	body?: unknown;
 	signal?: AbortSignal;
@@ -165,11 +167,15 @@ export class AbsClient {
 		return this.refreshing;
 	}
 
-	async request<T>(path: string, { method = 'GET', query, body, signal }: RequestOptions = {}): Promise<T> {
+	async request<T>(
+		path: string,
+		{ method = 'GET', query, body, signal, keepalive }: RequestOptions = {}
+	): Promise<T> {
 		const send = () =>
 			this.fetchFn(`${this.baseUrl}${withQuery(path, query)}`, {
 				method,
 				signal,
+				keepalive,
 				credentials: 'omit',
 				headers: {
 					Authorization: `Bearer ${this.tokens.accessToken}`,
@@ -319,8 +325,8 @@ export class AbsClient {
 		});
 	}
 
-	syncSession(sessionId: string, sync: SessionSync) {
-		return this.request<void>(`/api/session/${sessionId}/sync`, { method: 'POST', body: sync });
+	syncSession(sessionId: string, sync: SessionSync, keepalive = false) {
+		return this.request<void>(`/api/session/${sessionId}/sync`, { method: 'POST', body: sync, keepalive });
 	}
 
 	closeSession(sessionId: string, sync?: SessionSync) {

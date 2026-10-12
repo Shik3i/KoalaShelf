@@ -76,11 +76,13 @@ class Player {
 	buffering = $state(false);
 	rate = $state<number>(storage(RATE_KEY, 1));
 	sleep = $state<SleepTimer>({ kind: 'off' });
-	error = $state<string | null>(null);
+	/** 'retrying' while recovering (e.g. token refresh), 'fatal' once giving up. */
+	error = $state<'retrying' | 'fatal' | null>(null);
 	/** Full-screen player visible. */
 	expanded = $state(false);
 
 	#audio: HTMLAudioElement | null = null;
+	#hls: { destroy(): void } | null = null;
 	#session: PlaybackSession | null = null;
 	#tracks: AudioTrack[] = [];
 	#track = 0;
@@ -101,6 +103,7 @@ class Player {
 	constructor() {
 		if (typeof window === 'undefined') return;
 		addEventListener('pagehide', () => this.#sync(true));
+		session.onSignOut(() => void this.stop().catch(() => undefined));
 		document.addEventListener('visibilitychange', () => document.hidden && this.#sync(true));
 	}
 
@@ -129,6 +132,7 @@ class Player {
 				this.playing = true;
 				this.buffering = false;
 				this.#retries = 0;
+				this.error = null;
 				this.#lastTick = performance.now();
 				this.#positionState();
 			});
@@ -283,7 +287,34 @@ class Player {
 		if (!track) return;
 		this.#track = idx;
 		this.#pendingSeek = t - track.startOffset;
-		this.audio.src = session.api.trackUrl(track.contentUrl);
+		const url = session.api.trackUrl(track.contentUrl);
+		// The server transcodes formats the browser cannot play into HLS.
+		const isHls = /\.m3u8(\?|$)/.test(track.contentUrl);
+		if (isHls && !this.audio.canPlayType('application/vnd.apple.mpegurl')) {
+			void this.#attachHls(url, autoplay);
+			return;
+		}
+		this.#hls?.destroy();
+		this.#hls = null;
+		this.audio.src = url;
+		if (autoplay) void this.audio.play().catch(() => undefined);
+	}
+
+	/** hls.js is only downloaded when a transcoded stream actually needs it. */
+	async #attachHls(url: string, autoplay: boolean) {
+		const { default: Hls } = await import('hls.js');
+		if (!Hls.isSupported()) {
+			this.error = 'fatal';
+			return;
+		}
+		this.#hls?.destroy();
+		const hls = new Hls({
+			xhrSetup: (xhr) => xhr.setRequestHeader('Authorization', `Bearer ${session.api.accessToken}`)
+		});
+		hls.on(Hls.Events.ERROR, (_e, data) => data.fatal && void this.#onError());
+		hls.loadSource(url);
+		hls.attachMedia(this.audio);
+		this.#hls = hls;
 		if (autoplay) void this.audio.play().catch(() => undefined);
 	}
 
@@ -300,6 +331,7 @@ class Player {
 		this.#lastTick = now;
 
 		this.#checkSleep();
+		if (this.chapter?.id !== this.#metaChapter) this.#updateMediaSession();
 	}
 
 	#checkSleep() {
@@ -346,11 +378,12 @@ class Player {
 	/** Network errors on the stream are usually an expired token: refresh and resume in place. */
 	async #onError() {
 		if (!this.#session || this.#retries >= 3) {
-			this.error = 'playback';
+			this.error = 'fatal';
 			this.playing = false;
 			return;
 		}
 		this.#retries++;
+		this.error = 'retrying';
 		const at = this.currentTime;
 		await session.api.refresh();
 		this.#loadTrackAt(at, true);
@@ -362,7 +395,7 @@ class Player {
 		const listened = Math.round(this.#listened);
 		const body = { currentTime: this.currentTime, timeListened: listened, duration: this.duration };
 		try {
-			await session.api.syncSession(s.id, body);
+			await session.api.syncSession(s.id, body, final);
 			this.#listened -= listened;
 			this.#updateLocalProgress();
 		} catch (e) {
@@ -426,13 +459,17 @@ class Player {
 
 	// --- Media Session (lock screen, headset & media keys) ----------------------
 
+	#metaChapter: number | undefined = undefined;
+
 	#updateMediaSession() {
 		if (!('mediaSession' in navigator) || !this.item) return;
 		const v = view(this.item);
+		this.#metaChapter = this.chapter?.id;
 		navigator.mediaSession.metadata = new MediaMetadata({
 			title: v.title,
 			artist: v.author,
-			album: v.series || v.title,
+			// Lock screens show the album line: the current chapter is the most useful there.
+			album: this.chapter?.title || v.series || v.title,
 			artwork: v.cover
 				? [96, 256, 512].map((w) => ({ src: v.cover!(w), sizes: `${w}x${w}`, type: 'image/webp' }))
 				: []
