@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KoalaShelf</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_library">Library</string>
+    <string name="sign_out">Sign out</string>
+
+    <string name="signin_intro">Sign in with your Audiobookshelf account.</string>
+    <string name="signin_server">Server</string>
+    <string name="signin_server_hint">https://audiobooks.example.org</string>
+    <string name="signin_username">Username</string>
+    <string name="signin_password">Password</string>
+    <string name="signin_submit">Sign in</string>
+    <string name="signin_connecting">Connecting …</string>
+    <string name="signin_privacy">Your data stays between this device and your server. No trackers, no third-party services.</string>
+    <string name="err_credentials">Wrong username or password.</string>
+    <string name="err_unreachable">Server not reachable. Check the address.</string>
+    <string name="err_not_abs">There is no Audiobookshelf server at this address.</string>
+    <string name="err_too_old">Audiobookshelf %1$s is too old. KoalaShelf needs at least %2$s.</string>
+    <string name="err_generic">Something went wrong: %1$s</string>
+
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_day">Hello</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="home_continue">Continue listening</string>
+    <string name="home_continue_series">Continue series</string>
+    <string name="home_recently_added">Recently added</string>
+    <string name="home_discover">Discover</string>
+    <string name="home_listen_again">Listen again</string>
+    <string name="home_empty">Nothing here yet. Start something from the library.</string>
+
+    <string name="library_title">Library</string>
+    <plurals name="library_count">
+        <item quantity="one">%d title</item>
+        <item quantity="other">%d titles</item>
+    </plurals>
+
+    <string name="book_read_by">Narrated by %1$s</string>
+    <string name="book_play">Play</string>
+    <string name="book_resume">Resume at %1$s</string>
+    <string name="book_listen_again">Listen again</string>
+    <string name="book_chapters">Chapters</string>
+    <string name="book_left">%1$d %% · %2$s left</string>
+
+    <string name="player_play">Play</string>
+    <string name="player_pause">Pause</string>
+    <string name="player_back30">Back 30 seconds</string>
+    <string name="player_forward30">Forward 30 seconds</string>
+    <string name="player_prev_chapter">Previous chapter</string>
+    <string name="player_next_chapter">Next chapter</string>
+    <string name="player_close">Close</string>
+    <string name="player_open">Open player</string>
+    <string name="player_speed">Speed</string>
+    <string name="player_timer">Sleep timer</string>
+    <string name="player_timer_off">Off</string>
+    <string name="player_timer_chapter">End of chapter</string>
+    <string name="player_timer_minutes">%1$d min</string>
+    <string name="player_timer_left">Stops in %1$s</string>
+    <string name="player_bookmarks">Bookmarks</string>
+    <string name="player_bookmark_add">Add bookmark</string>
+    <string name="player_bookmark_hint">What happens here?</string>
+    <string name="player_chapter_left">%1$s left in chapter</string>
+    <string name="player_chapter_of">Chapter %1$d of %2$d</string>
+    <string name="player_channel">Playback</string>
+
+    <string name="hours_minutes">%1$d h %2$d min</string>
+    <string name="minutes">%1$d min</string>
+</resources>
