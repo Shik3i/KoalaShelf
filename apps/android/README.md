@@ -1,7 +1,7 @@
 # apps/android
 
-Native Android-App von KoalaShelf: Kotlin, Jetpack Compose, Media3. Eigenes Gradle-Projekt, unabhängig vom pnpm-Workspace.
+Native KoalaShelf Android app: Kotlin, Jetpack Compose, Media3. A standalone Gradle project, independent of the pnpm workspace.
 
-Geplante Module (ab Phase 6): `app`, `core/designsystem`, `core/network`, `core/data`, `core/player`, `feature/*`.
+Planned modules (phase 6): `app`, `core/designsystem`, `core/network`, `core/data`, `core/player`, `feature/*`.
 
-`core/designsystem` enthält die aus `packages/design-tokens` generierten Kotlin-Tokens (eingecheckt).
+`core/designsystem` already contains the Kotlin tokens generated from `packages/design-tokens` (committed).

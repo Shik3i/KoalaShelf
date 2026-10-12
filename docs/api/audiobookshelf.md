@@ -1,90 +1,78 @@
-# Audiobookshelf-API: geprüfte Notizen
+# Audiobookshelf API: verified notes
 
-Die offizielle Doku (https://api.audiobookshelf.org) ist laut eigener Aussage veraltet.
-Die Endpunkte unten habe ich gegen den Server-Quellcode geprüft (advplyr/audiobookshelf, Release **v2.37.1**, 2026-09-29).
-Quellcode schlägt Doku.
+The official docs (https://api.audiobookshelf.org) state that they are outdated. Everything below was checked against the server source (advplyr/audiobookshelf, release **v2.37.1**) and exercised against a local server. Source beats docs.
 
 ## Auth
 
-| Zweck | Aufruf |
+| Purpose | Call |
 |---|---|
-| Login | `POST /login` `{username, password}`, Header `x-return-tokens: true` → `user.accessToken` (kurzlebig) + `user.refreshToken` |
-| Erneuern | `POST /auth/refresh`, Header `x-refresh-token: <rt>` → neues Paar (Rotation) |
-| Logout | `POST /logout` (Refresh-Token im Header oder Cookie) |
-| Prüfen | `GET /api/authorize`, `GET /api/me` |
-| Server-Infos | `GET /status`, `GET /ping` |
+| Login | `POST /login` `{username, password}`; header `x-return-tokens: true` → `user.accessToken` (short-lived) + `user.refreshToken`. Without the header the refresh token is set as httpOnly cookie. |
+| Refresh | `POST /auth/refresh`, header `x-refresh-token` (or the cookie) → rotated pair |
+| Logout | `POST /logout` (refresh token via header or cookie) |
+| Check | `GET /api/me`, `GET /api/authorize` |
+| Server info | `GET /status` (unauthenticated: `app`, `serverVersion`, `isInit`, `authMethods`) |
 
-- Requests: `Authorization: Bearer <accessToken>`. Bei GET geht auch `?token=` (wichtig für `<audio src>`).
-- Ohne `x-return-tokens` setzt der Server den Refresh-Token als httpOnly-Cookie (nur sinnvoll bei gleicher Origin).
-- Das alte `user.token` (Langzeit-Token) gilt als veraltet.
-- OpenID (PKCE) existiert: `/auth/openid`, `/auth/openid/callback`. Erst später.
+- Requests: `Authorization: Bearer <accessToken>`. GET also accepts `?token=` (needed for `<audio src>`).
+- Covers and author images are **public**: `GET /api/items/:id/cover`, `GET /api/authors/:id/image`.
+- OpenID (PKCE) exists under `/auth/openid*`; not used yet.
 
-## CORS (wichtig für die Web-App)
+## CORS
 
-Der Server sendet CORS-Header nur, wenn:
-- `ALLOW_CORS=1` gesetzt ist, oder
-- die Origin in den Server-Einstellungen unter `allowedOrigins` steht, oder
-- die Origin `capacitor://localhost` / `http://localhost` ist.
+The server only sends CORS headers when `ALLOW_CORS=1`, when the origin is listed in the server setting `allowedOrigins`, or for `capacitor://localhost` / `http://localhost`. Hence the same-origin proxy in the Docker image. Tauri can bypass CORS via its Rust HTTP plugin; Android is not affected.
 
-Die Web-App braucht also **gleiche Origin** (Reverse-Proxy) oder einen Eintrag in `allowedOrigins`.
-Tauri kann Anfragen über das Rust-HTTP-Plugin schicken und umgeht CORS. Android ist nicht betroffen.
+## Library
 
-## Bibliothek
-
-| Zweck | Aufruf |
+| Purpose | Call |
 |---|---|
-| Bibliotheken | `GET /api/libraries` |
-| Items | `GET /api/libraries/:id/items?limit&page&sort&desc&filter&minified&collapseseries` |
-| Filterwerte | `GET /api/libraries/:id/filterdata` (authors, genres, tags, series, narrators, languages) |
-| Serien | `GET /api/libraries/:id/series?limit>0&page&sort&desc`, `GET /api/libraries/:id/series/:seriesId` |
-| Autor:innen | `GET /api/libraries/:id/authors` |
-| Sammlungen | `GET /api/libraries/:id/collections` |
-| Startseite | `GET /api/libraries/:id/personalized?limit` → Shelves `continue-listening`, `continue-series`, `recently-added`, `recent-series`, `recommended`, `listen-again`, `newest-authors` |
-| Suche | `GET /api/libraries/:id/search?q&limit` |
+| Libraries | `GET /api/libraries` |
+| Items | `GET /api/libraries/:id/items?limit&page&sort&desc&filter&minified&collapseseries` (`limit=0` = all) |
+| Filter values | `GET /api/libraries/:id/filterdata` (authors, genres, tags, series, narrators, languages) |
+| Series | `GET /api/libraries/:id/series?limit>0&page&sort&desc` |
+| Authors | `GET /api/libraries/:id/authors` |
+| Home shelves | `GET /api/libraries/:id/personalized?limit` → `continue-listening`, `continue-series`, `recently-added`, `recent-series`, `recommended`, `listen-again`, `newest-authors` |
+| Search | `GET /api/libraries/:id/search?q&limit` |
 
-**Filter:** `filter=<gruppe>.<base64(wert)>`
+**Filter:** `filter=<group>.<base64(value)>` (UTF-8 base64)
 - `progress`: `finished`, `not-started`, `in-progress`, `not-finished`
-- `genres`, `narrators`, `tags`, `languages`: Klartext-Wert
-- `authors`, `series`: ID
-- `recent`: kürzlich hinzugefügt
-- Nur **ein** Filter pro Request. Kombinationen (z. B. Genre + Laufend) muss der Client selbst schneiden.
+- `genres`, `narrators`, `tags`, `languages`: plain value
+- `authors`, `series`: id
+- one filter per request
 
-**Sortierung:** `sort=media.metadata.title`, `media.metadata.authorName`, `media.duration`, `addedAt`, `media.metadata.publishedYear`, `progress` …; `desc=1`.
+**Sort:** `media.metadata.title`, `media.metadata.authorNameLF`, `addedAt`, `progress`, `media.duration`, `media.metadata.publishedYear`; `sequence` when filtering by series; `desc=1`.
 
 ## Item
 
-- `GET /api/items/:id?expanded=1&include=progress,authors` → `media.metadata` (title, subtitle, authors[], narrators[], series[{id,name,sequence}], genres[], language, publishedYear, description), `media.chapters[{id,start,end,title}]`, `media.audioFiles[]` (format, codec, bitRate, metadata.size), `media.tracks[]`, `media.duration`, `media.size`, `userMediaProgress`.
-- Cover: `GET /api/items/:id/cover?width=&height=&format=webp|jpeg&raw=0|1`.
+`GET /api/items/:id?expanded=1&include=progress` → `media.metadata` (title, subtitle, authors[], narrators[], series[{id,name,sequence}], genres[], language, publishedYear, publisher, description), `media.chapters[{id,start,end,title}]`, `media.audioFiles[]` (format, codec, bitRate, metadata.size), `media.duration`, `media.size`, `userMediaProgress`.
 
-## Wiedergabe
+Cover: `?width=&height=&format=webp|jpeg&raw=0|1`. Folder conventions picked up by the scanner: `reader.txt` (narrator), `desc.txt` (description), `cover.jpg`, `Author/Series/N - Title/`.
 
-| Zweck | Aufruf |
+## Playback
+
+| Purpose | Call |
 |---|---|
-| Session starten | `POST /api/items/:id/play` `{deviceInfo{deviceId,clientName,clientVersion,manufacturer,model}, forceDirectPlay, forceTranscode, supportedMimeTypes[], mediaPlayer}` → Session mit `id`, `audioTracks[{index,startOffset,duration,contentUrl,mimeType}]`, `chapters`, `currentTime` |
+| Start | `POST /api/items/:id/play` `{deviceInfo{deviceId,clientName,clientVersion,model}, supportedMimeTypes[], forceDirectPlay, forceTranscode, mediaPlayer}` → session with `id`, `audioTracks[{startOffset,duration,contentUrl,mimeType}]`, `chapters`, `currentTime`, `libraryItem` |
 | Sync | `POST /api/session/:id/sync` `{currentTime, timeListened, duration}` |
-| Schließen | `POST /api/session/:id/close` (gleicher Body) |
-| Offline-Sessions | `POST /api/session/local`, `POST /api/session/local-all` (Android-Offline) |
+| Close | `POST /api/session/:id/close` (same body) |
+| Offline sessions | `POST /api/session/local`, `POST /api/session/local-all` |
 
-- Ein Hörbuch kann **mehrere Audiodateien** haben. Der Player rechnet Gesamtzeit ↔ Track + Offset um.
-- `contentUrl` ist relativ; Auth per `?token=`. Läuft der Access-Token ab, Token erneuern und `src` an derselben Stelle neu setzen.
+- Books can consist of several audio files; the client maps the global time to track + offset.
+- `contentUrl` is relative; auth via `?token=`.
 
-## Fortschritt und Lesezeichen
+## Progress and bookmarks
 
-| Zweck | Aufruf |
+| Purpose | Call |
 |---|---|
-| Fortschritt lesen | `GET /api/me/progress/:id` |
-| Fortschritt setzen | `PATCH /api/me/progress/:libraryItemId` `{currentTime, progress, isFinished, duration}` |
-| In Arbeit | `GET /api/me/items-in-progress` |
-| Lesezeichen | `GET /api/me/bookmarks/:libraryItemId` |
-| Anlegen | `POST /api/me/item/:id/bookmark` `{time, title}` |
-| Ändern | `PATCH /api/me/item/:id/bookmark` `{time, title}` |
-| Löschen | `DELETE /api/me/item/:id/bookmark/:time` |
-| Statistik (später) | `GET /api/me/listening-stats`, `GET /api/me/stats/year/:year` |
+| All progress | part of `GET /api/me` (`mediaProgress[]`) |
+| Set progress | `PATCH /api/me/progress/:libraryItemId` `{currentTime, progress, isFinished, duration}` |
+| In progress | `GET /api/me/items-in-progress` |
+| Bookmarks | `GET /api/me/bookmarks/:libraryItemId` |
+| Create / update | `POST` / `PATCH /api/me/item/:id/bookmark` `{time, title}` |
+| Delete | `DELETE /api/me/item/:id/bookmark/:time` |
+| Stats (later) | `GET /api/me/listening-stats`, `GET /api/me/stats/year/:year` |
 
-- Lesezeichen haben nur `time` + `title`. **Die „Notiz“ ist der Titel.** Ein separates Notizfeld gibt es nicht.
-- Socket.io (`/socket.io`, Event `auth` mit Token) meldet u. a. Fortschritt von anderen Geräten. Optional ab Phase 3.
+Bookmarks only have `time` + `title`. Socket.io (`/socket.io`, event `auth` with the token) pushes progress from other devices; planned.
 
-## Nicht im Server
+## Not in the server
 
-- Sleep-Timer: rein clientseitig.
-- „Clip teilen“: Der Server kennt nur Admin-Freigaben ganzer Items (`/api/share/mediaitem`), keine Clips. Klären, bevor wir das bauen.
+- Sleep timer: client-side only.
+- "Share clip": the server only has admin shares of whole items (`/api/share/mediaitem`).

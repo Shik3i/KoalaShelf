@@ -1,5 +1,5 @@
 # apps/desktop
 
-Native Desktop-App von KoalaShelf mit Tauri 2. Sie lädt den Build von `apps/web`.
+Native KoalaShelf desktop app with Tauri 2, wrapping the `apps/web` build.
 
-Ab Phase 5 kommen dazu: HTTP über Rust (kein CORS), Tokens im OS-Schlüsselbund, Medientasten und ein Windows-Installer.
+Planned (phase 5): HTTP via Rust (no CORS), tokens in the OS keychain, media keys, Windows/macOS/Linux installers.

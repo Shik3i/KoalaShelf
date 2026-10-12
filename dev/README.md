@@ -1,8 +1,8 @@
-# dev: lokaler Audiobookshelf-Testserver
+# dev: local Audiobookshelf test server
 
-Fiktive Beispiel-Hörbücher (Testtöne, Kapitel, Cover) in einem lokalen Audiobookshelf. Nichts verlässt den Rechner.
+Fictional sample audiobooks (test tones, chapters, covers, one multi-file book) in a local Audiobookshelf. Nothing leaves your machine.
 
-Voraussetzungen: Docker, ffmpeg.
+Requirements: Docker, ffmpeg.
 
 ```bash
 node dev/make-samples.mjs
@@ -11,5 +11,5 @@ node dev/setup-abs.mjs
 ```
 
 - Server: http://localhost:13378
-- Zugangsdaten: werden beim ersten Lauf erzeugt und in `dev/.env` gespeichert (nicht im Repo).
-- Web-App gegen diesen Server: `pnpm dev` (der Vite-Proxy nutzt `ABS_URL` aus `dev/.env`).
+- Credentials are generated on the first run and stored in `dev/.env` (gitignored).
+- Web app against this server: `pnpm --filter @koalashelf/web dev` (the Vite proxy reads `ABS_URL` from `dev/.env`).

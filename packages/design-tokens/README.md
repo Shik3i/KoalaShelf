@@ -1,11 +1,11 @@
 # packages/design-tokens
 
-Die eine Quelle für Farben, Schrift, Abstände, Radien und Bewegung von KoalaShelf („KoalaShelf Vinyl“).
+The single source for KoalaShelf colors, type, spacing, radii and motion ("KoalaShelf Vinyl").
 
-Aus den Token-Dateien (DTCG-Format) erzeugt Style Dictionary:
+Style Dictionary turns `tokens/*.json` (DTCG) into:
 
-- `dist/tokens.css`: CSS-Variablen mit den Theme-Klassen `.th-light` / `.th-dark`
-- `dist/tokens.ts`: TypeScript-Konstanten
-- `apps/android/core/designsystem/.../KoalaTokens.kt`: Kotlin für Compose (eingecheckt)
+- `dist/tokens.css`: CSS custom properties with `.th-light` / `.th-dark` and a `prefers-color-scheme` fallback
+- `dist/tokens.ts`: TypeScript constants
+- `apps/android/core/designsystem/.../KoalaTokens.kt`: Compose colors and dimensions (committed)
 
-Der Build bricht ab, wenn ein Kontrast unter 4,5:1 fällt. Wird in Phase 1 gebaut.
+`pnpm build` (also runs on install) fails when a contrast pair drops below WCAG thresholds.
