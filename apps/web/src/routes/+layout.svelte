@@ -19,7 +19,9 @@
 
 	// Offline shell for the browser/PWA; the desktop app ships its files locally anyway.
 	if (!dev && !isTauri && 'serviceWorker' in navigator) {
-		navigator.serviceWorker.register('/service-worker.js', { type: 'module' }).catch(() => undefined);
+		navigator.serviceWorker
+			.register('/service-worker.js', { type: 'module' })
+			.catch(() => undefined);
 	}
 
 	session.restore().then(() => session.client && player.restoreLast());

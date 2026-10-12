@@ -56,7 +56,10 @@ export async function probeProxy(signal?: AbortSignal) {
 
 /** Same server regardless of scheme, case or trailing slash ("nas:13378" == "http://NAS:13378/"). */
 export function sameServer(a: string, b: string) {
-	const key = (u: string) => normalizeBaseUrl(u).replace(/^https?:\/\//i, '').toLowerCase();
+	const key = (u: string) =>
+		normalizeBaseUrl(u)
+			.replace(/^https?:\/\//i, '')
+			.toLowerCase();
 	return key(a) === key(b);
 }
 

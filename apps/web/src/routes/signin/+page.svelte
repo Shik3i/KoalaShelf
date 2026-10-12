@@ -128,43 +128,43 @@
 		<p class="muted">{t.intro}</p>
 
 		<form onsubmit={submit}>
-				<label class="field">
-					<span class="label">{t.server}</span>
-					<input
-						bind:value={server}
-						type="text"
-						inputmode="url"
-						autocomplete="url"
-						autocapitalize="none"
-						spellcheck="false"
-						placeholder={t.serverPlaceholder}
-						required
-					/>
-				</label>
-				<p class="status" aria-live="polite">
-					{#if check.state === 'checking'}
-						<span class="muted">{t.serverChecking}</span>
-					{:else if check.state === 'ok'}
-						<span class="ok">✓ {t.serverOk(check.version)}</span>
-					{:else if checkMessage}
-						<span class="warn">{checkMessage}</span>
-					{/if}
-				</p>
-				{#if recent.some((r) => shortUrl(r) !== shortUrl(server.trim()))}
-					<div class="recent" role="group" aria-label={t.serverRecent}>
-						{#each recent as r (r)}
-							<span class="chip" class:on={shortUrl(r) === shortUrl(server.trim())}>
-								<button type="button" class="pick" onclick={() => (server = r)}>{shortUrl(r)}</button>
-								<button
-									type="button"
-									class="x"
-									aria-label={t.serverForget}
-									onclick={() => (recent = forgetServer(r))}>✕</button
-								>
-							</span>
-						{/each}
-					</div>
+			<label class="field">
+				<span class="label">{t.server}</span>
+				<input
+					bind:value={server}
+					type="text"
+					inputmode="url"
+					autocomplete="url"
+					autocapitalize="none"
+					spellcheck="false"
+					placeholder={t.serverPlaceholder}
+					required
+				/>
+			</label>
+			<p class="status" aria-live="polite">
+				{#if check.state === 'checking'}
+					<span class="muted">{t.serverChecking}</span>
+				{:else if check.state === 'ok'}
+					<span class="ok">✓ {t.serverOk(check.version)}</span>
+				{:else if checkMessage}
+					<span class="warn">{checkMessage}</span>
 				{/if}
+			</p>
+			{#if recent.some((r) => shortUrl(r) !== shortUrl(server.trim()))}
+				<div class="recent" role="group" aria-label={t.serverRecent}>
+					{#each recent as r (r)}
+						<span class="chip" class:on={shortUrl(r) === shortUrl(server.trim())}>
+							<button type="button" class="pick" onclick={() => (server = r)}>{shortUrl(r)}</button>
+							<button
+								type="button"
+								class="x"
+								aria-label={t.serverForget}
+								onclick={() => (recent = forgetServer(r))}>✕</button
+							>
+						</span>
+					{/each}
+				</div>
+			{/if}
 
 			<label class="field">
 				<span class="label">{t.username}</span>
