@@ -19,7 +19,25 @@ export default defineConfig(({ mode }) => {
 					runes: ({ filename }) =>
 						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 				},
-				adapter: adapter({ fallback: 'index.html' })
+				adapter: adapter({ fallback: 'index.html' }),
+				// Strict CSP: SvelteKit hashes its own inline bootstrap script.
+				csp: {
+					mode: 'hash',
+					directives: {
+						'default-src': ['self'],
+						'script-src': ['self'],
+						'style-src': ['self', 'unsafe-inline'],
+						'img-src': ['self', 'data:', 'blob:', 'https:', 'http:'],
+						'media-src': ['self', 'blob:', 'https:', 'http:'],
+						'connect-src': ['self', 'https:', 'http:', 'wss:', 'ws:'],
+						'font-src': ['self', 'data:'],
+						'worker-src': ['self'],
+						'manifest-src': ['self'],
+						'object-src': ['none'],
+						'base-uri': ['self'],
+						'form-action': ['self']
+					}
+				}
 			})
 		],
 		server: {

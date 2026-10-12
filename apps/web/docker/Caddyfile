@@ -1,0 +1,44 @@
+{
+	admin off
+	auto_https off
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:8080 {
+	encode zstd gzip
+
+	# Audiobookshelf API, auth, websockets and streams go to the server.
+	@abs path /api/* /auth/* /logout /status /socket.io/* /hls/* /public/* /feed/*
+	@login {
+		method POST
+		path /login
+	}
+	handle @abs {
+		reverse_proxy {$ABS_URL}
+	}
+	handle @login {
+		reverse_proxy {$ABS_URL}
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		Cross-Origin-Opener-Policy same-origin
+		-Server
+	}
+
+	@immutable path /_app/immutable/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+	@sw path /service-worker.js /index.html /
+	header @sw Cache-Control "no-cache"
+
+	# Everything else is the SPA.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

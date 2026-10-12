@@ -1,0 +1,13 @@
+# Self-hosting example: KoalaShelf in front of Audiobookshelf on one origin.
+# Point your reverse proxy / TLS at port 8080. Audiobookshelf stays reachable as before.
+services:
+  koalashelf:
+    image: koalashelf-web
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      ABS_URL: http://audiobookshelf:80
+    ports:
+      - '8080:8080'
+    restart: unless-stopped
