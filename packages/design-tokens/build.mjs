@@ -187,6 +187,7 @@ const sd = new StyleDictionary({
   log: { verbosity: 'default' },
   platforms: {
     web: {
+      transforms: ['name/kebab'],
       buildPath: 'dist/',
       files: [
         { destination: 'tokens.css', format: 'koala/css' },
@@ -194,6 +195,7 @@ const sd = new StyleDictionary({
       ]
     },
     android: {
+      transforms: ['name/kebab'],
       buildPath: ANDROID_DIR,
       files: [{ destination: 'KoalaTokens.kt', format: 'koala/kotlin' }]
     }
