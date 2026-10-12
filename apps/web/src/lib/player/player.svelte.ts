@@ -11,6 +11,7 @@ import { AbsError } from '@koalashelf/abs-client';
 import { session } from '../session.svelte.ts';
 import { progress } from '../progress.svelte.ts';
 import { view } from '../items.ts';
+import { prefs, smartRewindSeconds } from '../prefs.svelte.ts';
 
 const SYNC_INTERVAL_MS = 15_000;
 const RATE_KEY = 'ks.rate';
@@ -83,6 +84,7 @@ class Player {
 
 	#audio: HTMLAudioElement | null = null;
 	#hls: { destroy(): void } | null = null;
+	#pausedAt = 0;
 	#session: PlaybackSession | null = null;
 	#tracks: AudioTrack[] = [];
 	#track = 0;
@@ -139,6 +141,7 @@ class Player {
 			a.addEventListener('pause', () => {
 				this.playing = false;
 				this.#lastTick = 0;
+				this.#pausedAt = Date.now();
 				this.#sync();
 			});
 			a.addEventListener('waiting', () => (this.buffering = true));
@@ -164,6 +167,11 @@ class Player {
 		this.error = null;
 		if (this.#session && this.#session.libraryItemId === id) {
 			if (startAt !== undefined) this.seek(startAt);
+			else if (prefs.smartRewind && this.#pausedAt) {
+				const back = smartRewindSeconds(Date.now() - this.#pausedAt);
+				if (back) this.skip(-back);
+			}
+			this.#pausedAt = 0;
 			await this.audio.play().catch(() => undefined);
 			return;
 		}
@@ -215,6 +223,14 @@ class Player {
 
 	skip(seconds: number) {
 		this.seek(this.currentTime + seconds);
+	}
+
+	back() {
+		this.skip(-prefs.skipBack);
+	}
+
+	forward() {
+		this.skip(prefs.skipForward);
 	}
 
 	prevChapter() {
@@ -478,8 +494,8 @@ class Player {
 		const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
 			['play', () => void this.play()],
 			['pause', () => this.pause()],
-			['seekbackward', (d) => this.skip(-(d.seekOffset ?? 30))],
-			['seekforward', (d) => this.skip(d.seekOffset ?? 30)],
+			['seekbackward', (d) => this.skip(-(d.seekOffset ?? prefs.skipBack))],
+			['seekforward', (d) => this.skip(d.seekOffset ?? prefs.skipForward)],
 			['previoustrack', () => this.prevChapter()],
 			['nexttrack', () => this.nextChapter()],
 			['seekto', (d) => d.seekTime !== undefined && this.seek(d.seekTime)],

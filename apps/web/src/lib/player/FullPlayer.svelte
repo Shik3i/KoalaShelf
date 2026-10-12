@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { player, RATES } from './player.svelte.ts';
+	import { prefs } from '#lib/prefs.svelte.ts';
 	import { view } from '#lib/items.ts';
 	import { clock, speed } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -123,8 +124,8 @@
 						<button class="ctl" onclick={() => player.prevChapter()} aria-label={t.prevChapter}
 							><SkipBack size={22} /></button
 						>
-						<button class="ctl" onclick={() => player.skip(-30)} aria-label={t.back30}>
-							<RotateCcw size={26} /><span class="n">30</span>
+						<button class="ctl" onclick={() => player.back()} aria-label={t.back(prefs.skipBack)}>
+							<RotateCcw size={26} /><span class="n">{prefs.skipBack}</span>
 						</button>
 						<button
 							class="ctl play"
@@ -136,8 +137,12 @@
 									fill="currentColor"
 								/>{/if}
 						</button>
-						<button class="ctl" onclick={() => player.skip(30)} aria-label={t.forward30}>
-							<RotateCw size={26} /><span class="n">30</span>
+						<button
+							class="ctl"
+							onclick={() => player.forward()}
+							aria-label={t.forward(prefs.skipForward)}
+						>
+							<RotateCw size={26} /><span class="n">{prefs.skipForward}</span>
 						</button>
 						<button class="ctl" onclick={() => player.nextChapter()} aria-label={t.nextChapter}
 							><SkipForward size={22} /></button

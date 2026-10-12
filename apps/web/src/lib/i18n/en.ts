@@ -15,7 +15,8 @@ export const en = {
 		themeSystem: 'Theme: system',
 		themeLight: 'Theme: light',
 		themeDark: 'Theme: dark',
-		language: 'Language'
+		language: 'Language',
+		settings: 'Settings'
 	},
 	signin: {
 		title: 'Sign in',
@@ -106,8 +107,8 @@ export const en = {
 		player: 'Player',
 		play: 'Play',
 		pause: 'Pause',
-		back30: 'Back 30 seconds',
-		forward30: 'Forward 30 seconds',
+		back: (s: number) => `Back ${s} seconds`,
+		forward: (s: number) => `Forward ${s} seconds`,
 		prevChapter: 'Previous chapter',
 		nextChapter: 'Next chapter',
 		speed: 'Speed',
@@ -135,7 +136,7 @@ export const en = {
 		errorFatal: 'Playback failed. Press play to try again.',
 		edit: 'Edit note',
 		syncFailed: 'Progress could not be saved. Will retry.',
-		shortcuts: 'Space play/pause · ← → 30 s · Shift ← → chapter · B bookmark'
+		shortcuts: 'Space play/pause · ← → skip · Shift ← → chapter · B bookmark'
 	},
 	home: {
 		greetingMorning: 'Good morning',
@@ -172,6 +173,33 @@ export const en = {
 		narrators: 'Narrators',
 		nothing: (q: string) => `Nothing found for “${q}”.`,
 		hint: 'Search across your library.'
+	},
+	settings: {
+		title: 'Settings',
+		appearance: 'Appearance',
+		theme: 'Theme',
+		themeSystem: 'System',
+		themeLight: 'Light',
+		themeDark: 'Dark',
+		language: 'Language',
+		playback: 'Playback',
+		skipBack: 'Skip back',
+		skipForward: 'Skip forward',
+		seconds: (n: number) => `${n} s`,
+		smartRewind: 'Smart rewind',
+		smartRewindHint:
+			'After a longer pause, playback starts a few seconds earlier (5 s after 1 min, 15 s after 10 min, 30 s after 1 h).',
+		account: 'Account',
+		user: 'User',
+		server: 'Audiobookshelf server',
+		version: 'Version',
+		signOut: 'Sign out',
+		about: 'About',
+		aboutText:
+			'KoalaShelf is an open-source client for Audiobookshelf. It talks only to your server: no trackers, no analytics, no third-party requests.',
+		source: 'Source code',
+		on: 'On',
+		off: 'Off'
 	},
 	common: {
 		error: (msg: string) => `Something went wrong: ${msg}`,

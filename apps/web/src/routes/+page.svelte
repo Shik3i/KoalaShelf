@@ -3,17 +3,14 @@
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
-	import { theme } from '#lib/theme.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { coverSrc, view } from '#lib/items.ts';
 	import { clock, duration } from '#lib/format.ts';
 	import Turntable from '#lib/components/Turntable.svelte';
 	import Crate, { type CrateEntry } from '#lib/components/Crate.svelte';
-	import LocaleSwitch from '#lib/components/LocaleSwitch.svelte';
 	import Play from '@lucide/svelte/icons/play';
 	import Pause from '@lucide/svelte/icons/pause';
-	import SunMoon from '@lucide/svelte/icons/sun-moon';
-	import LogOut from '@lucide/svelte/icons/log-out';
+	import Settings from '@lucide/svelte/icons/settings';
 
 	const t = $derived(i18n.m.home);
 	const WEEK = 7 * 24 * 3600 * 1000;
@@ -106,23 +103,9 @@
 		<h1>{greeting}{session.user ? `, ${session.user.username}` : ''}</h1>
 	</div>
 	<div class="tools">
-		<LocaleSwitch />
-		<button
-			class="round"
-			onclick={() => theme.cycle()}
-			aria-label={{
-				system: i18n.m.nav.themeSystem,
-				light: i18n.m.nav.themeLight,
-				dark: i18n.m.nav.themeDark
-			}[theme.choice]}><SunMoon size={18} /></button
-		>
-		<button
-			class="round"
-			onclick={async () => (await player.stop(), await session.signOut())}
-			aria-label={i18n.m.nav.signOut}
-		>
-			<LogOut size={18} />
-		</button>
+		<a class="round" href="/settings" aria-label={i18n.m.nav.settings}>
+			<Settings size={20} />
+		</a>
 	</div>
 </header>
 

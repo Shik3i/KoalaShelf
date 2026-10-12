@@ -38,8 +38,10 @@
 		} else if (key === 'ArrowLeft' || key === 'ArrowRight') {
 			e.preventDefault();
 			const dir = key === 'ArrowLeft' ? -1 : 1;
-			if (!e.shiftKey) player.skip(dir * 30);
-			else if (dir < 0) player.prevChapter();
+			if (!e.shiftKey) {
+				if (dir < 0) player.back();
+				else player.forward();
+			} else if (dir < 0) player.prevChapter();
 			else player.nextChapter();
 		} else if (key === 'b' || key === 'B') {
 			e.preventDefault();

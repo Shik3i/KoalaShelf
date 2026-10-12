@@ -13,7 +13,8 @@ export const de: Messages = {
 		themeSystem: 'Theme: System',
 		themeLight: 'Theme: Hell',
 		themeDark: 'Theme: Dunkel',
-		language: 'Sprache'
+		language: 'Sprache',
+		settings: 'Einstellungen'
 	},
 	signin: {
 		title: 'Anmelden',
@@ -104,8 +105,8 @@ export const de: Messages = {
 		player: 'Player',
 		play: 'Abspielen',
 		pause: 'Pause',
-		back30: '30 Sekunden zurück',
-		forward30: '30 Sekunden vor',
+		back: (s) => `${s} Sekunden zurück`,
+		forward: (s) => `${s} Sekunden vor`,
 		prevChapter: 'Kapitel zurück',
 		nextChapter: 'Kapitel vor',
 		speed: 'Geschwindigkeit',
@@ -133,7 +134,7 @@ export const de: Messages = {
 		errorFatal: 'Wiedergabe fehlgeschlagen. Zum erneuten Versuch auf Play drücken.',
 		edit: 'Notiz bearbeiten',
 		syncFailed: 'Fortschritt konnte nicht gespeichert werden. Neuer Versuch folgt.',
-		shortcuts: 'Leertaste Play/Pause · ← → 30 s · Shift ← → Kapitel · B Marke'
+		shortcuts: 'Leertaste Play/Pause · ← → springen · Shift ← → Kapitel · B Marke'
 	},
 	home: {
 		greetingMorning: 'Guten Morgen',
@@ -170,6 +171,33 @@ export const de: Messages = {
 		narrators: 'Sprecher:innen',
 		nothing: (q) => `Nichts gefunden für „${q}“.`,
 		hint: 'Durchsuche deine Bibliothek.'
+	},
+	settings: {
+		title: 'Einstellungen',
+		appearance: 'Darstellung',
+		theme: 'Theme',
+		themeSystem: 'System',
+		themeLight: 'Hell',
+		themeDark: 'Dunkel',
+		language: 'Sprache',
+		playback: 'Wiedergabe',
+		skipBack: 'Zurückspringen',
+		skipForward: 'Vorspringen',
+		seconds: (n) => `${n} s`,
+		smartRewind: 'Smart Rewind',
+		smartRewindHint:
+			'Nach einer längeren Pause beginnt die Wiedergabe ein paar Sekunden früher (5 s nach 1 Min., 15 s nach 10 Min., 30 s nach 1 Std.).',
+		account: 'Konto',
+		user: 'Benutzer',
+		server: 'Audiobookshelf-Server',
+		version: 'Version',
+		signOut: 'Abmelden',
+		about: 'Über',
+		aboutText:
+			'KoalaShelf ist ein Open-Source-Client für Audiobookshelf. Er spricht nur mit deinem Server: keine Tracker, keine Statistik-Dienste, keine Anfragen an Dritte.',
+		source: 'Quellcode',
+		on: 'An',
+		off: 'Aus'
 	},
 	common: {
 		error: (msg) => `Etwas ist schiefgelaufen: ${msg}`,

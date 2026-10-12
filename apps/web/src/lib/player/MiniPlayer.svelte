@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { player } from './player.svelte.ts';
+	import { prefs } from '#lib/prefs.svelte.ts';
 	import { view } from '#lib/items.ts';
 	import { clock } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -40,7 +41,7 @@
 				{/if}
 			</span>
 		</button>
-		<button class="ctl back" onclick={() => player.skip(-30)} aria-label={t.back30}>
+		<button class="ctl back" onclick={() => player.back()} aria-label={t.back(prefs.skipBack)}>
 			<RotateCcw size={20} />
 		</button>
 		<button

@@ -13,7 +13,6 @@
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import LocaleSwitch from './LocaleSwitch.svelte';
-	import { player } from '#lib/player/player.svelte.ts';
 
 	const t = $derived(i18n.m.nav);
 	const items = $derived([
@@ -62,10 +61,12 @@
 		{/if}
 		<LocaleSwitch />
 		<div class="me">
-			<span class="avatar" aria-hidden="true"
-				>{session.user?.username.slice(0, 1).toUpperCase()}</span
-			>
-			<span class="name">{session.user?.username}</span>
+			<a class="who" href="/settings" title={t.settings}>
+				<span class="avatar" aria-hidden="true"
+					>{session.user?.username.slice(0, 1).toUpperCase()}</span
+				>
+				<span class="name">{session.user?.username}</span>
+			</a>
 			<button class="icon" onclick={() => theme.cycle()} title={themeLabel} aria-label={themeLabel}>
 				{#if theme.choice === 'light'}<Sun size={18} />{:else if theme.choice === 'dark'}<Moon
 						size={18}
@@ -73,7 +74,7 @@
 			</button>
 			<button
 				class="icon"
-				onclick={async () => (await player.stop(), await session.signOut())}
+				onclick={() => session.signOut()}
 				title={t.signOut}
 				aria-label={t.signOut}
 			>
@@ -153,6 +154,21 @@
 		padding: var(--sp-8);
 		border-radius: var(--r-card);
 		background: var(--c-card);
+	}
+
+	.who {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: var(--sp-8);
+		min-height: 36px;
+		border-radius: var(--r-card);
+	}
+
+	.who:hover .name {
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.avatar {
