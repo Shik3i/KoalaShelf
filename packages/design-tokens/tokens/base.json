@@ -1,0 +1,70 @@
+{
+  "font": {
+    "$type": "fontFamily",
+    "display": { "$value": ["Gloock", "Georgia", "serif"] },
+    "text": { "$value": ["Manrope Variable", "Manrope", "system-ui", "sans-serif"] }
+  },
+  "fw": {
+    "$type": "fontWeight",
+    "regular": { "$value": 400 },
+    "semibold": { "$value": 600 },
+    "bold": { "$value": 800 }
+  },
+  "fs": {
+    "$type": "dimension",
+    "12": { "$value": "12px" },
+    "13": { "$value": "13px" },
+    "14": { "$value": "14px" },
+    "15": { "$value": "15px" },
+    "18": { "$value": "18px" },
+    "24": { "$value": "24px" },
+    "34": { "$value": "34px" },
+    "56": { "$value": "56px" },
+    "time": { "$value": "38px" },
+    "label": { "$value": "12px" }
+  },
+  "tracking": {
+    "$type": "dimension",
+    "label": { "$value": "0.1em" },
+    "cover-author": { "$value": "0.14em" }
+  },
+  "cover": {
+    "$type": "dimension",
+    "author": { "$value": "4.4cqw" },
+    "title": { "$value": "13cqw" }
+  },
+  "sp": {
+    "$type": "dimension",
+    "4": { "$value": "4px" },
+    "8": { "$value": "8px" },
+    "12": { "$value": "12px" },
+    "16": { "$value": "16px" },
+    "20": { "$value": "20px" },
+    "24": { "$value": "24px" },
+    "32": { "$value": "32px" },
+    "40": { "$value": "40px" },
+    "48": { "$value": "48px" },
+    "64": { "$value": "64px" }
+  },
+  "r": {
+    "$type": "dimension",
+    "cover": { "$value": "5px" },
+    "card": { "$value": "16px" },
+    "card-lg": { "$value": "22px" },
+    "pill": { "$value": "999px" }
+  },
+  "layout": {
+    "$type": "dimension",
+    "sidebar": { "$value": "196px" },
+    "breakpoint": { "$value": "800px" },
+    "touch": { "$value": "44px" }
+  },
+  "motion": {
+    "spin": { "$type": "duration", "$value": "9s" },
+    "fast": { "$type": "duration", "$value": "160ms" },
+    "base": { "$type": "duration", "$value": "280ms" },
+    "ease": { "$type": "cubicBezier", "$value": [0.2, 0.8, 0.2, 1] },
+    "tonearm-base": { "$type": "number", "$value": 18 },
+    "tonearm-range": { "$type": "number", "$value": 22 }
+  }
+}

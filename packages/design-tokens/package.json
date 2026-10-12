@@ -1,0 +1,17 @@
+{
+  "name": "@koalashelf/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./dist/tokens.ts",
+    "./tokens.css": "./dist/tokens.css"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "prepare": "node build.mjs"
+  },
+  "devDependencies": {
+    "style-dictionary": "^5.6.1"
+  }
+}

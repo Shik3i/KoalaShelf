@@ -1,0 +1,49 @@
+{
+  "c": {
+    "$type": "color",
+    "light": {
+      "outer": { "$value": "#CBD2DC" },
+      "bg": { "$value": "#EEF1F5" },
+      "panel": { "$value": "#E4E8EE" },
+      "card": { "$value": "#FFFFFF" },
+      "ink": { "$value": "#1E222B" },
+      "muted": { "$value": "#566075" },
+      "line": { "$value": "#D5DAE2" },
+      "ctrl": { "$value": "#2A2F3A" },
+      "ctrl-ink": { "$value": "#EEF1F5" },
+      "accent": { "$value": "#C23D20" },
+      "on-accent": { "$value": "#FFFFFF" },
+      "track": { "$value": "#C3CAD6" },
+      "ledge": { "$value": "#B7BFCC" },
+      "sel": { "$value": "{c.light.ctrl}" },
+      "sel-ink": { "$value": "#EEF1F5" },
+      "cur-bg": { "$value": "{c.light.ctrl}" },
+      "cur-ink": { "$value": "#FFFFFF" },
+      "platter": { "$value": "{c.light.outer}" },
+      "vinyl-a": { "$value": "#161820" },
+      "vinyl-b": { "$value": "#22252F" }
+    },
+    "dark": {
+      "outer": { "$value": "#0A0807" },
+      "bg": { "$value": "#17130F" },
+      "panel": { "$value": "#17130F" },
+      "card": { "$value": "#211B16" },
+      "ink": { "$value": "#F1E8DC" },
+      "muted": { "$value": "#A39888" },
+      "line": { "$value": "#2E261F" },
+      "ctrl": { "$value": "#2A2119" },
+      "ctrl-ink": { "$value": "#F1E8DC" },
+      "accent": { "$value": "#E8A33D" },
+      "on-accent": { "$value": "#1A1206" },
+      "track": { "$value": "#3A3027" },
+      "ledge": { "$value": "#3A3027" },
+      "sel": { "$value": "{c.dark.ctrl}" },
+      "sel-ink": { "$value": "{c.dark.accent}" },
+      "cur-bg": { "$value": "{c.dark.ctrl}" },
+      "cur-ink": { "$value": "{c.dark.accent}" },
+      "platter": { "$value": "{c.dark.card}" },
+      "vinyl-a": { "$value": "#0A0807" },
+      "vinyl-b": { "$value": "#1B1612" }
+    }
+  }
+}
