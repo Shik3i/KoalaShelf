@@ -280,7 +280,7 @@
 		padding: var(--sp-64) 0;
 	}
 
-	@media (max-width: 800px) {
+	@container page (max-width: 700px) {
 		.tools {
 			display: flex;
 		}

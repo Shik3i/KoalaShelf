@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => {
 						'media-src': ['self', 'blob:', 'https:', 'http:'],
 						'connect-src': ['self', 'https:', 'http:', 'wss:', 'ws:', 'ipc:'],
 						'font-src': ['self', 'data:'],
-						'worker-src': ['self'],
+						'worker-src': ['self', 'blob:'],
 						'manifest-src': ['self'],
 						'object-src': ['none'],
 						'base-uri': ['self'],

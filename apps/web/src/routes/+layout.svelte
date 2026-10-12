@@ -24,8 +24,6 @@
 			.catch(() => undefined);
 	}
 
-	session.restore().then(() => session.client && player.restoreLast());
-
 	/** Global player shortcuts, ignored while typing or on focused controls. */
 	function onKey(e: KeyboardEvent) {
 		if (!player.item || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -95,6 +93,8 @@
 
 	main {
 		min-width: 0;
+		/* Pages size themselves to the space next to the sidebar, not the viewport. */
+		container: page / inline-size;
 		padding: var(--sp-32) var(--sp-40) var(--sp-64);
 		view-transition-name: main;
 	}

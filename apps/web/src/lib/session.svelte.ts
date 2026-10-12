@@ -126,7 +126,15 @@ class Session {
 		});
 	}
 
-	async restore() {
+	#restoring: Promise<void> | null = null;
+
+	/** Restores the stored session once; safe to call from every load function. */
+	restore() {
+		this.#restoring ??= this.#restore();
+		return this.#restoring;
+	}
+
+	async #restore() {
 		this.#fetch = await apiFetch();
 		const stored = load();
 		if (stored) {

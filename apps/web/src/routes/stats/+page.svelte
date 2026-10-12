@@ -312,7 +312,7 @@
 		text-align: center;
 	}
 
-	@media (max-width: 1000px) {
+	@container page (max-width: 760px) {
 		.split {
 			grid-template-columns: 1fr;
 		}

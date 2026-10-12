@@ -124,7 +124,7 @@
 		height: 60px;
 	}
 
-	@media (max-width: 800px) {
+	@container page (max-width: 700px) {
 		.grid {
 			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 		}

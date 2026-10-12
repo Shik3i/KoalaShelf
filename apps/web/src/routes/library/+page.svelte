@@ -451,7 +451,7 @@
 		text-align: center;
 	}
 
-	@media (max-width: 800px) {
+	@container page (max-width: 700px) {
 		.shelf {
 			grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
 		}

@@ -258,7 +258,7 @@
 <style>
 	.hero {
 		display: grid;
-		grid-template-columns: auto 1fr;
+		grid-template-columns: auto minmax(0, 1fr);
 		gap: var(--sp-48);
 		align-items: center;
 		margin-bottom: var(--sp-48);
@@ -303,8 +303,11 @@
 	}
 
 	h1 {
-		font-size: var(--fs-56);
-		line-height: 0.95;
+		/* Long audiobook titles: scale with the available width, never overflow. */
+		font-size: clamp(var(--fs-34), 5.5cqi, var(--fs-56));
+		line-height: 0.98;
+		overflow-wrap: break-word;
+		hyphens: auto;
 	}
 
 	.subtitle {
@@ -485,13 +488,13 @@
 		overflow-wrap: anywhere;
 	}
 
-	@media (max-width: 1100px) {
+	@container page (max-width: 900px) {
 		.lower {
 			grid-template-columns: 1fr;
 		}
 	}
 
-	@media (max-width: 800px) {
+	@container page (max-width: 760px) {
 		.hero {
 			grid-template-columns: 1fr;
 			gap: var(--sp-24);
@@ -499,12 +502,8 @@
 		}
 
 		.art {
-			--size: min(62vw, 280px);
+			--size: min(62cqi, 280px);
 			justify-self: center;
-		}
-
-		h1 {
-			font-size: var(--fs-34);
 		}
 
 		.big {
