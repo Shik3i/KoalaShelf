@@ -51,14 +51,20 @@ export class ServerTooOldError extends Error {
 	}
 }
 
-/** Detects whether the app is served by a proxy in front of Audiobookshelf. */
-export async function detectSameOrigin() {
-	if (isTauri) return false;
+/**
+ * The Docker image (and the dev server) proxies one preconfigured Audiobookshelf server on
+ * the app's own origin. This returns that server's public URL, or null when there is none.
+ * Signing in to exactly this server then goes through the proxy: no CORS, httpOnly cookie.
+ */
+export async function presetServer(): Promise<string | null> {
+	if (isTauri) return null;
 	try {
-		await getServerStatus('', fetch, AbortSignal.timeout(2500));
-		return true;
+		const res = await fetch('/koalashelf.json', { signal: AbortSignal.timeout(2500) });
+		if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null;
+		const { server } = (await res.json()) as { server?: string };
+		return server ? normalizeBaseUrl(server) : null;
 	} catch {
-		return false;
+		return null;
 	}
 }
 

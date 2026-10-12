@@ -35,6 +35,13 @@
 	@sw path /service-worker.js /index.html /
 	header @sw Cache-Control "no-cache"
 
+	# Tells the app which Audiobookshelf server this proxy serves (prefilled in the sign-in form).
+	handle /koalashelf.json {
+		header Content-Type application/json
+		header Cache-Control no-cache
+		respond `{"server":"{$ABS_PUBLIC_URL}"}` 200
+	}
+
 	# Everything else is the SPA.
 	handle {
 		root * /srv

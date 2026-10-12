@@ -18,8 +18,14 @@ export const de: Messages = {
 	signin: {
 		title: 'Anmelden',
 		intro: 'Melde dich mit deinem Audiobookshelf-Konto an.',
-		server: 'Server',
+		server: 'Audiobookshelf-Server',
 		serverPlaceholder: 'https://hoerbuch.example.org',
+		serverChecking: 'Prüfe Server …',
+		serverOk: (version) => `Audiobookshelf ${version} gefunden`,
+		serverRecent: 'Zuletzt genutzte Server',
+		serverForget: 'Aus der Liste entfernen',
+		errCors: (origin) =>
+			`Der Server erlaubt diese App nicht. Trage in Audiobookshelf unter Einstellungen ${origin} bei „Allowed Origins“ ein – oder betreibe KoalaShelf per Docker vor deinem Server.`,
 		username: 'Benutzername',
 		password: 'Passwort',
 		submit: 'Anmelden',

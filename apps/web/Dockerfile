@@ -17,6 +17,8 @@ RUN pnpm install --offline --frozen-lockfile --filter @koalashelf/web... \
 FROM caddy:2.11-alpine
 COPY apps/web/docker/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/apps/web/build /srv
-ENV ABS_URL=http://audiobookshelf:80
+# ABS_URL: where Caddy reaches Audiobookshelf. ABS_PUBLIC_URL: the address users know it by
+# (prefilled in the sign-in form); signing in to that address goes through this proxy.
+ENV ABS_URL=http://audiobookshelf:80     ABS_PUBLIC_URL=""
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:8080/manifest.webmanifest >/dev/null || exit 1

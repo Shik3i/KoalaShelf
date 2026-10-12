@@ -13,6 +13,16 @@ export default defineConfig(({ mode }) => {
 
 	return {
 		plugins: [
+			{
+				// Mirrors the Docker image: tells the app which Audiobookshelf server the proxy serves.
+				name: 'koalashelf-preset-server',
+				configureServer(server) {
+					server.middlewares.use('/koalashelf.json', (_req, res) => {
+						res.setHeader('Content-Type', 'application/json');
+						res.end(JSON.stringify({ server: target }));
+					});
+				}
+			},
 			sveltekit({
 				compilerOptions: {
 					// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
