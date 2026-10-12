@@ -17,8 +17,8 @@ Every decision is checked against: **performance, quality-of-life features, self
 | 2 | Web: sign-in, library (shelf/list, filters, sort), book page | done |
 | 3 | Web: player (multi-track, sync, chapters, speed, sleep timer, bookmarks, Media Session, shortcuts), mini player | done |
 | 4 | Web: home with crates, series, authors, search, theme, i18n, PWA, Docker image | done |
-| 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | next |
-| 6 | Android: Compose with tokens, Media3 service, background playback, downloads, offline sessions | planned |
+| 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | scaffolded, paused until the web app is approved |
+| 6 | Android: Compose with tokens, Media3 service, background playback, downloads, offline sessions | skeleton parked on branch `wip/android`, paused |
 
 Later: downloads/offline in the web app, Android Auto, driving mode, statistics, author pages, collections, socket.io live progress.
 
