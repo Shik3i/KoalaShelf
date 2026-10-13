@@ -9,8 +9,7 @@
 	import { clock, duration } from '#lib/format.ts';
 	import Turntable from '#lib/components/Turntable.svelte';
 	import Crate, { type CrateEntry } from '#lib/components/Crate.svelte';
-	import Play from '@lucide/svelte/icons/play';
-	import Pause from '@lucide/svelte/icons/pause';
+	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import X from '@lucide/svelte/icons/x';
 	import Settings from '@lucide/svelte/icons/settings';
 
@@ -158,11 +157,8 @@
 				class:is-loading={hero && player.loadingId === hero.id}
 				onclick={resume}
 			>
-				{#if heroIsPlaying && player.playing}
-					<Pause size={18} fill="currentColor" /> {i18n.m.player.pause}
-				{:else}
-					<Play size={18} fill="currentColor" /> {i18n.m.book.resume(clock(heroPos))}
-				{/if}
+				<PlayPauseIcon playing={heroIsPlaying && player.playing} size={18} />
+				{heroIsPlaying && player.playing ? i18n.m.player.pause : i18n.m.book.resume(clock(heroPos))}
 			</button>
 		</div>
 	</section>

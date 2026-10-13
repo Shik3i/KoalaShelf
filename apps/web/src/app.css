@@ -130,10 +130,6 @@ button {
 		background var(--motion-fast) var(--motion-ease);
 }
 
-.btn:active {
-	transform: scale(0.97);
-}
-
 .btn.primary {
 	background: var(--c-accent);
 	color: var(--c-on-accent);
@@ -248,6 +244,51 @@ button {
 	to {
 		opacity: 0.6;
 	}
+}
+
+/* Tactile press feedback for every control. Uses the independent `scale` property, so it
+   never fights a component's own transform/translate; :where() keeps specificity at zero. */
+:where(button, .btn, .chip, a.round) {
+	transition: scale var(--motion-fast) var(--motion-ease);
+}
+
+:where(button, .btn, .chip, a.round):active:not(:disabled) {
+	scale: 0.95;
+}
+
+/* Page change: the old page fades away, the new one rises in (View Transitions API). */
+::view-transition-old(main) {
+	animation: vt-out 140ms var(--motion-ease) both;
+}
+
+::view-transition-new(main) {
+	animation: vt-in 300ms var(--motion-out) both;
+}
+
+@keyframes vt-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes vt-in {
+	from {
+		opacity: 0;
+		translate: 0 10px;
+	}
+}
+
+/* Entrance for list items: a short fade-up, staggered by --i (capped). */
+@keyframes rise-in {
+	from {
+		opacity: 0;
+		translate: 0 12px;
+	}
+}
+
+.rise {
+	animation: rise-in 420ms var(--motion-out) both;
+	animation-delay: calc(min(var(--i, 0), 11) * 30ms);
 }
 
 @keyframes spin {

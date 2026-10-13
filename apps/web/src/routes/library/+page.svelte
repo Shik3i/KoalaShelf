@@ -14,6 +14,7 @@
 	import Cover from '#lib/components/Cover.svelte';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Rows3 from '@lucide/svelte/icons/rows-3';
+	import Segmented from '#lib/components/Segmented.svelte';
 	import ArrowDownUp from '@lucide/svelte/icons/arrow-down-up';
 
 	const PAGE = 60;
@@ -234,22 +235,15 @@
 		>
 			{desc ? '↓' : '↑'}
 		</button>
-		<div class="seg" role="group" aria-label={t.view}>
-			<button
-				aria-pressed={layout === 'shelf'}
-				onclick={() => set({ view: null })}
-				aria-label={t.viewShelf}
-			>
-				<LayoutGrid size={16} />
-			</button>
-			<button
-				aria-pressed={layout === 'list'}
-				onclick={() => set({ view: 'list' })}
-				aria-label={t.viewList}
-			>
-				<Rows3 size={16} />
-			</button>
-		</div>
+		<Segmented
+			label={t.view}
+			value={layout}
+			options={[
+				{ value: 'shelf', label: t.viewShelf, icon: LayoutGrid },
+				{ value: 'list', label: t.viewList, icon: Rows3 }
+			]}
+			onchange={(v) => set({ view: v === 'list' ? 'list' : null })}
+		/>
 	</div>
 </div>
 
@@ -283,7 +277,7 @@
 {:else if layout === 'shelf'}
 	<div class="shelf">
 		{#each items as item, i (item.id)}
-			<BookTile {item} eager={i < 12} />
+			<BookTile {item} eager={i < 12} index={i} />
 		{/each}
 	</div>
 {:else}
@@ -384,29 +378,6 @@
 	.select:focus-within {
 		outline: 2px solid var(--c-accent);
 		outline-offset: 2px;
-	}
-
-	.seg {
-		display: flex;
-		padding: 3px;
-		border-radius: var(--r-pill);
-		background: var(--c-card);
-	}
-
-	.seg button {
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 40px;
-		border: 0;
-		border-radius: var(--r-pill);
-		background: transparent;
-		color: var(--c-muted);
-	}
-
-	.seg button[aria-pressed='true'] {
-		background: var(--c-sel);
-		color: var(--c-sel-ink);
 	}
 
 	.shelf {

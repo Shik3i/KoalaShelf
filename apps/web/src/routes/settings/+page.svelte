@@ -6,6 +6,7 @@
 	import { prefs, SKIP_STEPS } from '#lib/prefs.svelte.ts';
 	import { apiFetch } from '#lib/platform.ts';
 	import LocaleSwitch from '#lib/components/LocaleSwitch.svelte';
+	import Segmented from '#lib/components/Segmented.svelte';
 
 	const t = $derived(i18n.m.settings);
 	const THEMES: ThemeChoice[] = ['system', 'light', 'dark'];
@@ -36,13 +37,12 @@
 	<h2 class="label">{t.appearance}</h2>
 	<div class="row">
 		<span>{t.theme}</span>
-		<div class="seg" role="group" aria-label={t.theme}>
-			{#each THEMES as c (c)}
-				<button aria-pressed={theme.choice === c} onclick={() => theme.set(c)}
-					>{themeLabel(c)}</button
-				>
-			{/each}
-		</div>
+		<Segmented
+			label={t.theme}
+			value={theme.choice}
+			options={THEMES.map((c) => ({ value: c, label: themeLabel(c) }))}
+			onchange={(c) => theme.set(c)}
+		/>
 	</div>
 	<div class="row">
 		<span>{t.language}</span>
@@ -54,23 +54,23 @@
 	<h2 class="label">{t.playback}</h2>
 	<div class="row">
 		<span>{t.skipBack}</span>
-		<div class="seg" role="group" aria-label={t.skipBack}>
-			{#each SKIP_STEPS as s (s)}
-				<button aria-pressed={prefs.skipBack === s} onclick={() => prefs.set('skipBack', s)}>
-					{t.seconds(s)}
-				</button>
-			{/each}
-		</div>
+		<Segmented
+			size="sm"
+			label={t.skipBack}
+			value={prefs.skipBack}
+			options={SKIP_STEPS.map((s) => ({ value: s, label: t.seconds(s) }))}
+			onchange={(s) => prefs.set('skipBack', s)}
+		/>
 	</div>
 	<div class="row">
 		<span>{t.skipForward}</span>
-		<div class="seg" role="group" aria-label={t.skipForward}>
-			{#each SKIP_STEPS as s (s)}
-				<button aria-pressed={prefs.skipForward === s} onclick={() => prefs.set('skipForward', s)}>
-					{t.seconds(s)}
-				</button>
-			{/each}
-		</div>
+		<Segmented
+			size="sm"
+			label={t.skipForward}
+			value={prefs.skipForward}
+			options={SKIP_STEPS.map((s) => ({ value: s, label: t.seconds(s) }))}
+			onchange={(s) => prefs.set('skipForward', s)}
+		/>
 	</div>
 	<div class="row">
 		<span class="stack">
@@ -153,29 +153,9 @@
 		font-weight: var(--fw-regular);
 	}
 
-	.seg {
-		display: inline-flex;
-		flex-wrap: wrap;
-		padding: 3px;
-		border-radius: var(--r-pill);
+	/* Segmented controls sit on a card here: give them the page background. */
+	.card :global(.seg) {
 		background: var(--c-bg);
-	}
-
-	.seg button {
-		min-width: 48px;
-		min-height: 38px;
-		padding: 0 var(--sp-12);
-		border: 0;
-		border-radius: var(--r-pill);
-		background: transparent;
-		color: var(--c-muted);
-		font-size: var(--fs-13);
-		font-weight: var(--fw-bold);
-	}
-
-	.seg button[aria-pressed='true'] {
-		background: var(--c-sel);
-		color: var(--c-sel-ink);
 	}
 
 	.switch {

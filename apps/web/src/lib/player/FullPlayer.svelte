@@ -6,9 +6,10 @@
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Turntable from '#lib/components/Turntable.svelte';
 	import Timeline from './Timeline.svelte';
-	import Play from '@lucide/svelte/icons/play';
-	import Pause from '@lucide/svelte/icons/pause';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
+	import Segmented from '#lib/components/Segmented.svelte';
+	import { dur } from '#lib/motion.ts';
 	import RotateCw from '@lucide/svelte/icons/rotate-cw';
 	import SkipBack from '@lucide/svelte/icons/skip-back';
 	import SkipForward from '@lucide/svelte/icons/skip-forward';
@@ -25,8 +26,12 @@
 	const v = $derived(player.item ? view(player.item) : null);
 	let panel = $state<Panel>(null);
 	let dialog = $state<HTMLDialogElement>();
+	let closing = $state(false);
 	let note = $state('');
 	let noteInput = $state<HTMLInputElement>();
+	/** Click counters: re-keying the icon replays its little "jump" animation. */
+	let backN = $state(0);
+	let fwdN = $state(0);
 	let bookmarkError = $state(false);
 	/** Bookmark being renamed (its time) and the draft note. */
 	let editing = $state<number | null>(null);
@@ -49,8 +54,19 @@
 
 	$effect(() => {
 		if (!dialog) return;
-		if (player.expanded && !dialog.open) dialog.showModal();
-		if (!player.expanded && dialog.open) dialog.close();
+		if (player.expanded && !dialog.open) {
+			closing = false;
+			dialog.showModal();
+		}
+		if (!player.expanded && dialog.open && !closing) {
+			// Slide out first, then close for real.
+			closing = true;
+			const d = dialog;
+			setTimeout(() => {
+				if (!player.expanded) d.close();
+				closing = false;
+			}, dur(220));
+		}
 	});
 
 	export function openBookmarks() {
@@ -81,7 +97,17 @@
 	}
 </script>
 
-<dialog bind:this={dialog} onclose={() => (player.expanded = false)} aria-label={t.player}>
+<dialog
+	bind:this={dialog}
+	class:closing
+	onclose={() => (player.expanded = false)}
+	oncancel={(e) => {
+		// Escape: animate out instead of the browser closing instantly.
+		e.preventDefault();
+		player.expanded = false;
+	}}
+	aria-label={t.player}
+>
 	{#if v && player.item}
 		<div class="sheet">
 			<header>
@@ -131,8 +157,14 @@
 						<button class="ctl" onclick={() => player.prevChapter()} aria-label={t.prevChapter}
 							><SkipBack size={22} /></button
 						>
-						<button class="ctl" onclick={() => player.back()} aria-label={t.back(prefs.skipBack)}>
-							<RotateCcw size={26} /><span class="n">{prefs.skipBack}</span>
+						<button
+							class="ctl"
+							onclick={() => (player.back(), backN++)}
+							aria-label={t.back(prefs.skipBack)}
+						>
+							{#key backN}<span class="jump back" class:go={backN > 0}><RotateCcw size={26} /></span
+								>{/key}
+							<span class="n">{prefs.skipBack}</span>
 						</button>
 						<button
 							class="ctl play"
@@ -140,30 +172,28 @@
 							onclick={() => player.toggle()}
 							aria-label={player.playing ? t.pause : t.play}
 						>
-							{#if player.playing}<Pause size={30} fill="currentColor" />{:else}<Play
-									size={30}
-									fill="currentColor"
-								/>{/if}
+							<PlayPauseIcon playing={player.playing} size={30} />
 						</button>
 						<button
 							class="ctl"
-							onclick={() => player.forward()}
+							onclick={() => (player.forward(), fwdN++)}
 							aria-label={t.forward(prefs.skipForward)}
 						>
-							<RotateCw size={26} /><span class="n">{prefs.skipForward}</span>
+							{#key fwdN}<span class="jump fwd" class:go={fwdN > 0}><RotateCw size={26} /></span
+								>{/key}
+							<span class="n">{prefs.skipForward}</span>
 						</button>
 						<button class="ctl" onclick={() => player.nextChapter()} aria-label={t.nextChapter}
 							><SkipForward size={22} /></button
 						>
 					</div>
 
-					<div class="rates" role="group" aria-label={t.speed}>
-						{#each RATES as r (r)}
-							<button aria-pressed={player.rate === r} onclick={() => player.setRate(r)}
-								>{speed(r)}</button
-							>
-						{/each}
-					</div>
+					<Segmented
+						label={t.speed}
+						value={player.rate}
+						options={RATES.map((r) => ({ value: r, label: speed(r) }))}
+						onchange={(r) => player.setRate(r)}
+					/>
 
 					<div class="actions">
 						<button
@@ -322,7 +352,18 @@
 	}
 
 	dialog[open] {
-		animation: rise var(--motion-base) var(--motion-ease);
+		animation: rise var(--motion-slow) var(--motion-out);
+	}
+
+	dialog.closing {
+		animation: sink 220ms var(--motion-ease) forwards;
+	}
+
+	@keyframes sink {
+		to {
+			translate: 0 8%;
+			opacity: 0;
+		}
 	}
 
 	dialog::backdrop {
@@ -427,6 +468,31 @@
 		background: color-mix(in oklab, var(--c-ink) 8%, transparent);
 	}
 
+	.jump {
+		display: grid;
+	}
+
+	/* Skip buttons spin a little in their direction. */
+	.jump.back.go {
+		animation: jump-back 460ms var(--motion-spring);
+	}
+
+	.jump.fwd.go {
+		animation: jump-fwd 460ms var(--motion-spring);
+	}
+
+	@keyframes jump-back {
+		40% {
+			rotate: -55deg;
+		}
+	}
+
+	@keyframes jump-fwd {
+		40% {
+			rotate: 55deg;
+		}
+	}
+
 	.ctl .n {
 		position: absolute;
 		font-size: 9px;
@@ -447,28 +513,8 @@
 		filter: brightness(1.06);
 	}
 
-	.rates {
-		display: flex;
-		justify-content: space-between;
-		padding: 4px;
-		border-radius: var(--r-pill);
-		background: var(--c-card);
-	}
-
-	.rates button {
-		flex: 1;
-		min-height: var(--layout-touch);
-		border: 0;
-		border-radius: var(--r-pill);
-		background: transparent;
-		color: var(--c-muted);
-		font-size: var(--fs-13);
-		font-weight: var(--fw-bold);
-	}
-
-	.rates button[aria-pressed='true'] {
-		background: var(--c-sel);
-		color: var(--c-sel-ink);
+	.controls > :global(.seg) {
+		display: grid;
 	}
 
 	.actions {

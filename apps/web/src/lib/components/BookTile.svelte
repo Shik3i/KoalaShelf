@@ -5,13 +5,15 @@
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from './Cover.svelte';
 
-	let { item, eager = false }: { item: LibraryItem | LibraryItemMinified; eager?: boolean } =
-		$props();
+	let {
+		item,
+		eager = false,
+		index = 0
+	}: { item: LibraryItem | LibraryItemMinified; eager?: boolean; index?: number } = $props();
 
 	const v = $derived(view(item));
 	const p = $derived(progress.get(item.id));
-	/** With "group series" the server returns one item per series. */
-	// A one-book series stays a normal book tile.
+	// With "group series" the server returns one item per series; a one-book series stays a book.
 	const group = $derived(
 		'collapsedSeries' in item && (item.collapsedSeries?.numBooks ?? 0) > 1
 			? item.collapsedSeries
@@ -19,7 +21,12 @@
 	);
 </script>
 
-<a class="tile" class:group href={group ? `/library?series=${group.id}` : `/book/${item.id}`}>
+<a
+	class="tile rise"
+	style:--i={index % 60}
+	class:group
+	href={group ? `/library?series=${group.id}` : `/book/${item.id}`}
+>
 	<div class="cover" style:view-transition-name={group ? undefined : `cover-${item.id}`}>
 		<Cover
 			title={v.title}
@@ -47,6 +54,9 @@
 
 <style>
 	.tile {
+		/* Big libraries: off-screen tiles skip layout and paint until scrolled near. */
+		content-visibility: auto;
+		contain-intrinsic-size: auto 260px;
 		display: grid;
 		align-content: start;
 		padding: 0 var(--sp-12);

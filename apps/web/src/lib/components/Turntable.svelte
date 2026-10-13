@@ -11,7 +11,7 @@
 		progress?: number;
 	}
 
-	let { progress = 0, ...rest }: Props = $props();
+	let { progress = 0, playing = false, ...rest }: Props = $props();
 
 	/*
 	 * Geometry in deck units (0..100). Disc: centre (47, 50), radius 41, label radius ~16.
@@ -20,12 +20,14 @@
 	 */
 	const PIVOT = { x: 93, y: 5 };
 	const LENGTH = 44;
-	const angle = $derived(18 + Math.min(1, Math.max(0, progress)) * 22);
+	/** Resting on its post (just off the rim) while paused, swinging in when playback starts. */
+	const REST = 4;
+	const angle = $derived(playing ? 18 + Math.min(1, Math.max(0, progress)) * 22 : REST);
 </script>
 
 <div class="deck">
 	<div class="platter">
-		<Vinyl {...rest} />
+		<Vinyl {playing} {...rest} />
 	</div>
 	<svg class="arm" viewBox="0 0 100 100" aria-hidden="true">
 		<circle cx={PIVOT.x} cy={PIVOT.y} r="4.6" class="base" />

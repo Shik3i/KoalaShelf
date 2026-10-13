@@ -79,6 +79,7 @@
 			{sizes}
 			alt=""
 			loading={eager ? 'eager' : 'lazy'}
+			fetchpriority={eager ? 'high' : 'auto'}
 			decoding="async"
 			class:loaded
 			onload={() => (loadedFor = key)}

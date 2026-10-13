@@ -9,10 +9,9 @@
 	import Cover from '#lib/components/Cover.svelte';
 	import Vinyl from '#lib/components/Vinyl.svelte';
 	import BookTile from '#lib/components/BookTile.svelte';
-	import Play from '@lucide/svelte/icons/play';
-	import Pause from '@lucide/svelte/icons/pause';
 	import Check from '@lucide/svelte/icons/check';
 	import DownloadButton from '#lib/components/DownloadButton.svelte';
+	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import { downloads } from '#lib/downloads.svelte.ts';
 	import type { PageProps } from './$types';
 
@@ -49,6 +48,16 @@
 
 	type Tab = 'chapters' | 'bookmarks' | 'more';
 	let tab = $state<Tab>('chapters');
+	let tabsEl = $state<HTMLDivElement>();
+	let ink = $state({ x: 0, w: 0 });
+
+	// The underline glides to the selected tab (measured, tabs have different widths).
+	$effect(() => {
+		void tab;
+		void i18n.locale;
+		const el = tabsEl?.querySelector<HTMLElement>('[aria-selected="true"]');
+		if (el) ink = { x: el.offsetLeft, w: el.offsetWidth };
+	});
 	let descOpen = $state(false);
 	const description = $derived(htmlToText(meta?.description));
 
@@ -189,10 +198,10 @@
 						class:is-loading={player.loadingId === item.id}
 						onclick={() => playAt()}
 					>
+						<PlayPauseIcon playing={isCurrent && player.playing} size={18} />
 						{#if isCurrent && player.playing}
-							<Pause size={18} fill="currentColor" /> {i18n.m.player.pause}
+							{i18n.m.player.pause}
 						{:else}
-							<Play size={18} fill="currentColor" />
 							{p?.isFinished ? t.listenAgain : position > 5 ? t.resume(clock(position)) : t.play}
 						{/if}
 					</button>
@@ -209,7 +218,14 @@
 
 		<div class="lower">
 			<section class="tabs-wrap">
-				<div class="tabs" role="tablist">
+				<div
+					class="tabs"
+					role="tablist"
+					bind:this={tabsEl}
+					style:--ink-x="{ink.x}px"
+					style:--ink-w="{ink.w}px"
+				>
+					<span class="ink" aria-hidden="true"></span>
 					<button role="tab" aria-selected={tab === 'chapters'} onclick={() => (tab = 'chapters')}
 						>{t.chapters}</button
 					>
@@ -410,6 +426,7 @@
 	}
 
 	.tabs {
+		position: relative;
 		display: flex;
 		gap: var(--sp-24);
 		border-bottom: 1px solid var(--c-line);
@@ -430,7 +447,20 @@
 
 	.tabs button[aria-selected='true'] {
 		color: var(--c-ink);
-		border-color: var(--c-accent);
+	}
+
+	.ink {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		width: var(--ink-w);
+		height: 2px;
+		translate: var(--ink-x) 0;
+		border-radius: 2px;
+		background: var(--c-accent);
+		transition:
+			translate var(--motion-base) var(--motion-out),
+			width var(--motion-base) var(--motion-out);
 	}
 
 	.rows {

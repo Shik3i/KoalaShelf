@@ -5,9 +5,10 @@
 	import { clock } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Vinyl from '#lib/components/Vinyl.svelte';
-	import Play from '@lucide/svelte/icons/play';
-	import Pause from '@lucide/svelte/icons/pause';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
+	import { fly } from 'svelte/transition';
+	import { flyUp } from '#lib/motion.ts';
 
 	const t = $derived(i18n.m.player);
 	const v = $derived(player.item ? view(player.item) : null);
@@ -19,7 +20,7 @@
 </script>
 
 {#if v}
-	<div class="mini" role="region" aria-label={t.player}>
+	<div class="mini" transition:fly={flyUp(24)} role="region" aria-label={t.player}>
 		<div class="line" style:--p={player.progress} aria-hidden="true"></div>
 		<button class="open" onclick={() => (player.expanded = true)} aria-label={t.open}>
 			<div class="disc">
@@ -49,10 +50,7 @@
 			onclick={() => player.toggle()}
 			aria-label={player.playing ? t.pause : t.play}
 		>
-			{#if player.playing}<Pause size={22} fill="currentColor" />{:else}<Play
-					size={22}
-					fill="currentColor"
-				/>{/if}
+			<PlayPauseIcon playing={player.playing} size={22} />
 		</button>
 	</div>
 {/if}

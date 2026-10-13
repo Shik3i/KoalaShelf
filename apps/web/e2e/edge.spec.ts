@@ -98,12 +98,14 @@ test.describe('mobile', () => {
 		await page.locator('.cta .btn.primary').click();
 		const mini = page.getByRole('region', { name: 'Player' });
 		await expect(mini).toBeVisible();
+		await page.waitForTimeout(400); // slide-in animation
 		const miniBox = (await mini.boundingBox())!;
 		const tabBox = (await tabs.boundingBox())!;
 		expect(miniBox.y + miniBox.height).toBeLessThanOrEqual(tabBox.y + 1);
 
 		await mini.getByRole('button', { name: 'Open player' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Player' });
+		await page.waitForTimeout(600); // open animation
 		for (const name of ['Sleep timer', 'Chapters', 'Bookmarks']) {
 			const box = (await dialog.getByRole('button', { name }).boundingBox())!;
 			expect(box.y + box.height).toBeLessThanOrEqual(812);
