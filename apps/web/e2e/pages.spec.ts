@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { api, itemId, playerCall } from './helpers.ts';
+import { api, itemId, playerCall, resetListening } from './helpers.ts';
 
 test.describe('pages', () => {
+	test.beforeAll(resetListening);
+
 	test('home shows crates and, after listening, the continue card', async ({ page }) => {
 		const id = await itemId('Salzwasser');
 		await api(`/api/me/progress/${id}`, {

@@ -8,11 +8,11 @@ export interface CoverArt {
 	alt: string;
 }
 
-const PALETTES: CoverArt[] = [
+export const PALETTES: CoverArt[] = [
 	{ bg: '#2B4A7A', fg: '#F2B544', ink: '#F1E8DC', motif: 'sun', alt: '#13203F' },
 	{ bg: '#11183A', fg: '#F2C14E', ink: '#F2C14E', motif: 'stripes', alt: '#F1E8DC' },
-	{ bg: '#8FB3C4', fg: '#6F98AB', ink: '#F1E8DC', motif: 'rings', alt: '#B9D0DA' },
-	{ bg: '#C9563E', fg: '#F7EFE6', ink: '#F7EFE6', motif: 'eyes', alt: '#1E222B' },
+	{ bg: '#8FB3C4', fg: '#6F98AB', ink: '#13203F', motif: 'rings', alt: '#B9D0DA' },
+	{ bg: '#AE452E', fg: '#F7EFE6', ink: '#F7EFE6', motif: 'eyes', alt: '#1E222B' },
 	{ bg: '#3E4A2E', fg: '#E2C25A', ink: '#F7EFE6', motif: 'rings', alt: '#3E4A2E' },
 	{ bg: '#22533A', fg: '#6E9A80', ink: '#F1E8DC', motif: 'diagonal', alt: '#F1E8DC' },
 	{ bg: '#F3E3CF', fg: '#EF6F4F', ink: '#5A2A1A', motif: 'arcs', alt: '#F7A88A' },

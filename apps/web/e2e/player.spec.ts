@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, itemId, player, playerCall } from './helpers.ts';
+import { api, itemId, player, playerCall, resetListening } from './helpers.ts';
 
 async function openBook(page: Page, title: string) {
 	await page.goto(`/book/${await itemId(title)}`);
@@ -17,6 +17,8 @@ const time = (page: Page) => player<number>(page, 'currentTime');
 const playing = (page: Page) => player<boolean>(page, 'playing');
 
 test.describe('player', () => {
+	test.beforeAll(resetListening);
+
 	test.afterEach(async ({ page }) => {
 		await playerCall(page, 'stop').catch(() => undefined);
 	});

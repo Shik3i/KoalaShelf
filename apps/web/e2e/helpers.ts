@@ -78,3 +78,14 @@ export async function playerCall(page: Page, method: string, ...args: unknown[])
 		[method, args] as const
 	);
 }
+
+/** Fresh listening state (no progress, no bookmarks) so specs do not depend on each other. */
+export async function resetListening() {
+	const me = await api<{
+		mediaProgress: { id: string }[];
+		bookmarks: { libraryItemId: string; time: number }[];
+	}>('/api/me');
+	for (const p of me.mediaProgress) await api(`/api/me/progress/${p.id}`, { method: 'DELETE' });
+	for (const b of me.bookmarks)
+		await api(`/api/me/item/${b.libraryItemId}/bookmark/${b.time}`, { method: 'DELETE' });
+}

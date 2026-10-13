@@ -1,8 +1,11 @@
+import { resetListening } from './helpers.ts';
 import { expect, test, type Page } from '@playwright/test';
 
 const titles = (page: Page) => page.locator('.tile .title').allTextContents();
 
 test.describe('library', () => {
+	test.beforeAll(resetListening);
+
 	test.beforeEach(async ({ page }) => {
 		await page.goto('/library');
 		await expect(page.locator('.tile')).toHaveCount(7);
