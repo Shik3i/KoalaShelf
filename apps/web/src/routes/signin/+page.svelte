@@ -31,7 +31,7 @@
 
 	type Check =
 		| { state: 'idle' | 'checking' }
-		| { state: 'ok'; url: string; version: string }
+		| { state: 'ok'; url: string; version: string; input: string }
 		| { state: 'error'; error: unknown };
 	let check = $state<Check>({ state: 'idle' });
 
@@ -49,16 +49,15 @@
 	$effect(() => {
 		const input = server.trim();
 		const proxy = viaProxy;
-		if (preset === undefined || input.length < 3) {
-			check = { state: 'idle' };
-			return;
-		}
+		// A result for the previous input must never stay on screen (or be used to sign in).
+		check = { state: 'idle' };
+		if (preset === undefined || input.length < 3) return;
 		const ctrl = new AbortController();
 		const timer = setTimeout(async () => {
 			check = { state: 'checking' };
 			try {
 				const r = proxy ? await probeProxy(ctrl.signal) : await probeServer(input, ctrl.signal);
-				check = { state: 'ok', ...r };
+				check = { state: 'ok', ...r, input };
 			} catch (e) {
 				if (!ctrl.signal.aborted) check = { state: 'error', error: e };
 			}
@@ -105,7 +104,7 @@
 		try {
 			const url = viaProxy
 				? ''
-				: check.state === 'ok'
+				: check.state === 'ok' && check.input === server.trim()
 					? check.url
 					: (await probeServer(server.trim())).url;
 			await session.signIn(url, username.trim(), password);

@@ -26,6 +26,7 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Pencil from '@lucide/svelte/icons/pencil';
 	import ListOrdered from '@lucide/svelte/icons/list-ordered';
+	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
 	import { scale } from 'svelte/transition';
 	import SleepPanel from './SleepPanel.svelte';
 	import QueuePanel from './QueuePanel.svelte';
@@ -94,6 +95,17 @@
 	}
 
 	const toggle = (p: Panel) => (panel = panel === p ? null : p);
+
+	// Clock and "time left" within the scope (chapter or book), at the displayed speed.
+	const scope = $derived(player.scope);
+	const left = (to: number) => clock(Math.max(0, to - player.currentTime) / player.displayRate);
+	const other = $derived(
+		scope.chapter
+			? t.remainingBook(left(player.duration))
+			: player.chapter
+				? t.remainingChapter(left(player.chapter.end))
+				: t.remainingBook(left(player.duration))
+	);
 
 	const timerLabel = $derived.by(() => {
 		const s = player.sleep;
@@ -200,13 +212,22 @@
 							onclick={() => prefs.set('remainingTime', !prefs.remainingTime)}
 						>
 							{prefs.remainingTime
-								? `−${clock((player.duration - player.currentTime) / player.rate)}`
-								: clock(player.currentTime)}
+								? `−${left(scope.end)}`
+								: clock(player.currentTime - scope.start)}
 						</button>
-						<span class="muted tabular">
-							{player.chapter
-								? t.remainingChapter(clock((player.chapter.end - player.currentTime) / player.rate))
-								: t.remainingBook(clock((player.duration - player.currentTime) / player.rate))}
+						<span class="side">
+							{#if player.chapters.length > 1}
+								<button
+									class="scope"
+									onclick={() => player.setScope(scope.chapter ? 'book' : 'chapter')}
+									aria-label={t.scopeToggle(scope.chapter ? t.scopeChapter : t.scopeBook)}
+									title={t.scopeToggle(scope.chapter ? t.scopeChapter : t.scopeBook)}
+								>
+									<ArrowLeftRight size={12} aria-hidden="true" />
+									{scope.chapter ? t.scopeChapter : t.scopeBook}
+								</button>
+							{/if}
+							<span class="muted tabular">{other}</span>
 						</span>
 					</div>
 
@@ -374,7 +395,7 @@
 			{#if player.error}
 				<p class="err" role="status">{player.error === 'fatal' ? t.errorFatal : t.error}</p>
 			{/if}
-			<p class="keys muted">{t.shortcuts}</p>
+			{#if prefs.shortcuts}<p class="keys muted">{t.shortcuts}</p>{/if}
 			<Toaster />
 		</div>
 	{/if}
@@ -457,7 +478,7 @@
 		border-radius: var(--r-pill);
 		background: var(--c-accent);
 		color: var(--c-on-accent);
-		font-size: 11px;
+		font-size: 0.6875rem;
 		font-weight: var(--fw-bold);
 		line-height: 18px;
 		text-align: center;
@@ -503,9 +524,42 @@
 
 	.time {
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		justify-content: space-between;
 		gap: var(--sp-12);
+	}
+
+	.side {
+		display: grid;
+		justify-items: end;
+		gap: 2px;
+		text-align: right;
+	}
+
+	.scope {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		min-height: 26px;
+		padding: 0 var(--sp-8);
+		border: 0;
+		border-radius: var(--r-pill);
+		background: var(--c-card);
+		color: var(--c-ink);
+		font-size: var(--fs-12);
+		font-weight: var(--fw-bold);
+	}
+
+	/* 44px touch target around the small pill. */
+	.scope::after {
+		content: '';
+		position: absolute;
+		inset: -9px -4px;
+	}
+
+	.scope:hover {
+		background: color-mix(in oklab, var(--c-accent) 18%, var(--c-card));
 	}
 
 	button.big {
@@ -575,7 +629,7 @@
 
 	.ctl .n {
 		position: absolute;
-		font-size: 9px;
+		font-size: 0.5625rem;
 		font-weight: var(--fw-bold);
 		padding-top: 2px;
 	}
@@ -753,6 +807,57 @@
 	.keys {
 		text-align: center;
 		font-size: var(--fs-12);
+	}
+
+	/* Big screens: deck and controls grow with the room. */
+	@media (min-width: 1700px) and (min-height: 950px) {
+		.body {
+			grid-template-columns: minmax(0, 600px) minmax(0, 520px);
+			gap: var(--sp-64);
+		}
+
+		.body.with-panel {
+			grid-template-columns: minmax(0, 480px) minmax(0, 460px) minmax(0, 420px);
+		}
+
+		.meta h2 {
+			font-size: 2.75rem;
+		}
+	}
+
+	/* Short screens (landscape phones, small laptop windows): everything on one screen. */
+	@media (max-height: 560px) and (min-width: 801px) {
+		.sheet {
+			padding: var(--sp-8) var(--sp-16);
+		}
+
+		.body {
+			grid-template-columns: minmax(0, min(300px, 62dvh)) minmax(0, 440px);
+			gap: var(--sp-24);
+			padding: 0;
+		}
+
+		.controls {
+			gap: var(--sp-8);
+		}
+
+		.meta h2 {
+			font-size: var(--fs-24);
+		}
+
+		.meta p,
+		.keys {
+			display: none;
+		}
+
+		.play {
+			width: 60px;
+			height: 60px;
+		}
+
+		.action {
+			min-height: 48px;
+		}
 	}
 
 	@media (max-width: 1100px) {

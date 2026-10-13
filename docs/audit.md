@@ -1,6 +1,6 @@
 # Web app audit
 
-Last full pass: 2026-10-13. The web app is verified by automated tests and a screenshot review; everything below is reproducible from the repository.
+Last full pass: 2026-10-13. The web app is verified by automated tests, Lighthouse and screenshot reviews; everything below is reproducible from the repository.
 
 ## How it is verified
 
@@ -8,27 +8,37 @@ Last full pass: 2026-10-13. The web app is verified by automated tests and a scr
 |---|---|---|
 | `pnpm check` | svelte-check over app, tests, configs | 0 errors, 0 warnings |
 | `pnpm lint` | Prettier + ESLint | clean |
-| `pnpm test` | unit: formatting, filters, version check, placeholder contrast, turntable ramp, smart sleep forecast | 14/14 |
-| `pnpm test:e2e` | 66 Playwright tests in Edge against a local Audiobookshelf 2.37.1 with generated sample books (+ screenshot spec on demand) | 66/66, stable over repeated runs |
-| `E2E_BASE_URL=… pnpm test:e2e` | production Docker image (Caddy, strict CSP, service worker) | 48/48 (twice in a row); tests that read player internals need the dev server and skip before any playback starts |
-| axe-core | every page, mini player, full player and its panels, light + dark, WCAG 2.2 AA | no violations |
-| Screenshot review (`e2e/screens.spec.ts`) | all pages and player states, desktop + mobile, light + dark | reviewed |
+| `pnpm test` | unit (web): formatting, placeholder contrast, turntable ramp, smart sleep forecast and window | 14/14 |
+| `pnpm --filter @koalashelf/abs-client test` | unit (client): filter encoding, version check, token expiry | 4/4 |
+| Design token build | every theme × every accent preset, WCAG contrast pairs | passes (fails the build otherwise) |
+| `pnpm test:e2e` | 97 Playwright tests in 13 files, Edge, against a local Audiobookshelf 2.37.1 with generated sample books | 89 passed, 8 skipped (on-demand screenshot spec, production-only checks) |
+| `E2E_BASE_URL=… pnpm test:e2e` | production Docker image (Caddy, strict CSP, service worker) | 68 passed, 29 skipped: tests that read player internals need the dev server and skip before any playback starts |
+| axe-core | every page, the "More" sheet, mini player, full player and all its panels; light + dark; laptop and phone widths; WCAG 2.2 AA **and** axe best practices | no violations |
+| Responsive matrix (`e2e/responsive.spec.ts`) | 11 viewports from 320 × 640 to 2560 × 1440 incl. landscape phone and tablets, every page plus the full player; 125 % text on a small phone | no sideways scrolling, player controls on screen everywhere |
+| Lighthouse 13.5 | production image, signed in: home, library, book, settings; mobile and desktop | performance 100, accessibility 100, best practices 100 (LCP ≤ 1.1 s mobile / 0.3 s desktop, TBT ≤ 40 ms, CLS ≤ 0.05); SEO 63–66 only because of the deliberate `noindex` |
+| Screenshot reviews | all pages and player states (desktop and mobile, light and dark), the responsive matrix, Windows high-contrast mode | reviewed zoomed in; findings fixed |
+
+The last small changes after the final full runs (logo link name, caching and framing headers, sign-in address default without `ABS_PUBLIC_URL`) were verified individually: Lighthouse on the final image and a sign-in check against a container without `ABS_PUBLIC_URL`.
 
 ## Workflows covered by end-to-end tests
 
-- **Sign-in**: preset server, wrong password, unreachable server, CORS hint, reload, sign-out, deep link return, expired session, silent token refresh, guest without download permission
-- **Library**: sort and reverse, every filter, combined filters, series order and chip, list view, group series, author links, URL state after reload, switching libraries, paging through 70 titles (infinite scroll)
-- **Book**: details, description without HTML, bookmarks from the server, mark finished/unfinished, no chapters, not found
-- **Player**: play/pause/sync to server, skip, chapter navigation, speed persistence, bookmarks add/edit/delete/pins, sleep timer at chapter end, multi-file boundary, end of book → finished → listen again, reload restores position, keyboard, quick switching between books
-- **Pages**: home continue card + hide, series, authors, collections, statistics, search, settings persistence (theme, language, skip steps)
+- **Sign-in**: preset server, wrong password, unreachable server, CORS hint, a changed address checked again before signing in, reload, sign-out, deep link return, expired session, silent token refresh, guest without download permission
+- **Library**: sort and reverse, every filter, combined filters, series order and chip, list view, group series, author links, URL state after reload, remembered view, switching libraries, paging through 70 titles (infinite scroll)
+- **Book**: details, description without HTML, bookmarks from the server, mark finished/unfinished (also with a slow first load and with a duplicate progress entry from the server), no chapters, not found, save files as ZIP (valid archive with every file), history tab
+- **Player**: play/pause/sync to server, skip, chapter navigation, speed per book and fixed default, bookmarks add/edit/delete/pins with undo and links, sleep timer at chapter end and without rewind, smart sleep timer (forecast, chapter stop, latest-time fallback), multi-file boundary, end of book → finished → listen again, next from the queue, next in series, reload restores position, keyboard, quick switching between books, chapter timeline (range, clock, scope)
+- **Listening extras**: queue (add, reorder, remove with undo), volume leveling (audible output on/off and across files, also on a server of another origin with CORS), listening history (by day, jump points, device names)
+- **Settings**: accent, text size, motion and cover size apply at once and before first paint; accent contrast in both themes; home shelves hidden and reordered; start page; shortcuts off; reset with confirmation
+- **Pages**: home continue card and hide/undo, series, authors, collections, statistics, search, history, downloads
 - **Live & offline**: progress from another device without reload; download → offline playback → sync on reconnect → remove; offline app shell and playback after a full reload (production build)
-- **Quality of life**: links to a moment (`?t=`), bookmark delete with undo, copy moment link, per-book speed, elapsed/remaining clock, shortcut overview, remembered library view, undo for hiding, next book in the series offered at the end, timeline hover preview, sleep timer badge in the mini player
-- **Listening**: queue (add, reorder, remove with undo, automatic continue at the end, leaves the queue when played), smart sleep timer (window steppers, forecast, stop at a chapter end, fallback to the latest time), volume leveling (audible output through the compressor, on/off, across files, on a server of another origin with CORS), listening history (by day, jump points, book tab, device names), stale or duplicate progress from the server
-- **Mobile**: tab bar with "More" sheet (all pages, library switch), mini player above it, full player fits one screen, no horizontal overflow on any page (measured against the device width)
+- **Mobile**: tab bar with "More" sheet (all pages, library switch), mini player above it, full player on one screen, no horizontal overflow on any page (measured against the device width)
 
 ## Bugs found and fixed by the tests and reviews
 
-Sign-in hid the server field · blank page on direct book URLs · horizontal overflow from long titles · tonearm beside the record · misaligned timeline · raw HTML in descriptions · placeholder instead of cover in the player · bookmarks from the server never loaded · series page reload loop · dev proxy swallowing `/authors` · insufficient contrast in two placeholder palettes · "no library" shown offline · 404s for missing covers in statistics · races when switching books quickly · finished books ending immediately · sleep timer counting while paused · toasts hidden behind the open player · a11y scans racing fly-in animations · spinning record crashing the page under load (a frame timestamp before the ramp start produced a negative playback rate) · series, authors, collections and statistics unreachable on phones · book tabs widening the page on 375 px phones · a slower first progress load overwriting a newer change · a duplicate, older progress entry from the server winning over the current one · the device shown as a user agent dump in Audiobookshelf.
+Sign-in hid the server field · blank page on direct book URLs · horizontal overflow from long titles · tonearm beside the record · misaligned timeline · raw HTML in descriptions · placeholder instead of cover in the player · bookmarks from the server never loaded · series page reload loop · dev proxy swallowing `/authors` · insufficient contrast in two placeholder palettes · "no library" shown offline · 404s for missing covers in statistics · races when switching books quickly · finished books ending immediately · sleep timer counting while paused · toasts hidden behind the open player · a11y scans racing fly-in animations · spinning record crashing the page under load (a frame timestamp before the ramp start produced a negative playback rate) · series, authors, collections and statistics unreachable on phones · book tabs widening the page on 375 px phones · a slower first progress load overwriting a newer change · a duplicate, older progress entry from the server winning over the current one · the device shown as a user agent dump in Audiobookshelf · signing in to the previously checked server after quickly changing the address · the default accent at 4.29:1 on the panel (active tab label on phones) · switch "off" state below 3:1 · `text-size-adjust: none` and `px` font sizes blocking text enlargement · sidebar cut off on landscape phones · unreadably wide lines on large screens · segmented labels overlapping on narrow screens · a stored fixed speed discarded on reload · progress, switches and swatches invisible in high-contrast mode · search page without a level-one heading · logo link name not matching its visible text · no cache lifetime for small static files and no framing protection · sign-in needing `ABS_PUBLIC_URL` to use the bundled proxy.
+
+## Server behavior worth knowing
+
+Found while testing against Audiobookshelf 2.37.1 (details in [api/audiobookshelf.md](api/audiobookshelf.md)): the server can list two progress entries for one book after a reset during an open session, and closing a session whose progress was deleted crashes the server process (it restarts). The client copes with the first; the test suite avoids the second.
 
 ## Not included (by decision)
 
@@ -36,4 +46,5 @@ Sign-in hid the server field · blank page on direct book URLs · horizontal ove
 |---|---|
 | Single sign-on (OpenID) | Needs admin setup per server; username/password works everywhere. SSO-only servers get a clear message. |
 | Share clip | Not supported by the Audiobookshelf server. |
-| Driving mode, Android Auto | Native apps (paused until the web app is approved). |
+| Deleting single history entries | Not supported by the server. |
+| Driving mode, Android Auto | Native apps (paused until the web app is signed off). |

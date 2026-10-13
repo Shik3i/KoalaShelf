@@ -23,6 +23,17 @@ import type {
 
 export type FetchFn = typeof globalThis.fetch;
 
+/** Expiry (seconds since epoch) of a JWT access token, or null when it has none or is opaque. */
+export function tokenExpiry(token: string): number | null {
+	try {
+		const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+		const exp = JSON.parse(atob(payload)).exp;
+		return typeof exp === 'number' ? exp : null;
+	} catch {
+		return null;
+	}
+}
+
 export interface Tokens {
 	accessToken: string;
 	/** null in cookie mode (same origin): the server keeps the refresh token in an httpOnly cookie. */
@@ -146,6 +157,15 @@ export class AbsClient {
 		return this.tokens.accessToken;
 	}
 
+	/**
+	 * Renews the access token if it expires within `marginS` seconds. For URLs handed to the
+	 * browser (downloads, media), which cannot refresh on a 401 by themselves.
+	 */
+	async ensureFresh(marginS = 60) {
+		const exp = tokenExpiry(this.tokens.accessToken);
+		if (exp !== null && exp - Date.now() / 1000 < marginS) await this.refresh();
+	}
+
 	/** Rotates tokens. Concurrent callers share one in-flight refresh. */
 	refresh(): Promise<boolean> {
 		this.refreshing ??= (async () => {
@@ -222,6 +242,11 @@ export class AbsClient {
 	}
 
 	/** Audio elements cannot send headers, so streams carry the (short-lived) access token. */
+	/** The book's files: a ZIP of its folder, or the file itself for single-file items. */
+	downloadUrl(itemId: string) {
+		return `${this.baseUrl}/api/items/${itemId}/download?token=${encodeURIComponent(this.tokens.accessToken)}`;
+	}
+
 	trackUrl(contentUrl: string) {
 		const sep = contentUrl.includes('?') ? '&' : '?';
 		return `${this.baseUrl}${contentUrl}${sep}token=${encodeURIComponent(this.tokens.accessToken)}`;

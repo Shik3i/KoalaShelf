@@ -27,14 +27,14 @@
 	const v = $derived(player.item ? view(player.item) : null);
 	const sub = $derived(
 		player.chapter
-			? `${player.chapter.title} · −${clock(player.chapter.end - player.currentTime)}`
+			? `${player.chapter.title} · −${clock((player.chapter.end - player.currentTime) / player.displayRate)}`
 			: (v?.author ?? '')
 	);
 </script>
 
 {#if v}
 	<div class="mini" transition:fly={flyUp(24)} role="region" aria-label={t.player}>
-		<div class="line" style:--p={player.progress} aria-hidden="true"></div>
+		<div class="line" style:--p={player.scopeProgress} aria-hidden="true"></div>
 		<button class="open" onclick={() => (player.expanded = true)} aria-label={t.open}>
 			<div class="disc">
 				<Vinyl

@@ -94,7 +94,10 @@
 
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+		grid-template-columns: repeat(
+			auto-fill,
+			minmax(min(calc(170px * var(--tile-scale)), 42%), 1fr)
+		);
 		gap: var(--sp-32) var(--sp-24);
 	}
 
@@ -142,7 +145,10 @@
 
 	@container page (max-width: 700px) {
 		.grid {
-			grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+			grid-template-columns: repeat(
+				auto-fill,
+				minmax(min(calc(140px * var(--tile-scale)), 42%), 1fr)
+			);
 		}
 	}
 </style>

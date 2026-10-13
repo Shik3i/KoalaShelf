@@ -11,6 +11,8 @@
 	import Crate, { type CrateEntry } from '#lib/components/Crate.svelte';
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import { toasts } from '#lib/toast.svelte.ts';
+	import { prefs } from '#lib/prefs.svelte.ts';
+	import { shelfOrder } from '#lib/shelves.ts';
 	import X from '@lucide/svelte/icons/x';
 	import Settings from '@lucide/svelte/icons/settings';
 
@@ -88,6 +90,15 @@
 			}
 			return entries.length ? [{ id: s.id, label, note, entries }] : [];
 		});
+	});
+
+	/** Settings > Library & home: hidden shelves left out, the rest in the listener's order. */
+	const shownCrates = $derived.by(() => {
+		const order: string[] = shelfOrder();
+		const rank = (id: string) => (id === 'continue-listening' ? -1 : order.indexOf(id));
+		return crates
+			.filter((c) => !prefs.hiddenShelves.includes(c.id))
+			.sort((a, b) => rank(a.id) - rank(b.id));
 	});
 
 	/** Hide from "continue listening" (progress stays), then refresh the shelves. */
@@ -182,7 +193,7 @@
 {/if}
 
 <div class="crates">
-	{#each crates as c (c.id)}
+	{#each shownCrates as c (c.id)}
 		<Crate title={c.label} note={c.note} entries={c.entries} />
 	{/each}
 </div>

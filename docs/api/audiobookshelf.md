@@ -12,13 +12,17 @@ The official docs (https://api.audiobookshelf.org) state that they are outdated.
 | Check | `GET /api/me`, `GET /api/authorize` |
 | Server info | `GET /status` (unauthenticated: `app`, `serverVersion`, `isInit`, `authMethods`) |
 
-- Requests: `Authorization: Bearer <accessToken>`. GET also accepts `?token=` (needed for `<audio src>`).
+- Requests: `Authorization: Bearer <accessToken>`. GET also accepts `?token=` (needed for `<audio src>` and download links).
+- Access tokens are JWTs with an `exp` claim (one hour on 2.37.1); clients can check the expiry locally and refresh before handing a URL to the browser.
 - Covers and author images are **public**: `GET /api/items/:id/cover`, `GET /api/authors/:id/image`.
 - OpenID (PKCE) exists under `/auth/openid*`; not used yet.
 
 ## CORS
 
 The server only sends CORS headers when `ALLOW_CORS=1`, when the origin is listed in the server setting `allowedOrigins`, or for `capacitor://localhost` / `http://localhost`. Hence the same-origin proxy in the Docker image. Tauri can bypass CORS via its Rust HTTP plugin; Android is not affected.
+
+- For an allowed origin the headers apply to every route (API, streams, downloads): `Access-Control-Allow-Origin: <origin>`, `Allow-Headers: *`, `Allow-Credentials: true`; `OPTIONS` is answered with 200. Bearer requests from another origin pass the preflight (verified in Edge).
+- Audio routed through Web Audio (volume leveling) must be loaded with `crossorigin="anonymous"`; otherwise a cross-origin stream plays silently.
 
 ## Library
 
@@ -50,13 +54,14 @@ Cover: `?width=&height=&format=webp|jpeg&raw=0|1`. Folder conventions picked up 
 
 | Purpose | Call |
 |---|---|
-| Start | `POST /api/items/:id/play` `{deviceInfo{deviceId,clientName,clientVersion,model}, supportedMimeTypes[], forceDirectPlay, forceTranscode, mediaPlayer}` → session with `id`, `audioTracks[{startOffset,duration,contentUrl,mimeType}]`, `chapters`, `currentTime`, `libraryItem` |
+| Start | `POST /api/items/:id/play` `{deviceInfo{deviceId,clientName,clientVersion}, supportedMimeTypes[], forceDirectPlay, forceTranscode, mediaPlayer}` → session with `id`, `audioTracks[{startOffset,duration,contentUrl,mimeType}]`, `chapters`, `currentTime`, `libraryItem` |
 | Sync | `POST /api/session/:id/sync` `{currentTime, timeListened, duration}` |
 | Close | `POST /api/session/:id/close` (same body) |
 | Offline sessions | `POST /api/session/local`, `POST /api/session/local-all` |
 
 - Books can consist of several audio files; the client maps the global time to track + offset.
 - `contentUrl` is relative; auth via `?token=`.
+- `deviceInfo.model` is meant for the mobile apps (with `manufacturer`). Without it the server derives the device name from the user agent ("Windows 10 Edge"); a web client should not send one.
 
 ## Progress and bookmarks
 
@@ -68,9 +73,9 @@ Cover: `?width=&height=&format=webp|jpeg&raw=0|1`. Folder conventions picked up 
 | Bookmarks | `GET /api/me/bookmarks/:libraryItemId` → `{ bookmarks: [...] }` (not a bare array) |
 | Create / update | `POST` / `PATCH /api/me/item/:id/bookmark` `{time, title}` |
 | Delete | `DELETE /api/me/item/:id/bookmark/:time` |
-| Stats (later) | `GET /api/me/listening-stats`, `GET /api/me/stats/year/:year` |
+| Stats | `GET /api/me/listening-stats`, `GET /api/me/stats/year/:year` |
 
-Bookmarks only have `time` + `title`. Socket.io (`/socket.io`, event `auth` with the token) pushes progress from other devices; planned.
+Bookmarks only have `time` + `title`. Progress entries carry `lastUpdate` (server time).
 
 ## More endpoints in use
 
@@ -81,13 +86,21 @@ Bookmarks only have `time` + `title`. Socket.io (`/socket.io`, event `auth` with
 | Listening stats | `GET /api/me/listening-stats` → `totalTime, today, days{date: sec}, dayOfWeek, items{id: {timeListening, mediaMetadata}}` |
 | Collections | `GET /api/libraries/:id/collections` → `{ results }`, `GET /api/collections/:id` |
 | File download | `GET /api/items/:id/file/:ino/download` (needs the user's download permission, `user.permissions.download`) |
+| Whole item download | `GET /api/items/:id/download`: a ZIP of the item folder (`<title>.zip`), or the file itself for single-file items (`isFile`); same permission; answered as an attachment |
+| Listening history | `GET /api/me/listening-sessions?itemsPerPage&page` → `{ total, numPages, page, itemsPerPage, sessions }`, newest first; per book `GET /api/me/item/listening-sessions/:libraryItemId`. A session has `startTime`/`currentTime` (book position at start and end), `timeListening`, `startedAt`, `updatedAt`, `date`, `deviceInfo` |
 | Offline session upload | `POST /api/session/local` with a full session (id, libraryItemId, currentTime, timeListening, startedAt, updatedAt, date, dayOfWeek, playMethod 3); the server keeps whichever progress is newer |
 | Live events | socket.io `/socket.io`: emit `auth` with the access token; `user_item_progress_updated` `{ id, sessionId, data }`; `auth_failed` on expired tokens |
 
 - The auth rate limiter (`RATE_LIMIT_AUTH_MAX`, default 10 per 10 min) also covers `/auth/refresh`.
 - Unauthenticated `/status` also returns `authMethods` (e.g. `["local", "openid"]`).
+- `DELETE /api/me/sessions/:id` deletes a *login* session, not a listening session; single listening sessions cannot be deleted by users.
+
+## Quirks seen on 2.37.1
+
+- **Duplicate progress.** After a book's progress is deleted while a playback session for it is still open, a late sync can create a second progress entry for the same book. `/api/me` then lists both, and later updates may change either one. Clients should use the entry with the newest `lastUpdate`.
+- **Crash on close.** Closing (`POST /api/session/:id/close`) a session whose progress was deleted meanwhile throws an unhandled `SequelizeInstanceError` and the server process restarts.
 
 ## Not in the server
 
-- Sleep timer: client-side only.
+- Sleep timer, queue ("up next") and listener settings: client-side only.
 - "Share clip": the server only has admin shares of whole items (`/api/share/mediaitem`).

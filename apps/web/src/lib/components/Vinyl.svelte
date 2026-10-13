@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Cover from './Cover.svelte';
 	import { rampRate, reducedMotion } from '#lib/motion.ts';
+	import { prefs } from '#lib/prefs.svelte.ts';
 
 	interface Props {
 		title: string;
@@ -41,7 +42,7 @@
 
 	// One endless rotation (Web Animations); speed is ramped like a real turntable motor.
 	$effect(() => {
-		if (!spinner || reducedMotion()) return;
+		if (!spinner || !prefs.spin || reducedMotion()) return;
 		const a = spinner.animate([{ rotate: '0deg' }, { rotate: '360deg' }], {
 			duration: SPIN_MS,
 			iterations: Infinity

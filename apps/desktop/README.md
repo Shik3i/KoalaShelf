@@ -2,6 +2,8 @@
 
 Native KoalaShelf desktop app (Windows, macOS, Linux) built with Tauri 2. It ships the `apps/web` build locally, so the UI loads instantly and works without a web server.
 
+**Status:** scaffolded and compiling; development continues once the web app is signed off. Until then the web app is the reference for every feature.
+
 What the desktop shell adds:
 
 - **No CORS setup:** API calls go through Rust (`tauri-plugin-http`), so any Audiobookshelf server works without "Allowed origins".
@@ -24,5 +26,10 @@ Icons are generated from `src-tauri/app-icon.png` (rendered by `apps/web/scripts
 ```bash
 pnpm --filter @koalashelf/desktop tauri icon src-tauri/app-icon.png
 ```
+
+## Known differences to the browser
+
+- Volume leveling and "Save files (ZIP)" are hidden: media and downloads from a remote server would need CORS, which the Rust HTTP path avoids only for API calls. Native implementations are planned.
+- The service worker is not registered (the files are local anyway).
 
 Note: in the desktop app the session (including the refresh token) is stored in the app's private WebView storage. Moving it to the OS keychain is planned.

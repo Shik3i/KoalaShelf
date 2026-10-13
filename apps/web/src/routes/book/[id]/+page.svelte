@@ -9,6 +9,8 @@
 	import SessionRow, { meaningful } from '#lib/components/SessionRow.svelte';
 	import ListPlus from '@lucide/svelte/icons/list-plus';
 	import ListChecks from '@lucide/svelte/icons/list-checks';
+	import FileArchive from '@lucide/svelte/icons/file-archive';
+	import { isTauri } from '#lib/platform.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
@@ -119,6 +121,23 @@
 			label: i18n.m.toast.undo,
 			run: () => queue.remove(item.id)
 		});
+	}
+
+	/** The book's files to keep (ZIP of its folder): needs the download permission and a connection. */
+	const canSaveFiles = $derived(!!item && !data.offline && !isTauri && session.canDownload);
+
+	async function saveFiles() {
+		if (!item) return;
+		await session.api.ensureFresh();
+		// The server answers with an attachment: the browser saves it without leaving the page.
+		const a = document.createElement('a');
+		a.href = session.api.downloadUrl(item.id);
+		a.download = '';
+		a.rel = 'noopener';
+		document.body.append(a);
+		a.click();
+		a.remove();
+		toasts.show(t.saveStarted);
 	}
 
 	/** A shared link to a moment (?t=754 or ?t=12:34) starts playback there. */
@@ -391,6 +410,12 @@
 					{#if session.library}<dt>{t.library}</dt>
 						<dd>{session.library.name}</dd>{/if}
 				</dl>
+				{#if canSaveFiles}
+					<button class="btn ghost save" onclick={saveFiles}>
+						<FileArchive size={16} aria-hidden="true" />
+						{item.isFile ? t.saveFile : t.saveZip}
+					</button>
+				{/if}
 			</aside>
 		</div>
 	</article>
@@ -511,6 +536,11 @@
 			scale: 0.4;
 			rotate: -20deg;
 		}
+	}
+
+	.save {
+		justify-self: start;
+		margin-top: var(--sp-8);
 	}
 
 	.sessions {
@@ -660,7 +690,10 @@
 
 	.shelf {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+		grid-template-columns: repeat(
+			auto-fill,
+			minmax(min(calc(140px * var(--tile-scale)), 42%), 1fr)
+		);
 		row-gap: var(--sp-24);
 		margin: 0 calc(-1 * var(--sp-12));
 	}

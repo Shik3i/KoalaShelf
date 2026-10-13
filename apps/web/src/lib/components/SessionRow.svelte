@@ -160,8 +160,7 @@
 	.jumps {
 		display: flex;
 		align-items: center;
-		gap: var(--sp-8);
-		flex-wrap: wrap;
+		gap: 6px;
 	}
 
 	.jump {
@@ -169,7 +168,7 @@
 		align-items: center;
 		gap: 6px;
 		min-height: 36px;
-		padding: 0 var(--sp-12);
+		padding: 0 10px;
 		border: 0;
 		border-radius: var(--r-pill);
 		background: var(--c-bg);

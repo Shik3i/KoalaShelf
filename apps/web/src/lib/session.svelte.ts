@@ -56,7 +56,8 @@ export class ServerTooOldError extends Error {
 
 /**
  * The Docker image (and the dev server) proxies one preconfigured Audiobookshelf server on
- * the app's own origin. This returns that server's public URL, or null when there is none.
+ * the app's own origin. This returns that server's public URL (or, when none is configured,
+ * the app's own address, which reaches the same server), or null when there is no proxy.
  * Signing in to exactly this server then goes through the proxy: no CORS, httpOnly cookie.
  */
 export async function presetServer(): Promise<string | null> {
@@ -65,7 +66,8 @@ export async function presetServer(): Promise<string | null> {
 		const res = await fetch('/koalashelf.json', { signal: AbortSignal.timeout(2500) });
 		if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null;
 		const { server } = (await res.json()) as { server?: string };
-		return server ? normalizeBaseUrl(server) : null;
+		if (typeof server !== 'string') return null;
+		return normalizeBaseUrl(server || location.origin);
 	} catch {
 		return null;
 	}

@@ -18,6 +18,18 @@ test.describe('sign-in', () => {
 		await expect(page).toHaveURL(/\/signin/);
 	});
 
+	test('a changed server address is checked again before signing in', async ({ page }) => {
+		await page.goto('/signin');
+		await expect(page.getByText(/Audiobookshelf .* found/)).toBeVisible();
+		await page.getByLabel('Username').fill(env.ABS_USER);
+		await page.getByLabel('Password').fill(env.ABS_PASSWORD);
+		// New address and an immediate submit: the earlier check must not be reused.
+		await page.getByLabel('Audiobookshelf server').fill('localhost:1');
+		await page.getByRole('button', { name: 'Sign in' }).click();
+		await expect(page.getByRole('alert')).toBeVisible();
+		await expect(page).toHaveURL(/\/signin/);
+	});
+
 	test('unreachable server is reported while typing', async ({ page }) => {
 		await page.goto('/signin');
 		await page.getByLabel('Audiobookshelf server').fill('localhost:1');

@@ -65,7 +65,7 @@
 </script>
 
 <aside class="side">
-	<a class="brand" href="/" aria-label={t.home}>
+	<a class="brand" href="/" aria-label="KoalaShelf – {t.home}">
 		<img src="/favicon.svg" alt="" width="28" height="28" />
 		<span class="display">KoalaShelf</span>
 	</a>
@@ -181,6 +181,16 @@
 		padding: var(--sp-24) var(--sp-12);
 		background: var(--c-panel);
 		border-right: 1px solid var(--c-line);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		scrollbar-width: thin;
+	}
+
+	@media (max-height: 600px) {
+		.side {
+			gap: var(--sp-12);
+			padding-block: var(--sp-12);
+		}
 	}
 
 	.brand {

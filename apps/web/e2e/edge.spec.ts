@@ -92,6 +92,7 @@ test.describe('guest without download permission', () => {
 		await expect(page.getByRole('heading', { level: 1, name: 'Nachtzug' })).toBeVisible();
 		await expect(page.getByRole('button', { name: /^Play/ })).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Download' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Save files (ZIP)' })).toHaveCount(0);
 	});
 });
 

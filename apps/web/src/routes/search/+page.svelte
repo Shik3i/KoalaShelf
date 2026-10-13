@@ -54,6 +54,9 @@
 
 <svelte:head><title>{t.title} · KoalaShelf</title></svelte:head>
 
+<!-- The search field is the visual heading; screen readers still get a page title. -->
+<h1 class="sr-only">{t.title}</h1>
+
 <label class="box">
 	<SearchIcon size={20} aria-hidden="true" />
 	<span class="sr-only">{t.title}</span>

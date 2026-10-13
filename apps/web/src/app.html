@@ -8,6 +8,11 @@
 		<meta name="theme-color" content="#EEF1F5" media="(prefers-color-scheme: light)" />
 		<meta name="theme-color" content="#17130F" media="(prefers-color-scheme: dark)" />
 		<meta name="referrer" content="no-referrer" />
+		<meta name="robots" content="noindex, nofollow" />
+		<meta
+			name="description"
+			content="KoalaShelf: a fast, private client for your Audiobookshelf server."
+		/>
 		<link rel="icon" href="%sveltekit.assets%/favicon.svg" type="image/svg+xml" />
 		<link rel="manifest" href="%sveltekit.assets%/manifest.webmanifest" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/apple-touch-icon.png" />
@@ -16,6 +21,18 @@
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<noscript>
+			<p
+				style="
+					padding: 24px;
+					font:
+						16px system-ui,
+						sans-serif;
+				"
+			>
+				KoalaShelf needs JavaScript. / KoalaShelf benötigt JavaScript.
+			</p>
+		</noscript>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

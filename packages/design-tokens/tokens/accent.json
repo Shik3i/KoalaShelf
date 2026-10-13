@@ -1,0 +1,29 @@
+{
+  "accent": {
+    "$type": "color",
+    "vinyl": {
+      "light": { "accent": { "$value": "#B8391E" }, "on-accent": { "$value": "#FFFFFF" } },
+      "dark": { "accent": { "$value": "#E8A33D" }, "on-accent": { "$value": "#1A1206" } }
+    },
+    "ocean": {
+      "light": { "accent": { "$value": "#1D63B8" }, "on-accent": { "$value": "#FFFFFF" } },
+      "dark": { "accent": { "$value": "#7DB8F5" }, "on-accent": { "$value": "#0A1D33" } }
+    },
+    "teal": {
+      "light": { "accent": { "$value": "#0B7268" }, "on-accent": { "$value": "#FFFFFF" } },
+      "dark": { "accent": { "$value": "#4FC7B5" }, "on-accent": { "$value": "#06201C" } }
+    },
+    "forest": {
+      "light": { "accent": { "$value": "#2A7230" }, "on-accent": { "$value": "#FFFFFF" } },
+      "dark": { "accent": { "$value": "#86C77A" }, "on-accent": { "$value": "#0E220C" } }
+    },
+    "indigo": {
+      "light": { "accent": { "$value": "#4A4FC4" }, "on-accent": { "$value": "#FFFFFF" } },
+      "dark": { "accent": { "$value": "#9EA3FF" }, "on-accent": { "$value": "#12133A" } }
+    },
+    "plum": {
+      "light": { "accent": { "$value": "#9B3A82" }, "on-accent": { "$value": "#FFFFFF" } },
+      "dark": { "accent": { "$value": "#E59AD0" }, "on-accent": { "$value": "#2A0F22" } }
+    }
+  }
+}

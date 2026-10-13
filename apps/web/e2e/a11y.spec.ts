@@ -2,43 +2,61 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { itemId } from './helpers.ts';
 
-// Automated accessibility scan (WCAG 2.2 AA) of every page in both themes.
+// Automated accessibility scan (WCAG 2.2 AA plus axe best practices) of every page,
+// in both themes, on a laptop and on a phone.
 for (const scheme of ['light', 'dark'] as const) {
 	test.describe(`a11y ${scheme}`, () => {
 		test.use({ colorScheme: scheme });
 
-		test('all pages pass axe', async ({ page }) => {
-			const id = await itemId('Der lange Weg');
-			const pages = [
-				'/',
-				'/library',
-				'/library?view=list',
-				'/series',
-				'/authors',
-				'/collections',
-				'/history',
-				'/stats',
-				'/search',
-				'/settings',
-				'/downloads',
-				`/book/${id}`
-			];
-			for (const path of pages) {
-				await page.goto(path);
-				await page.waitForTimeout(600);
-				const result = await new AxeBuilder({ page })
-					.withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
-					.analyze();
-				const issues = result.violations.map(
-					(v) =>
-						`${v.id}: ${v.nodes
-							.map((n) => n.target.join(' '))
-							.slice(0, 3)
-							.join(' | ')}`
-				);
-				expect(issues, `${path} (${scheme})`).toEqual([]);
-			}
-		});
+		for (const [device, viewport] of [
+			['laptop', { width: 1280, height: 800 }],
+			['phone', { width: 390, height: 844 }]
+		] as const)
+			test(`all pages pass axe (${device})`, async ({ page }) => {
+				await page.setViewportSize(viewport);
+				const id = await itemId('Der lange Weg');
+				const pages = [
+					'/',
+					'/library',
+					'/library?view=list',
+					'/series',
+					'/authors',
+					'/collections',
+					'/history',
+					'/stats',
+					'/search',
+					'/settings',
+					'/downloads',
+					`/book/${id}`
+				];
+				for (const path of pages) {
+					await page.goto(path);
+					await page.waitForTimeout(600);
+					const result = await new AxeBuilder({ page })
+						.withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa', 'best-practice'])
+						.analyze();
+					const issues = result.violations.map(
+						(v) =>
+							`${v.id}: ${v.nodes
+								.map((n) => n.target.join(' '))
+								.slice(0, 3)
+								.join(' | ')}`
+					);
+					expect(issues, `${path} (${scheme}, ${device})`).toEqual([]);
+				}
+				if (device === 'phone') {
+					await page.getByRole('button', { name: 'More', exact: true }).click();
+					await expect(page.getByRole('dialog', { name: 'More' })).toBeVisible();
+					await page.waitForTimeout(400);
+					const sheet = await new AxeBuilder({ page })
+						.withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa', 'best-practice'])
+						.analyze();
+					expect(
+						sheet.violations.map((v) => v.id),
+						`More sheet (${scheme})`
+					).toEqual([]);
+				}
+			});
 
 		test('mini player and full player with every panel pass axe', async ({ page }) => {
 			await page.goto(`/book/${await itemId('Salzwasser')}`);

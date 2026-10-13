@@ -15,6 +15,8 @@
 	import { RATES } from '#lib/player/player.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { dev } from '$app/env';
+	import { prefs } from '#lib/prefs.svelte.ts';
+	import { reducedMotion } from '#lib/motion.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
@@ -33,6 +35,24 @@
 	});
 	let online = $state(navigator.onLine);
 
+	// Appearance settings as attributes on <html> (static/theme.js sets them before first paint).
+	$effect(() => {
+		const d = document.documentElement.dataset;
+		d.accent = prefs.accent;
+		d.text = prefs.textSize;
+		d.motion = prefs.motion;
+		d.cover = prefs.coverSize;
+	});
+
+	// Opening the app on "/" goes to the chosen start page (only the first time per visit).
+	let started = false;
+	$effect(() => {
+		if (started || !session.ready || !session.client) return;
+		started = true;
+		if (page.url.pathname === '/' && prefs.startPage === 'library')
+			goto('/library', { replace: true });
+	});
+
 	// Offline shell for the browser/PWA; the desktop app ships its files locally anyway.
 	if (!dev && !isTauri && 'serviceWorker' in navigator) {
 		navigator.serviceWorker
@@ -42,7 +62,7 @@
 
 	/** Global player shortcuts, ignored while typing or on focused controls. */
 	function onKey(e: KeyboardEvent) {
-		if (e.ctrlKey || e.metaKey || e.altKey) return;
+		if (e.ctrlKey || e.metaKey || e.altKey || !prefs.shortcuts) return;
 		const el = e.target as HTMLElement;
 		if (el.closest('input, textarea, select, [contenteditable]')) return;
 		const key = e.key;
@@ -84,8 +104,7 @@
 
 	// Smooth page changes via the View Transitions API (skipped when unsupported or reduced motion).
 	onNavigate((nav) => {
-		if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches)
-			return;
+		if (!document.startViewTransition || reducedMotion()) return;
 		if (nav.from?.url.pathname === nav.to?.url.pathname) return;
 		return new Promise((resolve) => {
 			document.startViewTransition(async () => {
@@ -111,14 +130,17 @@
 {#if isPublic}
 	{@render children()}
 {:else if session.ready && session.client}
+	<a class="skip" href="#main">{i18n.m.nav.skip}</a>
 	<div class="shell">
 		<AppNav />
-		<main class:has-player={player.item}>
-			{#if session.librariesLoaded && !session.libraries.length && !/^\/(settings|downloads)/.test(page.url.pathname)}
-				<p class="no-lib">{i18n.m.common.noLibrary}</p>
-			{:else}
-				{@render children()}
-			{/if}
+		<main id="main" tabindex="-1" class:has-player={player.item}>
+			<div class="page">
+				{#if session.librariesLoaded && !session.libraries.length && !/^\/(settings|downloads)/.test(page.url.pathname)}
+					<p class="no-lib">{i18n.m.common.noLibrary}</p>
+				{:else}
+					{@render children()}
+				{/if}
+			</div>
 		</main>
 	</div>
 	<MiniPlayer />
@@ -137,10 +159,20 @@
 
 	main {
 		min-width: 0;
-		/* Pages size themselves to the space next to the sidebar, not the viewport. */
-		container: page / inline-size;
 		padding: var(--sp-32) var(--sp-40) var(--sp-64);
 		view-transition-name: main;
+	}
+
+	/* Lines and lists stay readable on very wide screens; tile grids still get many columns. */
+	.page {
+		max-width: 1600px;
+		margin-inline: auto;
+		/* Pages size themselves to this column, not the viewport. */
+		container: page / inline-size;
+	}
+
+	main:focus {
+		outline: none;
 	}
 
 	.no-lib {

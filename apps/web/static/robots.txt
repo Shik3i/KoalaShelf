@@ -1,3 +1,3 @@
-# allow crawling everything by default
+# A personal library client: nothing here belongs in search engines.
 User-agent: *
-Disallow:
+Disallow: /

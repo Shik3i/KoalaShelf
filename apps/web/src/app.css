@@ -9,10 +9,53 @@
 }
 
 html {
-	-webkit-text-size-adjust: none;
-	text-size-adjust: none;
+	/* No automatic inflation, but the listener's own text size always applies. */
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
 	background: var(--c-outer);
 	interpolate-size: allow-keywords;
+	scrollbar-gutter: stable;
+	/* Covers in tile grids: scaled by Settings > Appearance > Cover size. */
+	--tile-scale: 1;
+}
+
+/* Settings > Appearance > Text size (on top of the browser / system text size). */
+:root[data-text='sm'] {
+	font-size: 93.75%;
+}
+
+:root[data-text='lg'] {
+	font-size: 112.5%;
+}
+
+:root[data-text='xl'] {
+	font-size: 125%;
+}
+
+:root[data-cover='sm'] {
+	--tile-scale: 0.8;
+}
+
+:root[data-cover='lg'] {
+	--tile-scale: 1.3;
+}
+
+/* Keyboard users jump past the navigation straight to the page. */
+.skip {
+	position: fixed;
+	z-index: 100;
+	top: var(--sp-8);
+	left: var(--sp-8);
+	padding: var(--sp-12) var(--sp-20);
+	border-radius: var(--r-pill);
+	background: var(--c-ctrl);
+	color: var(--c-ctrl-ink);
+	font-weight: var(--fw-bold);
+	translate: 0 -200%;
+}
+
+.skip:focus-visible {
+	translate: 0;
 }
 
 body {
@@ -297,13 +340,102 @@ button {
 	}
 }
 
+/* Reduced motion: the system setting, unless Settings > Motion says otherwise. */
 @media (prefers-reduced-motion: reduce) {
-	*,
-	*::before,
-	*::after {
+	:root:not([data-motion='full']) *,
+	:root:not([data-motion='full']) *::before,
+	:root:not([data-motion='full']) *::after {
 		animation-duration: 0.01ms !important;
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
+	}
+}
+
+:root[data-motion='reduce'] *,
+:root[data-motion='reduce'] *::before,
+:root[data-motion='reduce'] *::after {
+	animation-duration: 0.01ms !important;
+	animation-iteration-count: 1 !important;
+	transition-duration: 0.01ms !important;
+	scroll-behavior: auto !important;
+}
+
+/* "More contrast" requested by the system: secondary text and lines get stronger. */
+@media (prefers-contrast: more) {
+	:root {
+		--c-muted: var(--c-ink);
+		--c-line: color-mix(in oklab, var(--c-ink) 55%, transparent);
+		--c-track: color-mix(in oklab, var(--c-ink) 45%, transparent);
+	}
+}
+
+/* Windows high contrast: keep controls and states visible with system colors. */
+@media (forced-colors: active) {
+	/* System colors win over the accent presets (which are more specific). */
+	:root {
+		--c-accent: Highlight !important;
+		--c-on-accent: HighlightText !important;
+		--c-track: GrayText !important;
+		--c-line: GrayText !important;
+	}
+
+	.btn,
+	.chip,
+	button,
+	input:not([type='range'], [type='radio']),
+	select {
+		border: 1px solid ButtonText;
+	}
+
+	/* Progress, switches and color samples carry meaning in their colors: keep them (now in
+	   system colors via the tokens above), instead of the forced plain background. */
+	.timeline .track,
+	.timeline .fill,
+	.timeline .tick,
+	.pin::before,
+	.bar,
+	.bar::before,
+	.pbar,
+	.line::before,
+	.span,
+	.span span,
+	.switch,
+	.switch span,
+	.swatch .dot {
+		forced-color-adjust: none;
+	}
+
+	.switch span {
+		background: Canvas;
+		outline: 1px solid CanvasText;
+	}
+
+	:focus-visible {
+		outline: 2px solid Highlight !important;
+	}
+
+	[aria-pressed='true'],
+	[aria-selected='true'],
+	[aria-current='page'],
+	[aria-current='true'] {
+		forced-color-adjust: none;
+		background: Highlight !important;
+		color: HighlightText !important;
+	}
+}
+
+@media print {
+	nav,
+	aside.side,
+	.tabs,
+	.mini,
+	.skip,
+	.offline {
+		display: none !important;
+	}
+
+	main {
+		padding: 0 !important;
 	}
 }

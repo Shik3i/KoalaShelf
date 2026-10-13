@@ -1,18 +1,57 @@
 <script lang="ts">
 	import { getServerStatus } from '@koalashelf/abs-client';
+	import { accents, type AccentName } from '@koalashelf/design-tokens';
 	import { session, presetServer } from '#lib/session.svelte.ts';
 	import { theme, type ThemeChoice } from '#lib/theme.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
-	import { prefs, SKIP_STEPS } from '#lib/prefs.svelte.ts';
-	import { player } from '#lib/player/player.svelte.ts';
+	import { prefs, SKIP_STEPS, TEXT_SIZES, type Prefs } from '#lib/prefs.svelte.ts';
+	import { player, RATES } from '#lib/player/player.svelte.ts';
+	import { downloads, supported as downloadsSupported } from '#lib/downloads.svelte.ts';
+	import { CUSTOM_SHELVES, moveShelf, setShelfVisible, shelfOrder } from '#lib/shelves.ts';
+	import { toasts } from '#lib/toast.svelte.ts';
 	import { apiFetch } from '#lib/platform.ts';
+	import { bytes, speed } from '#lib/format.ts';
 	import LocaleSwitch from '#lib/components/LocaleSwitch.svelte';
 	import Segmented from '#lib/components/Segmented.svelte';
+	import Toggle from '#lib/components/Toggle.svelte';
+	import ChevronUp from '@lucide/svelte/icons/chevron-up';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import Check from '@lucide/svelte/icons/check';
 
 	const t = $derived(i18n.m.settings);
+	const home = $derived(i18n.m.home);
 	const THEMES: ThemeChoice[] = ['system', 'light', 'dark'];
 	const themeLabel = (c: ThemeChoice) =>
 		({ system: t.themeSystem, light: t.themeLight, dark: t.themeDark })[c];
+	const ACCENTS = Object.keys(accents) as AccentName[];
+	/** Swatch in the theme that is showing right now. */
+	const dark = $derived(
+		theme.choice === 'dark' ||
+			(theme.choice === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+	);
+	const shelfLabel = $derived<Record<string, string>>({
+		'continue-series': home.continueSeries,
+		'recently-added': home.recentlyAdded,
+		'recent-series': home.recentSeries,
+		recommended: home.discover,
+		'listen-again': home.listenAgain
+	});
+	const order = $derived(shelfOrder());
+
+	/** Typed shorthand for a segmented setting. */
+	const choose =
+		<K extends keyof Prefs>(key: K) =>
+		(value: Prefs[K]) =>
+			prefs.set(key, value);
+
+	const sections = $derived([
+		['appearance', t.appearance],
+		['player', t.playback],
+		['sleep', t.sleep],
+		['library', t.libraryHome],
+		['storage', t.storage],
+		['account', t.account]
+	] as const);
 
 	let serverUrl = $state<string | null>(null);
 	let serverVersion = $state<string | null>(null);
@@ -28,14 +67,40 @@
 			.then((s) => (serverVersion = s.serverVersion))
 			.catch(() => (serverVersion = null));
 	});
+
+	// Downloads: count and size on this device.
+	void downloads.init();
+	const downloaded = $derived([...downloads.books.values()]);
+	const downloadedSize = $derived(downloaded.reduce((s, b) => s + b.size, 0));
+
+	/** Destructive actions ask once more, inline (no modal). */
+	let confirming = $state<'downloads' | 'reset' | null>(null);
+
+	async function removeAllDownloads() {
+		for (const b of downloaded) await downloads.remove(b.item.id);
+		confirming = null;
+	}
+
+	function resetSettings() {
+		prefs.reset();
+		theme.set('system');
+		confirming = null;
+		toasts.show(t.resetDone);
+	}
 </script>
 
 <svelte:head><title>{t.title} · KoalaShelf</title></svelte:head>
 
 <h1>{t.title}</h1>
 
-<section class="card">
-	<h2 class="label">{t.appearance}</h2>
+<nav class="jump" aria-label={t.sections}>
+	{#each sections as [id, label] (id)}
+		<a class="chip" href="#{id}">{label}</a>
+	{/each}
+</nav>
+
+<section class="card" id="appearance" aria-labelledby="h-appearance">
+	<h2 class="label" id="h-appearance">{t.appearance}</h2>
 	<div class="row">
 		<span>{t.theme}</span>
 		<Segmented
@@ -45,14 +110,72 @@
 			onchange={(c) => theme.set(c)}
 		/>
 	</div>
+	<fieldset class="row stacked">
+		<legend>{t.accent}</legend>
+		<div class="swatches">
+			{#each ACCENTS as name (name)}
+				<label class="swatch" style:--sw={accents[name][dark ? 'dark' : 'light'].accent}>
+					<input
+						type="radio"
+						name="accent"
+						value={name}
+						checked={prefs.accent === name}
+						onchange={() => prefs.set('accent', name)}
+					/>
+					<span class="dot" aria-hidden="true"><Check size={16} strokeWidth={3} /></span>
+					<span class="name">{t.accents[name]}</span>
+				</label>
+			{/each}
+		</div>
+	</fieldset>
+	<div class="row stacked">
+		<span class="stack">
+			{t.textSize}
+			<small class="muted">{t.textSizeHint}</small>
+		</span>
+		<Segmented
+			size="sm"
+			label={t.textSize}
+			value={prefs.textSize}
+			options={(Object.keys(TEXT_SIZES) as Prefs['textSize'][]).map((s) => ({
+				value: s,
+				label: t.textSizes[s]
+			}))}
+			onchange={choose('textSize')}
+		/>
+	</div>
 	<div class="row">
 		<span>{t.language}</span>
 		<LocaleSwitch />
 	</div>
+	<div class="row stacked">
+		<span>{t.motion}</span>
+		<Segmented
+			size="sm"
+			label={t.motion}
+			value={prefs.motion}
+			options={(['system', 'reduce', 'full'] as const).map((m) => ({
+				value: m,
+				label: t.motions[m]
+			}))}
+			onchange={choose('motion')}
+		/>
+	</div>
+	<Toggle label={t.spin} hint={t.spinHint} checked={prefs.spin} onchange={choose('spin')} />
+	<div class="row stacked">
+		<span>{t.coverSize}</span>
+		<Segmented
+			size="sm"
+			label={t.coverSize}
+			value={prefs.coverSize}
+			options={(['sm', 'md', 'lg'] as const).map((s) => ({ value: s, label: t.coverSizes[s] }))}
+			onchange={choose('coverSize')}
+		/>
+	</div>
 </section>
 
-<section class="card">
-	<h2 class="label">{t.playback}</h2>
+<section class="card" id="player" aria-labelledby="h-player">
+	<h2 class="label" id="h-player">{t.playback}</h2>
 	<div class="row stacked">
 		<span>{t.skipBack}</span>
 		<Segmented
@@ -60,7 +183,7 @@
 			label={t.skipBack}
 			value={prefs.skipBack}
 			options={SKIP_STEPS.map((s) => ({ value: s, label: t.seconds(s) }))}
-			onchange={(s) => prefs.set('skipBack', s)}
+			onchange={choose('skipBack')}
 		/>
 	</div>
 	<div class="row stacked">
@@ -70,45 +193,205 @@
 			label={t.skipForward}
 			value={prefs.skipForward}
 			options={SKIP_STEPS.map((s) => ({ value: s, label: t.seconds(s) }))}
-			onchange={(s) => prefs.set('skipForward', s)}
+			onchange={choose('skipForward')}
 		/>
 	</div>
-	<div class="row">
-		<span class="stack">
-			{t.smartRewind}
-			<small class="muted">{t.smartRewindHint}</small>
-		</span>
-		<button
-			class="switch"
-			role="switch"
-			aria-checked={prefs.smartRewind}
-			aria-label={t.smartRewind}
-			onclick={() => prefs.set('smartRewind', !prefs.smartRewind)}
-		>
-			<span></span>
-		</button>
+	<div class="row stacked">
+		<span>{t.scope}</span>
+		<Segmented
+			size="sm"
+			label={t.scope}
+			value={prefs.progressScope}
+			options={(['book', 'chapter'] as const).map((s) => ({ value: s, label: t.scopes[s] }))}
+			onchange={(s) => player.setScope(s)}
+		/>
 	</div>
+	<div class="row stacked">
+		<span>{t.clock}</span>
+		<Segmented
+			size="sm"
+			label={t.clock}
+			value={prefs.remainingTime ? 'remaining' : 'elapsed'}
+			options={(['elapsed', 'remaining'] as const).map((c) => ({ value: c, label: t.clocks[c] }))}
+			onchange={(c) => prefs.set('remainingTime', c === 'remaining')}
+		/>
+	</div>
+	<Toggle
+		label={t.speedAdjusted}
+		hint={t.speedAdjustedHint}
+		checked={prefs.speedAdjusted}
+		onchange={choose('speedAdjusted')}
+	/>
+	<div class="row stacked">
+		<span>{t.defaultRate}</span>
+		<Segmented
+			size="sm"
+			label={t.defaultRate}
+			value={prefs.defaultRate === 'last' ? 'last' : 'fixed'}
+			options={(['last', 'fixed'] as const).map((m) => ({
+				value: m,
+				label: m === 'last' ? t.rateLast : t.rateFixed
+			}))}
+			onchange={(m) => prefs.set('defaultRate', m === 'last' ? 'last' : player.rate)}
+		/>
+		{#if prefs.defaultRate !== 'last'}
+			<Segmented
+				size="sm"
+				label={t.rateFixed}
+				value={prefs.defaultRate}
+				options={RATES.map((r) => ({ value: r as number, label: speed(r) }))}
+				onchange={choose('defaultRate')}
+			/>
+		{/if}
+	</div>
+	<Toggle
+		label={t.rememberRate}
+		hint={t.rememberRateHint}
+		checked={prefs.rememberRate}
+		onchange={choose('rememberRate')}
+	/>
+	<div class="row stacked">
+		<span>{t.mediaKeys}</span>
+		<Segmented
+			size="sm"
+			label={t.mediaKeys}
+			value={prefs.mediaKeys}
+			options={(['chapter', 'skip'] as const).map((m) => ({ value: m, label: t.mediaKeyModes[m] }))}
+			onchange={choose('mediaKeys')}
+		/>
+	</div>
+	<Toggle
+		label={t.smartRewind}
+		hint={t.smartRewindHint}
+		checked={prefs.smartRewind}
+		onchange={choose('smartRewind')}
+	/>
 	{#if player.levelingAvailable}
-		<div class="row">
-			<span class="stack">
-				{t.leveling}
-				<small class="muted">{t.levelingHint}</small>
-			</span>
-			<button
-				class="switch"
-				role="switch"
-				aria-checked={prefs.leveling}
-				aria-label={t.leveling}
-				onclick={() => player.setLeveling(!prefs.leveling)}
-			>
-				<span></span>
-			</button>
-		</div>
+		<Toggle
+			label={t.leveling}
+			hint={t.levelingHint}
+			checked={prefs.leveling}
+			onchange={(on) => player.setLeveling(on)}
+		/>
 	{/if}
+	<Toggle
+		label={t.autoQueue}
+		hint={t.autoQueueHint}
+		checked={prefs.autoQueue}
+		onchange={choose('autoQueue')}
+	/>
+	<Toggle label={t.seriesOffer} checked={prefs.seriesOffer} onchange={choose('seriesOffer')} />
+	<Toggle
+		label={t.shortcuts}
+		hint={t.shortcutsHint}
+		checked={prefs.shortcuts}
+		onchange={choose('shortcuts')}
+	/>
 </section>
 
-<section class="card">
-	<h2 class="label">{t.account}</h2>
+<section class="card" id="sleep" aria-labelledby="h-sleep">
+	<h2 class="label" id="h-sleep">{t.sleep}</h2>
+	<Toggle
+		label={t.sleepFade}
+		hint={t.sleepFadeHint}
+		checked={prefs.sleepFade}
+		onchange={choose('sleepFade')}
+	/>
+	<div class="row stacked">
+		<span>{t.sleepRewind}</span>
+		<Segmented
+			size="sm"
+			label={t.sleepRewind}
+			value={prefs.sleepRewind}
+			options={([0, 15, 30] as const).map((s) => ({
+				value: s,
+				label: s ? t.seconds(s) : t.off
+			}))}
+			onchange={choose('sleepRewind')}
+		/>
+	</div>
+</section>
+
+<section class="card" id="library" aria-labelledby="h-library">
+	<h2 class="label" id="h-library">{t.libraryHome}</h2>
+	<div class="row stacked">
+		<span>{t.startPage}</span>
+		<Segmented
+			size="sm"
+			label={t.startPage}
+			value={prefs.startPage}
+			options={(['home', 'library'] as const).map((p) => ({ value: p, label: t.startPages[p] }))}
+			onchange={choose('startPage')}
+		/>
+	</div>
+	<div class="stack">
+		<span class="strong">{t.shelves}</span>
+		<small class="muted">{t.shelvesHint}</small>
+	</div>
+	<ol class="shelves">
+		{#each order as id, i (id)}
+			<li>
+				<div class="grow">
+					<Toggle
+						label={shelfLabel[id]}
+						checked={!prefs.hiddenShelves.includes(id)}
+						onchange={(on) => setShelfVisible(id, on)}
+					/>
+				</div>
+				<button
+					class="move"
+					disabled={i === 0}
+					onclick={() => moveShelf(id, -1)}
+					aria-label={t.moveUp(shelfLabel[id])}
+					title={t.moveUp(shelfLabel[id])}><ChevronUp size={18} /></button
+				>
+				<button
+					class="move"
+					disabled={i === CUSTOM_SHELVES.length - 1}
+					onclick={() => moveShelf(id, 1)}
+					aria-label={t.moveDown(shelfLabel[id])}
+					title={t.moveDown(shelfLabel[id])}><ChevronDown size={18} /></button
+				>
+			</li>
+		{/each}
+	</ol>
+</section>
+
+<section class="card" id="storage" aria-labelledby="h-storage">
+	<h2 class="label" id="h-storage">{t.storage}</h2>
+	{#if downloadsSupported()}
+		<p class="summary">{t.downloadsSummary(downloaded.length, bytes(downloadedSize))}</p>
+		<div class="actions">
+			<a class="btn ghost" href="/downloads">{t.manageDownloads}</a>
+			{#if downloaded.length}
+				{#if confirming === 'downloads'}
+					<span class="confirm" role="alert">{t.removeAllConfirm(downloaded.length)}</span>
+					<button class="btn danger" onclick={removeAllDownloads}>{t.remove}</button>
+					<button class="btn ghost" onclick={() => (confirming = null)}>{t.cancel}</button>
+				{:else}
+					<button class="btn ghost" onclick={() => (confirming = 'downloads')}>{t.removeAll}</button
+					>
+				{/if}
+			{/if}
+		</div>
+	{/if}
+	<div class="stack">
+		<span class="strong">{t.reset}</span>
+		<small class="muted">{t.resetHint}</small>
+	</div>
+	<div class="actions">
+		{#if confirming === 'reset'}
+			<span class="confirm" role="alert">{t.resetConfirm}</span>
+			<button class="btn danger" onclick={resetSettings}>{t.reset}</button>
+			<button class="btn ghost" onclick={() => (confirming = null)}>{t.cancel}</button>
+		{:else}
+			<button class="btn ghost" onclick={() => (confirming = 'reset')}>{t.reset}</button>
+		{/if}
+	</div>
+</section>
+
+<section class="card" id="account" aria-labelledby="h-account">
+	<h2 class="label" id="h-account">{t.account}</h2>
 	<dl>
 		<dt>{t.user}</dt>
 		<dd>{session.user?.username}</dd>
@@ -120,8 +403,8 @@
 	<button class="btn ghost" onclick={() => session.signOut()}>{t.signOut}</button>
 </section>
 
-<section class="card">
-	<h2 class="label">{t.about}</h2>
+<section class="card" aria-labelledby="h-about">
+	<h2 class="label" id="h-about">{t.about}</h2>
 	<p class="muted">{t.aboutText}</p>
 	<a
 		class="link"
@@ -135,16 +418,32 @@
 
 <style>
 	h1 {
+		margin-bottom: var(--sp-16);
+	}
+
+	/* Section shortcuts; scrolls sideways on narrow screens. */
+	.jump {
+		display: flex;
+		gap: var(--sp-8);
+		max-width: 720px;
 		margin-bottom: var(--sp-24);
+		overflow-x: auto;
+		scrollbar-width: none;
+	}
+
+	.jump .chip {
+		flex: none;
 	}
 
 	.card {
 		display: grid;
-		gap: var(--sp-16);
+		gap: var(--sp-20);
 		max-width: 720px;
 		padding: var(--sp-24);
 		margin-bottom: var(--sp-16);
 		border-radius: var(--r-card-lg);
+		/* Jump links land with some air above the card. */
+		scroll-margin-top: var(--sp-16);
 	}
 
 	.row {
@@ -162,15 +461,27 @@
 		gap: var(--sp-8);
 	}
 
-	.row > span {
+	.row > span,
+	legend,
+	.strong {
 		font-weight: var(--fw-semibold);
+	}
+
+	fieldset {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		min-width: 0;
+	}
+
+	legend {
+		padding: 0;
+		margin-bottom: var(--sp-8);
 	}
 
 	.stack {
 		display: grid;
 		gap: var(--sp-4);
-		flex: 1;
-		min-width: 220px;
 	}
 
 	.stack small {
@@ -181,44 +492,135 @@
 	/* Segmented controls sit on a card here: give them the page background. */
 	.card :global(.seg) {
 		background: var(--c-bg);
+		max-width: 100%;
 	}
 
-	.switch {
+	/* Accent colors: real radio buttons, drawn as swatches. */
+	.swatches {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-12) var(--sp-16);
+	}
+
+	.swatch {
 		position: relative;
-		width: 52px;
-		height: 32px;
+		display: grid;
+		justify-items: center;
+		gap: var(--sp-4);
+		min-width: 56px;
+		cursor: pointer;
+	}
+
+	/* The (invisible) radio is the hit area, above the drawn swatch. */
+	.swatch input {
+		position: absolute;
+		z-index: 1;
+		inset: 0;
+		opacity: 0;
+		margin: 0;
+		cursor: pointer;
+	}
+
+	.dot {
+		display: grid;
+		place-items: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		background: var(--sw);
+		color: transparent;
+		box-shadow:
+			0 0 0 3px var(--c-card),
+			0 0 0 4px var(--c-line);
+		transition:
+			box-shadow var(--motion-fast) var(--motion-ease),
+			scale var(--motion-base) var(--motion-spring);
+	}
+
+	.swatch:hover .dot {
+		scale: 1.08;
+	}
+
+	.swatch input:checked + .dot {
+		color: #fff;
+		box-shadow:
+			0 0 0 3px var(--c-card),
+			0 0 0 5px var(--sw);
+	}
+
+	.swatch input:focus-visible + .dot {
+		outline: 2px solid var(--c-ink);
+		outline-offset: 6px;
+	}
+
+	.name {
+		font-size: var(--fs-12);
+		font-weight: var(--fw-semibold);
+	}
+
+	.shelves {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: var(--sp-8);
+	}
+
+	.shelves li {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-4);
+		padding: var(--sp-8) var(--sp-8) var(--sp-8) var(--sp-16);
+		border-radius: var(--r-card);
+		background: var(--c-bg);
+	}
+
+	.grow {
+		flex: 1;
+		min-width: 0;
+		margin-right: var(--sp-8);
+	}
+
+	.move {
+		display: grid;
+		place-items: center;
+		width: var(--layout-touch);
+		height: var(--layout-touch);
 		flex: none;
 		padding: 0;
 		border: 0;
-		border-radius: var(--r-pill);
-		background: var(--c-track);
-		transition: background var(--motion-fast) var(--motion-ease);
-	}
-
-	.switch span {
-		position: absolute;
-		top: 4px;
-		left: 4px;
-		width: 24px;
-		height: 24px;
 		border-radius: 50%;
+		background: transparent;
+		color: var(--c-ink);
+	}
+
+	.move:hover:not(:disabled) {
 		background: var(--c-card);
-		box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
-		transition: translate var(--motion-fast) var(--motion-ease);
 	}
 
-	.switch[aria-checked='true'] {
+	.move:disabled {
+		opacity: 0.3;
+	}
+
+	.summary {
+		margin: 0;
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--sp-8);
+	}
+
+	.confirm {
+		flex-basis: 100%;
+		font-weight: var(--fw-semibold);
+	}
+
+	.btn.danger {
 		background: var(--c-accent);
-	}
-
-	.switch[aria-checked='true'] span {
-		translate: 20px 0;
-	}
-
-	.switch::after {
-		content: '';
-		position: absolute;
-		inset: -6px;
+		color: var(--c-on-accent);
 	}
 
 	dl {

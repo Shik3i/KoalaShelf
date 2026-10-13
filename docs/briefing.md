@@ -1,3 +1,5 @@
+> Historical document: the original briefing (German) that started the project. The current state and all later decisions are in [plan.md](plan.md).
+
 # KoalaShelf: Start-Prompt für Claude Desktop
 
 Kopiere alles ab "Rolle" in die erste Nachricht. Hänge `koalashelf-design-grundlagen.png` an.

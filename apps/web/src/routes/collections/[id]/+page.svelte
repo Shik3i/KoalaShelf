@@ -51,14 +51,20 @@
 
 	.shelf {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+		grid-template-columns: repeat(
+			auto-fill,
+			minmax(min(calc(150px * var(--tile-scale)), 42%), 1fr)
+		);
 		row-gap: var(--sp-32);
 		margin: 0 calc(-1 * var(--sp-12));
 	}
 
 	@container page (max-width: 700px) {
 		.shelf {
-			grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+			grid-template-columns: repeat(
+				auto-fill,
+				minmax(min(calc(130px * var(--tile-scale)), 42%), 1fr)
+			);
 		}
 	}
 </style>

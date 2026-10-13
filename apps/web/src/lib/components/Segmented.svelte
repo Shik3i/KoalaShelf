@@ -58,7 +58,8 @@
 	.seg {
 		position: relative;
 		display: inline-grid;
-		grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+		/* Equal columns, never narrower than their label (no overlapping text). */
+		grid-template-columns: repeat(var(--n), minmax(max-content, 1fr));
 		padding: 3px;
 		border-radius: var(--r-pill);
 		background: var(--c-card);

@@ -130,6 +130,27 @@ class Player {
 	readonly chapterIndex = $derived(this.chapter ? this.chapters.indexOf(this.chapter) : -1);
 	readonly progress = $derived(this.duration ? this.currentTime / this.duration : 0);
 
+	/** What timeline, clock and lock screen cover: the current chapter or the whole book. */
+	readonly scope = $derived.by(() => {
+		const c = this.chapter;
+		return prefs.progressScope === 'chapter' && c && c.end > c.start
+			? { start: c.start, end: c.end, chapter: true }
+			: { start: 0, end: this.duration, chapter: false };
+	});
+	readonly scopeProgress = $derived(
+		this.scope.end > this.scope.start
+			? Math.min(
+					1,
+					Math.max(0, (this.currentTime - this.scope.start) / (this.scope.end - this.scope.start))
+				)
+			: 0
+	);
+
+	/** "Time left" displays follow the playback speed unless the listener turned that off. */
+	get displayRate() {
+		return prefs.speedAdjusted ? this.rate : 1;
+	}
+
 	/** Where a smart sleep timer will stop (follows seeks, speed and pauses). */
 	readonly sleepForecast = $derived.by((): SleepForecast | null => {
 		const s = this.sleep;
@@ -329,7 +350,9 @@ class Player {
 	}
 
 	#applyBookRate(id: string) {
-		const r = bookRate(id) ?? storage<number>(RATE_KEY, 1);
+		const own = prefs.rememberRate ? bookRate(id) : null;
+		const r =
+			own ?? (prefs.defaultRate === 'last' ? storage<number>(RATE_KEY, 1) : prefs.defaultRate);
 		this.rate = r;
 		if (this.#audio) this.#audio.playbackRate = r;
 	}
@@ -405,9 +428,15 @@ class Player {
 
 	setRate(r: number) {
 		this.rate = r;
-		if (this.item) setBookRate(this.item.id, r);
+		if (this.item && prefs.rememberRate) setBookRate(this.item.id, r);
 		if (this.#audio) this.#audio.playbackRate = r;
 		store(RATE_KEY, r);
+		this.#positionState();
+	}
+
+	/** Timeline and clock for the whole book or the current chapter. */
+	setScope(scope: 'book' | 'chapter') {
+		prefs.set('progressScope', scope);
 		this.#positionState();
 	}
 
@@ -577,7 +606,10 @@ class Player {
 		this.#lastTick = now;
 
 		this.#checkSleep();
-		if (this.chapter?.id !== this.#metaChapter) this.#updateMediaSession();
+		if (this.chapter?.id !== this.#metaChapter) {
+			this.#updateMediaSession();
+			this.#positionState();
+		}
 	}
 
 	#checkSleep() {
@@ -606,9 +638,9 @@ class Player {
 			this.pause();
 			a.volume = 1;
 			// Rewind a little so the listener does not miss what they fell asleep to.
-			this.skip(-15);
+			if (prefs.sleepRewind) this.skip(-prefs.sleepRewind);
 			this.sleep = { kind: 'off' };
-		} else if (left < FADE_SECONDS && this.sleepForecast?.chapter == null) {
+		} else if (prefs.sleepFade && left < FADE_SECONDS && this.sleepForecast?.chapter == null) {
 			a.volume = Math.max(0.05, left / FADE_SECONDS);
 		}
 	}
@@ -634,11 +666,11 @@ class Player {
 				this.sleep = { kind: 'off' };
 				return;
 			}
-			const next = queue.shift();
+			const next = prefs.autoQueue ? queue.shift() : undefined;
 			if (next) {
 				toasts.show(i18n.m.toast.nowPlaying(view(next).title));
 				void this.play(next.id);
-			} else void this.#offerNextInSeries(this.item);
+			} else if (prefs.seriesOffer) void this.#offerNextInSeries(this.item);
 		}
 	}
 
@@ -791,9 +823,9 @@ class Player {
 			['pause', () => this.pause()],
 			['seekbackward', (d) => this.skip(-(d.seekOffset ?? prefs.skipBack))],
 			['seekforward', (d) => this.skip(d.seekOffset ?? prefs.skipForward)],
-			['previoustrack', () => this.prevChapter()],
-			['nexttrack', () => this.nextChapter()],
-			['seekto', (d) => d.seekTime !== undefined && this.seek(d.seekTime)],
+			['previoustrack', () => (prefs.mediaKeys === 'chapter' ? this.prevChapter() : this.back())],
+			['nexttrack', () => (prefs.mediaKeys === 'chapter' ? this.nextChapter() : this.forward())],
+			['seekto', (d) => d.seekTime !== undefined && this.seek(d.seekTime + this.scope.start)],
 			['stop', () => this.pause()]
 		];
 		for (const [action, handler] of handlers) {
@@ -808,9 +840,10 @@ class Player {
 	#positionState() {
 		if (!('mediaSession' in navigator) || !this.duration) return;
 		try {
+			const { start, end } = this.scope;
 			navigator.mediaSession.setPositionState({
-				duration: this.duration,
-				position: Math.min(this.currentTime, this.duration),
+				duration: Math.max(0.1, end - start),
+				position: Math.min(Math.max(0, this.currentTime - start), end - start),
 				playbackRate: this.rate
 			});
 		} catch {

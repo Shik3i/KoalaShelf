@@ -17,8 +17,9 @@ const CONTRAST_PAIRS = [
   ['ctrl-ink', 'ctrl', 4.5],
   ['sel-ink', 'sel', 4.5],
   ['cur-ink', 'cur-bg', 4.5],
-  ['accent', 'bg', 3],
-  ['accent', 'card', 3]
+  ['accent', 'bg', 4.5],
+  ['accent', 'card', 4.5],
+  ['accent', 'panel', 4.5]
 ];
 
 const val = (t) => t.$value ?? t.value;
@@ -26,17 +27,48 @@ const val = (t) => t.$value ?? t.value;
 /** Splits tokens into theme colors and everything else. */
 function split(dictionary) {
   const themes = { light: {}, dark: {} };
+  /** name -> theme -> { accent, on-accent, ... } */
+  const accents = {};
+  /** theme -> color keys that alias the accent pair (e.g. dark sel-ink = accent). */
+  const aliases = { light: {}, dark: {} };
   const rest = [];
   for (const t of dictionary.allTokens) {
-    if (t.path[0] === 'c') themes[t.path[1]][t.path.slice(2).join('-')] = val(t);
-    else rest.push(t);
+    if (t.path[0] === 'c') {
+      const [theme, key] = [t.path[1], t.path.slice(2).join('-')];
+      themes[theme][key] = val(t);
+      const ref = String(t.original?.$value ?? t.original?.value ?? '').match(/^\{c\.(light|dark)\.(accent|on-accent)\}$/);
+      if (ref) aliases[theme][key] = ref[2];
+    } else if (t.path[0] === 'accent') {
+      const [, name, theme, key] = t.path;
+      ((accents[name] ??= {})[theme] ??= {})[key] = val(t);
+    } else rest.push(t);
   }
-  return { themes, rest };
+  return { themes, accents, aliases, rest };
+}
+
+/** Theme colors with an accent preset applied (including colors that alias the accent). */
+function withAccent(themes, aliases, preset) {
+  const out = {};
+  for (const theme of Object.keys(themes)) {
+    const colors = { ...themes[theme], ...preset[theme] };
+    for (const [key, target] of Object.entries(aliases[theme])) colors[key] = preset[theme][target];
+    out[theme] = colors;
+  }
+  return out;
+}
+
+/** CSS custom properties a preset changes in one theme. */
+function accentVars(preset, aliases, theme, indent) {
+  const keys = { ...Object.fromEntries(Object.keys(preset[theme]).map((k) => [k, k])), ...aliases[theme] };
+  return Object.entries(keys)
+    .map(([key, source]) => `${indent}--c-${key}: ${preset[theme][source]};`)
+    .join('\n');
 }
 
 function cssValue(t) {
   const v = val(t);
   const type = t.$type ?? t.type;
+  if (t.path[0] === 'fs' && /^\d+(\.\d+)?px$/.test(v)) return `${parseFloat(v) / 16}rem`;
   if (type === 'fontFamily') return v.map((f) => (/\s/.test(f) ? `'${f}'` : f)).join(', ');
   if (type === 'cubicBezier') return `cubic-bezier(${v.join(', ')})`;
   return String(v);
@@ -55,12 +87,12 @@ function contrast(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-function checkContrast(themes) {
+function checkContrast(themes, label = 'base') {
   const failures = [];
   for (const [theme, colors] of Object.entries(themes)) {
     for (const [fg, bg, min] of CONTRAST_PAIRS) {
       const ratio = contrast(colors[fg], colors[bg]);
-      if (ratio < min) failures.push(`${theme}: ${fg} on ${bg} = ${ratio.toFixed(2)} (< ${min})`);
+      if (ratio < min) failures.push(`${label} ${theme}: ${fg} on ${bg} = ${ratio.toFixed(2)} (< ${min})`);
     }
   }
   if (failures.length) throw new Error(`Contrast check failed:\n  ${failures.join('\n  ')}`);
@@ -71,8 +103,26 @@ const camel = (s) => s.replace(/-(\w)/g, (_, c) => c.toUpperCase());
 StyleDictionary.registerFormat({
   name: 'koala/css',
   format: ({ dictionary }) => {
-    const { themes, rest } = split(dictionary);
+    const { themes, accents, aliases, rest } = split(dictionary);
     checkContrast(themes);
+    for (const [name, preset] of Object.entries(accents)) checkContrast(withAccent(themes, aliases, preset), name);
+    const presetCss = Object.entries(accents)
+      .map(
+        ([name, p]) => `:root[data-accent='${name}'] {
+${accentVars(p, aliases, 'light', '  ')}
+}
+
+:root[data-accent='${name}'].th-dark {
+${accentVars(p, aliases, 'dark', '  ')}
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-accent='${name}']:not(.th-light) {
+${accentVars(p, aliases, 'dark', '    ')}
+  }
+}`
+      )
+      .join('\n\n');
     const vars = (obj) =>
       Object.entries(obj)
         .map(([k, v]) => `  --c-${k}: ${v};`)
@@ -100,6 +150,9 @@ ${vars(themes.dark)}
 ${vars(themes.dark).replaceAll('  --', '    --')}
   }
 }
+
+/* Accent presets (Settings > Appearance), all contrast-checked in both themes. */
+${presetCss}
 `;
   }
 });
@@ -107,7 +160,7 @@ ${vars(themes.dark).replaceAll('  --', '    --')}
 StyleDictionary.registerFormat({
   name: 'koala/ts',
   format: ({ dictionary }) => {
-    const { themes, rest } = split(dictionary);
+    const { themes, accents, rest } = split(dictionary);
     const base = {};
     for (const t of rest) {
       (base[t.path[0]] ??= {})[t.path.slice(1).join('-')] = val(t);
@@ -116,6 +169,10 @@ StyleDictionary.registerFormat({
 export const colors = ${JSON.stringify(themes, null, 2)} as const;
 
 export const tokens = ${JSON.stringify(base, null, 2)} as const;
+
+export const accents = ${JSON.stringify(accents, null, 2)} as const;
+
+export type AccentName = keyof typeof accents;
 
 export type Theme = keyof typeof colors;
 export type ColorName = keyof typeof colors.light;

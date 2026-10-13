@@ -1,6 +1,6 @@
 # Tech stack
 
-Versions verified on 2026-10-12 against npm, Maven Central, Google Maven, crates.io, nodejs.org and services.gradle.org. Rule: current stable releases, no alpha/beta/RC. pnpm's `minimumReleaseAge` supply-chain policy stays on, so packages published within the last day are skipped.
+Versions verified on 2026-10-12 (web extras and test tools on 2026-10-13) against npm, Maven Central, Google Maven, crates.io, nodejs.org and services.gradle.org. Rule: current stable releases, no alpha/beta/RC. pnpm's `minimumReleaseAge` supply-chain policy stays on, so packages published within the last day are skipped.
 
 ## Runtime and tools
 
@@ -26,7 +26,18 @@ Versions verified on 2026-10-12 against npm, Maven Central, Google Maven, crates
 | Fonts | `@fontsource/gloock`, `@fontsource-variable/manrope` | self-hosted, OFL |
 | PWA | SvelteKit service worker + manifest | `@vite-pwa/sveltekit` does not support SvelteKit 3 yet |
 | Icons build | sharp 0.35 | renders PWA icons from SVG (`pnpm icons`) |
-| Hosting | Caddy 2.11 (Docker) | static files + same-origin proxy to Audiobookshelf |
+| Streaming fallback | hls.js 1.7 | loaded only when the server transcodes to HLS |
+| Live updates | socket.io-client 4.8 | loaded after sign-in, progress from other devices |
+| Hosting | Caddy 2.11 (Docker) | static files + same-origin proxy to Audiobookshelf, CSP and caching headers |
+
+### Testing and audits
+
+| Tool | Version | Note |
+|---|---|---|
+| Playwright | 1.64 | end-to-end in Microsoft Edge (AAC/M4B playback), also against the production image |
+| axe-core (`@axe-core/playwright`) | 4.13 | WCAG 2.2 AA and best-practice rules |
+| Lighthouse | 13.5 | run on demand against the production image; not a project dependency |
+| Audiobookshelf | 2.37.1 | local test server in Docker (`dev/`) |
 
 ### i18n
 

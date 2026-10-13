@@ -142,6 +142,8 @@ interface LibraryItemBase {
 export interface LibraryItem extends LibraryItemBase {
 	media: Book;
 	size: number;
+	/** A single audio file in the library root (downloads as that file, not as a ZIP). */
+	isFile?: boolean;
 	userMediaProgress?: MediaProgress;
 }
 

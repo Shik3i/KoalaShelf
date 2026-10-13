@@ -14,8 +14,16 @@
 		hover = Math.min(1, Math.max(0, (e.clientX - box.left - 7) / (box.width - 14)));
 	}
 	const value = $derived(scrub ?? player.currentTime);
-	/** Fraction of the book; positions map onto the thumb's travel (see --x in CSS). */
-	const frac = (t: number) => (player.duration ? Math.min(1, Math.max(0, t / player.duration)) : 0);
+	/** The whole book or the current chapter (Settings > Player > Timeline). */
+	const scope = $derived(player.scope);
+	const span = $derived(Math.max(0.001, scope.end - scope.start));
+	/** Fraction of the scope; positions map onto the thumb's travel (see --x in CSS). */
+	const frac = (t: number) => Math.min(1, Math.max(0, (t - scope.start) / span));
+	/** Times on the track read from the start of the scope (like the big clock). */
+	const at = (t: number) => clock(Math.max(0, t - scope.start));
+	const pins = $derived(
+		player.bookmarks.filter((b) => b.time >= scope.start && b.time <= scope.end)
+	);
 </script>
 
 <div
@@ -27,25 +35,27 @@
 >
 	<div class="track" aria-hidden="true">
 		<div class="fill"></div>
-		{#each player.chapters.slice(1) as c (c.id)}
-			<span class="tick" style:--f={frac(c.start)}></span>
-		{/each}
+		{#if !scope.chapter}
+			{#each player.chapters.slice(1) as c (c.id)}
+				<span class="tick" style:--f={frac(c.start)}></span>
+			{/each}
+		{/if}
 	</div>
 	<input
 		type="range"
-		min="0"
-		max={player.duration || 1}
+		min={scope.start}
+		max={scope.end || 1}
 		step="1"
 		{value}
 		aria-label={i18n.m.player.seek}
-		aria-valuetext={clock(value)}
+		aria-valuetext={at(value)}
 		oninput={(e) => (scrub = +e.currentTarget.value)}
 		onchange={(e) => {
 			player.seek(+e.currentTarget.value);
 			scrub = null;
 		}}
 	/>
-	{#each player.bookmarks as b (b.time)}
+	{#each pins as b (b.time)}
 		<button
 			class="pin"
 			style:--f={frac(b.time)}
@@ -55,9 +65,9 @@
 		></button>
 	{/each}
 	{#if scrub !== null}
-		<output class="bubble tabular">{clock(scrub)}</output>
+		<output class="bubble tabular">{at(scrub)}</output>
 	{:else if hover !== null}
-		<output class="bubble tabular hover" style:--f={hover}>{clock(hover * player.duration)}</output>
+		<output class="bubble tabular hover" style:--f={hover}>{clock(hover * span)}</output>
 	{/if}
 </div>
 

@@ -1,13 +1,14 @@
-# KoalaShelf: plan
+# KoalaShelf: plan and decisions
 
 - Original briefing (German): [briefing.md](briefing.md)
 - Design: [design/koalashelf-design-grundlagen.png](design/koalashelf-design-grundlagen.png)
 - API notes: [api/audiobookshelf.md](api/audiobookshelf.md)
 - Versions and rationale: [tech-stack.md](tech-stack.md)
+- Verification: [audit.md](audit.md)
 
 ## Guiding principles
 
-Every decision is checked against: **performance, quality-of-life features, self-hostability, privacy first**, plus a design that delights. Everything is international: English code, routes and docs; every UI string translated (English base, German).
+Every decision is checked against: **performance, quality-of-life features, self-hostability, privacy first**, plus a design that delights. Everything is international: English code, routes and docs; every UI string translated (English base, German). The web app comes first; native apps follow once it is signed off.
 
 ## Phases
 
@@ -17,31 +18,56 @@ Every decision is checked against: **performance, quality-of-life features, self
 | 2 | Web: sign-in, library (shelf/list, filters, sort), book page | done |
 | 3 | Web: player (multi-track, sync, chapters, speed, sleep timer, bookmarks, Media Session, shortcuts), mini player | done |
 | 4 | Web: home with crates, series, authors, search, theme, i18n, PWA, Docker image | done |
-| 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | scaffolded, paused until the web app is approved |
+| 4b | Web extras: downloads and offline listening, statistics, collections, live progress, queue, smart sleep timer, volume leveling, listening history, ZIP download, chapter timeline, settings for nearly everything, responsive and accessibility audits | done |
+| 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | scaffolded, paused until the web app is signed off |
 | 6 | Android: Compose with tokens, Media3 service, background playback, downloads, offline sessions | skeleton parked on branch `wip/android`, paused |
 
-Web extras done: downloads and offline listening, statistics, collections, live progress (socket.io), settings. Later (native): Android Auto, driving mode.
+Later (native): Android Auto, driving mode.
 
 ## Routes (web)
 
-`/signin`, `/` (home), `/library`, `/series`, `/authors`, `/collections`, `/collections/:id`, `/stats`, `/downloads`, `/search`, `/settings`, `/book/:id`.
+`/signin`, `/` (home), `/library`, `/series`, `/authors`, `/collections`, `/collections/:id`, `/history`, `/stats`, `/downloads`, `/search`, `/settings`, `/book/:id`.
 Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin proxy forwards.
 
-Library URL parameters: `view=list`, `status=in-progress|not-started|finished`, `genre`, `narrator`, `series`, `author`, `group=1`, `sort=title|author|added|played|duration|published`, `desc=0|1`.
+- Library: `view=list`, `status=in-progress|not-started|finished`, `genre`, `narrator`, `series`, `author`, `group=1`, `sort=title|author|added|played|duration|published`, `desc=0|1`. View, sort and grouping are remembered; filters are not.
+- Book: `?t=754` or `?t=12:34` opens the book at that moment (shared links).
+- Search: `?q=`.
 
 ## Decisions
 
-- **Same origin by default.** The Docker image (Caddy) serves the SPA and proxies Audiobookshelf. No CORS, and the refresh token lives in an httpOnly cookie instead of browser storage. A separate origin works via Audiobookshelf's *Allowed origins* setting; then the refresh token is stored locally.
-- **Audio auth.** `<audio>` cannot send headers, so streams carry the short-lived access token as `?token=`. On a stream error the player refreshes the token and resumes at the same position. Covers are public on the server, so no token ends up in image URLs.
+### Server and auth
+- **Same origin by default.** The Docker image (Caddy) serves the SPA and proxies Audiobookshelf. No CORS, and the refresh token lives in an httpOnly cookie instead of browser storage. Without `ABS_PUBLIC_URL` the app's own address stands for the proxied server. A separate origin works via Audiobookshelf's *Allowed origins* setting; then the refresh token is stored locally.
+- **The server field is always visible and editable.** The interface never talks about "the proxy"; it shows the Audiobookshelf address. A server check only counts for the exact address it was made for (a changed address is checked again before signing in).
+- **Audio and downloads auth.** `<audio>` and download links cannot send headers, so they carry the short-lived access token as `?token=`; it is renewed first when it is about to expire. On a stream error the player refreshes the token and resumes at the same position. Covers are public on the server, so no token ends up in image URLs.
+- **Server version.** Audiobookshelf ≥ 2.26 (access/refresh tokens); older servers get a clear message. SSO-only servers get a clear message too.
+- **Device name.** Sessions send no `model`, so the server names the device from the browser ("Windows 10 Edge").
+
+### Data
 - **Filters.** The server accepts one filter per request. The most selective filter goes to the server, the rest is applied client-side.
-- **Status "New"** = `not-started`. The "Recently added" crate = shelf `recently-added`.
-- **Bookmark "note"** = the bookmark title (the server has no separate note field).
-- **"Share clip"** is not supported by the server; left out until clarified.
+- **Progress.** The latest load wins over an older, slower one; when the server lists a book twice, the entry with the newest `lastUpdate` counts; live events only apply when they are newer than what is known (server timestamps only, device clocks can be off).
 - **Sync.** Every 15 s while playing, on pause, on hide/unload. Listening time is counted from wall-clock while playing, robust against seeks. If the server forgot the session (404), a new one is opened at the same spot.
+- **Bookmark "note"** = the bookmark title (the server has no separate note field).
+- **Listening history** comes from the server's playback sessions (all devices); sessions with almost no listening are hidden as noise. The server cannot delete single listening sessions, so the app does not offer it.
+- **Queue, settings, per-book speed** are stored on the device only (no server side exists; privacy first).
 - **Service worker** caches the app shell and covers only; API responses and audio are never cached.
-- **Server version.** Audiobookshelf ≥ 2.26 (access/refresh tokens); older servers get a clear message.
+
+### Player
+- **Smart sleep timer.** A window (earliest, latest): it stops at the first chapter end after the earliest time, at the latest time otherwise (with fade-out and rewind, both configurable). Timers only count while playing.
+- **Volume leveling** routes the audio element through a Web Audio compressor. Opt-in, because on iOS/iPadOS Web Audio can pause in the background; remote audio then needs CORS, which the app sets up itself. Not offered in the desktop shell.
+- **Chapter timeline.** The timeline, clock, mini-player line and lock-screen position can cover the current chapter instead of the whole book.
+- **End of book.** Next from the queue (if enabled), otherwise the next book of the series is offered (if enabled). A chapter-end sleep timer treats the book end as a chapter end.
+- **"Share clip"** is not supported by the server; left out.
+
+### Interface
+- **Customization** is a single typed preferences object (`prefs.svelte.ts`) with safe defaults; unknown or malformed stored values fall back to defaults. Appearance settings are applied as `data-*` attributes on `<html>` before first paint (`static/theme.js`).
+- **Accent colors** are design-token presets, each contrast-checked in both themes at build time (4.5:1 wherever the accent is text).
+- **Text size** works through `rem` font sizes: the browser/system text size applies, the app setting adds on top.
+- **Motion** follows the system unless the listener chooses reduced or full; the record spin can be switched off separately.
+- **Responsive.** Tab bar plus "More" sheet below 800 px; sidebar (scrollable on short screens) above. Page content is capped at 1600 px for readable lines on very wide screens; tile grids always keep at least two columns on phones.
+- **Accessibility** beyond WCAG AA: high-contrast mode (system colors for progress, switches and swatches), `prefers-contrast: more`, skip link, label-in-name, 44 px touch targets.
+- **Not indexed.** `noindex` and a disallowing `robots.txt`: a personal library does not belong in search engines (Lighthouse SEO scores this down on purpose).
 - **Android package name:** `net.koalastuff.koalashelf`.
 
 ## Design tokens
 
-Source: `packages/design-tokens/tokens/*.json` (DTCG). Outputs: `dist/tokens.css` (`.th-light` / `.th-dark` plus `prefers-color-scheme` fallback), `dist/tokens.ts`, and `KoalaTokens.kt` committed under `apps/android/core/designsystem`. The build fails if a text/background pair drops below WCAG 4.5:1 (3:1 for accent UI parts).
+Source: `packages/design-tokens/tokens/*.json` (DTCG). Outputs: `dist/tokens.css` (`.th-light` / `.th-dark`, `prefers-color-scheme` fallback, accent presets, `rem` font sizes), `dist/tokens.ts`, and `KoalaTokens.kt` committed under `apps/android/core/designsystem`. The build fails if a text/background pair drops below WCAG 4.5:1 in any theme with any accent preset.
