@@ -5,6 +5,7 @@ import type {
 	Bookmark,
 	Chapter,
 	LibraryItem,
+	MediaProgress,
 	PlaybackSession
 } from '@koalashelf/abs-client';
 import { AbsError } from '@koalashelf/abs-client';
@@ -250,6 +251,19 @@ class Player {
 
 	pause() {
 		this.#audio?.pause();
+	}
+
+	/** Id of our own playback session (to tell our syncs apart from other devices). */
+	get sessionId() {
+		return this.#session?.id ?? null;
+	}
+
+	/** Another device moved on: follow it unless we are playing here right now. */
+	applyRemoteProgress(p: MediaProgress) {
+		if (!this.item || this.item.id !== p.libraryItemId || this.playing) return;
+		if (Math.abs(p.currentTime - this.currentTime) < 2) return;
+		if (this.#session) this.seek(p.currentTime);
+		else this.currentTime = p.currentTime;
 	}
 
 	toggle() {

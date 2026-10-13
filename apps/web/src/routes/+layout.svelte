@@ -8,6 +8,7 @@
 	import FullPlayer from '#lib/player/FullPlayer.svelte';
 	import { player } from '#lib/player/player.svelte.ts';
 	import { isTauri } from '#lib/platform.ts';
+	import { startLive } from '#lib/live.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { dev } from '$app/env';
 	import type { LayoutProps } from './$types';
@@ -17,6 +18,11 @@
 	const isPublic = $derived(page.url.pathname.startsWith('/signin'));
 
 	let full = $state<FullPlayer>();
+
+	// Live progress from other devices while signed in.
+	$effect(() => {
+		if (session.client) startLive();
+	});
 	let online = $state(navigator.onLine);
 
 	// Offline shell for the browser/PWA; the desktop app ships its files locally anyway.
