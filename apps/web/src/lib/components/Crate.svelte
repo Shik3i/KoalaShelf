@@ -36,8 +36,12 @@
 </section>
 
 <style>
+	/* As wide as its records (a crate with two records is a small crate), at most the row. */
 	.crate {
 		position: relative;
+		width: fit-content;
+		min-width: min(100%, 340px);
+		max-width: 100%;
 		border-radius: var(--r-card-lg);
 		overflow: hidden;
 	}

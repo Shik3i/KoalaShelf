@@ -11,7 +11,12 @@
 	const v = $derived(view(item));
 	const p = $derived(progress.get(item.id));
 	/** With "group series" the server returns one item per series. */
-	const group = $derived('collapsedSeries' in item ? item.collapsedSeries : undefined);
+	// A one-book series stays a normal book tile.
+	const group = $derived(
+		'collapsedSeries' in item && (item.collapsedSeries?.numBooks ?? 0) > 1
+			? item.collapsedSeries
+			: undefined
+	);
 </script>
 
 <a class="tile" class:group href={group ? `/library?series=${group.id}` : `/book/${item.id}`}>

@@ -100,6 +100,8 @@
 	.open {
 		flex: 1;
 		min-width: 0;
+		/* Focus ring follows the rounded card. */
+		border-radius: var(--r-card);
 		display: flex;
 		align-items: center;
 		gap: var(--sp-12);

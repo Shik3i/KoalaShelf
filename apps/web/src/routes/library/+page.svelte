@@ -493,8 +493,28 @@
 			grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
 		}
 
+		/* Phones: each control group is one swipeable row instead of wrapping into many. */
+		.toolbar {
+			flex-direction: column;
+			flex-wrap: nowrap;
+			gap: var(--sp-8);
+			margin-bottom: var(--sp-24);
+		}
+
+		.chips {
+			flex-wrap: nowrap;
+			overflow-x: auto;
+			scrollbar-width: none;
+			margin: 0 calc(-1 * var(--sp-16));
+			padding: 4px var(--sp-16);
+		}
+
+		.chips > * {
+			flex: none;
+		}
+
 		.chips.end {
-			margin-left: 0;
+			margin-left: calc(-1 * var(--sp-16));
 		}
 
 		.dur {

@@ -99,7 +99,8 @@
 					...new Set(
 						item.media.audioFiles.map(
 							(f) =>
-								`${f.format || f.metadata.ext.slice(1).toUpperCase()} · ${Math.round(f.bitRate / 1000)} kbit/s`
+								// File type and codec read better than the container name ("QuickTime / MOV").
+								`${f.metadata.ext.slice(1).toUpperCase()} · ${(f.codec || f.format).toUpperCase()} · ${Math.round(f.bitRate / 1000)} kbit/s`
 						)
 					)
 				]
