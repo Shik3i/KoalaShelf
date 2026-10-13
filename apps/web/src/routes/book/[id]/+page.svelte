@@ -1,5 +1,14 @@
 <script lang="ts">
-	import { encodeFilter, type Bookmark, type LibraryItemMinified } from '@koalashelf/abs-client';
+	import {
+		encodeFilter,
+		type Bookmark,
+		type LibraryItemMinified,
+		type ListeningSession
+	} from '@koalashelf/abs-client';
+	import { queue } from '#lib/queue.svelte.ts';
+	import SessionRow, { meaningful } from '#lib/components/SessionRow.svelte';
+	import ListPlus from '@lucide/svelte/icons/list-plus';
+	import ListChecks from '@lucide/svelte/icons/list-checks';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
@@ -50,7 +59,7 @@
 		item ? item.media.chapters.slice(1).map((c) => c.start / item.media.duration) : []
 	);
 
-	type Tab = 'chapters' | 'bookmarks' | 'more';
+	type Tab = 'chapters' | 'bookmarks' | 'history' | 'more';
 	let tab = $state<Tab>('chapters');
 	let tabsEl = $state<HTMLDivElement>();
 	let ink = $state({ x: 0, w: 0 });
@@ -89,6 +98,28 @@
 				.then((r) => (more = r.results.filter((x) => x.id !== it.id).slice(0, 12)))
 				.catch(() => undefined);
 	});
+
+	/** This book's listening sessions, loaded when the tab is opened. */
+	let history = $state.raw<ListeningSession[] | null>(null);
+	$effect(() => {
+		const id = item?.id;
+		if (tab !== 'history' || !id) return;
+		history = null;
+		session.api
+			.itemListeningSessions(id, 0, 30)
+			.then((r) => (history = r.sessions.filter(meaningful)))
+			.catch(() => (history = []));
+	});
+
+	function toggleQueue() {
+		if (!item) return;
+		if (queue.has(item.id)) return queue.remove(item.id);
+		queue.add(item);
+		toasts.show(i18n.m.toast.queued(item.media.metadata.title), {
+			label: i18n.m.toast.undo,
+			run: () => queue.remove(item.id)
+		});
+	}
 
 	/** A shared link to a moment (?t=754 or ?t=12:34) starts playback there. */
 	const linkedTime = $derived(parseClock(page.url.searchParams.get('t')));
@@ -229,6 +260,17 @@
 						</button>
 					{/if}
 					<DownloadButton id={item.id} hasAudio={item.media.audioFiles.length > 0} />
+					{#if item.media.audioFiles.length && !isCurrent}
+						{@const queued = queue.has(item.id)}
+						<button class="btn ghost queue" class:queued onclick={toggleQueue}>
+							{#key queued}
+								<span class="qi">
+									{#if queued}<ListChecks size={16} />{:else}<ListPlus size={16} />{/if}
+								</span>
+							{/key}
+							{queued ? t.inQueue : t.addToQueue}
+						</button>
+					{/if}
 				</div>
 			</div>
 		</section>
@@ -253,6 +295,11 @@
 					>
 						{t.bookmarks}{bookmarks.length ? ` · ${bookmarks.length}` : ''}
 					</button>
+					{#if !data.offline}
+						<button role="tab" aria-selected={tab === 'history'} onclick={() => (tab = 'history')}
+							>{t.history}</button
+						>
+					{/if}
 					{#if more.length}
 						<button role="tab" aria-selected={tab === 'more'} onclick={() => (tab = 'more')}
 							>{t.moreByAuthor}</button
@@ -297,6 +344,18 @@
 								<li class="muted empty">{t.noBookmarks}</li>
 							{/each}
 						</ul>
+					{:else if tab === 'history'}
+						{#if history === null}
+							<div class="skeleton" style="height: 110px; border-radius: 18px"></div>
+						{:else}
+							<ul class="sessions">
+								{#each history as s (s.id)}
+									<SessionRow {s} />
+								{:else}
+									<li class="muted empty">{t.noHistory}</li>
+								{/each}
+							</ul>
+						{/if}
 					{:else}
 						<div class="shelf">
 							{#each more as m (m.id)}<BookTile item={m} />{/each}
@@ -437,6 +496,31 @@
 		margin-top: var(--sp-12);
 	}
 
+	.queue.queued {
+		box-shadow: inset 0 0 0 1.5px var(--c-accent);
+	}
+
+	/* The icon pops when the book joins or leaves the queue. */
+	.qi {
+		display: grid;
+		animation: q-pop 360ms var(--motion-spring);
+	}
+
+	@keyframes q-pop {
+		from {
+			scale: 0.4;
+			rotate: -20deg;
+		}
+	}
+
+	.sessions {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: var(--sp-8);
+	}
+
 	.big {
 		min-height: 52px;
 		padding: 0 var(--sp-24);
@@ -457,6 +541,9 @@
 		border-bottom: 1px solid var(--c-line);
 		margin-bottom: var(--sp-16);
 		overflow-x: auto;
+		scrollbar-width: none;
+		/* Hints that more tabs are reachable by scrolling on narrow screens. */
+		mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
 	}
 
 	.tabs button {
@@ -633,7 +720,7 @@
 
 	@container page (max-width: 900px) {
 		.lower {
-			grid-template-columns: 1fr;
+			grid-template-columns: minmax(0, 1fr);
 		}
 	}
 

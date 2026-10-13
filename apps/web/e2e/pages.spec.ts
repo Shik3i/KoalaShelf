@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { api, itemId, playerCall, resetListening } from './helpers.ts';
+import { api, itemId, resetListening } from './helpers.ts';
 
 test.describe('pages', () => {
 	test.beforeAll(resetListening);
@@ -72,7 +72,9 @@ test.describe('pages', () => {
 		await page.goto(`/book/${await itemId('Kleine Eulen')}`);
 		await page.locator('.cta .btn.primary').click();
 		await page.waitForTimeout(3000);
-		await playerCall(page, 'stop');
+		// Pause through the UI (works on production builds too); pausing syncs the time listened.
+		await page.locator('.cta .btn.primary').click();
+		await expect(page.locator('.cta .btn.primary')).not.toContainText('Pause');
 		await page.goto('/stats');
 		await expect(page.getByText('Listened in total')).toBeVisible();
 		await expect(

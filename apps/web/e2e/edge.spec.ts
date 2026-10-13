@@ -1,5 +1,14 @@
 import { expect, test } from '@playwright/test';
-import { api, env, itemId, player, playerCall, signIn, resetListening } from './helpers.ts';
+import {
+	api,
+	env,
+	itemId,
+	player,
+	playerCall,
+	signIn,
+	resetListening,
+	needsDevServer
+} from './helpers.ts';
 
 test.describe('live and offline', () => {
 	test.beforeAll(resetListening);
@@ -26,6 +35,7 @@ test.describe('live and offline', () => {
 	});
 
 	test('download, play offline, sync when back online, remove', async ({ page, context }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		const id = await itemId('Kleine Eulen');
 		await api(`/api/me/progress/${id}`, { method: 'DELETE' }).catch(() => undefined);
 		await page.goto(`/book/${id}`);
@@ -89,6 +99,7 @@ test.describe('mobile', () => {
 	test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
 
 	test('tab bar, mini player above it, full player fits the screen', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await page.goto('/');
 		const tabs = page.getByRole('navigation', { name: 'Main navigation' }).last();
 		await expect(tabs.getByRole('link', { name: 'Downloads' })).toBeVisible();
@@ -123,6 +134,7 @@ test.describe('mobile', () => {
 			'/series',
 			'/authors',
 			'/collections',
+			'/history',
 			'/stats',
 			'/search',
 			'/settings',
@@ -131,8 +143,10 @@ test.describe('mobile', () => {
 		]) {
 			await page.goto(path);
 			await page.waitForTimeout(400);
-			const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-			expect(overflow, path).toBeLessThanOrEqual(0);
+			// Against the device width: on phones the layout viewport grows with too-wide content,
+			// so scrollWidth - innerWidth would hide an overflow.
+			const width = await page.evaluate(() => document.documentElement.scrollWidth);
+			expect(width, path).toBeLessThanOrEqual(375);
 		}
 	});
 });

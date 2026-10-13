@@ -25,8 +25,13 @@
 	import Bookmark from '@lucide/svelte/icons/bookmark';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Pencil from '@lucide/svelte/icons/pencil';
+	import ListOrdered from '@lucide/svelte/icons/list-ordered';
+	import { scale } from 'svelte/transition';
+	import SleepPanel from './SleepPanel.svelte';
+	import QueuePanel from './QueuePanel.svelte';
+	import { queue } from '#lib/queue.svelte.ts';
 
-	type Panel = 'chapters' | 'bookmarks' | 'timer' | null;
+	type Panel = 'chapters' | 'bookmarks' | 'timer' | 'queue' | null;
 
 	const t = $derived(i18n.m.player);
 	const v = $derived(player.item ? view(player.item) : null);
@@ -95,6 +100,8 @@
 		if (s.kind === 'chapter') return t.timerAtChapterEnd;
 		if (s.kind === 'minutes')
 			return t.timerLeft(clock((player.sleepPausedLeft ?? s.endsAt - now) / 1000));
+		if (s.kind === 'window' && player.sleepForecast)
+			return t.timerSmartLeft(clock(player.sleepForecast.seconds));
 		return t.timer;
 	});
 
@@ -147,7 +154,22 @@
 						>
 					{/key}
 				</span>
-				<span class="icon-spacer"></span>
+				<button
+					class="icon queue-btn"
+					aria-expanded={panel === 'queue'}
+					onclick={() => toggle('queue')}
+					aria-label={t.queueOpen(queue.items.length)}
+					title={t.queue}
+				>
+					<ListOrdered size={22} />
+					{#if queue.items.length}
+						{#key queue.items.length}
+							<span class="badge tabular" in:scale={{ start: 0.4, duration: dur(260) }}
+								>{queue.items.length}</span
+							>
+						{/key}
+					{/if}
+				</button>
 			</header>
 
 			<div class="body" class:with-panel={panel}>
@@ -261,35 +283,9 @@
 				{#if panel}
 					<aside class="panel">
 						{#if panel === 'timer'}
-							<h3 class="label">{t.timer}</h3>
-							<div class="opts">
-								<button
-									class="chip"
-									aria-pressed={player.sleep.kind === 'off'}
-									onclick={() => player.setSleep({ kind: 'off' })}>{t.timerOff}</button
-								>
-								<button
-									class="chip"
-									aria-pressed={player.sleep.kind === 'chapter'}
-									onclick={() => player.setSleep({ kind: 'chapter' })}
-								>
-									{t.timerEndOfChapter}
-								</button>
-								{#each [5, 10, 15, 30, 45, 60] as m (m)}
-									<button
-										class="chip"
-										aria-pressed={player.sleep.kind === 'minutes' && player.sleep.minutes === m}
-										onclick={() =>
-											player.setSleep({
-												kind: 'minutes',
-												minutes: m,
-												endsAt: Date.now() + m * 60_000
-											})}
-									>
-										{t.timerMinutes(m)}
-									</button>
-								{/each}
-							</div>
+							<SleepPanel />
+						{:else if panel === 'queue'}
+							<QueuePanel />
 						{:else if panel === 'chapters'}
 							<h3 class="label">{t.chapters}</h3>
 							<ol class="list">
@@ -443,8 +439,31 @@
 		justify-content: space-between;
 	}
 
-	.icon,
-	.icon-spacer {
+	.queue-btn {
+		position: relative;
+	}
+
+	.queue-btn[aria-expanded='true'] {
+		background: var(--c-card);
+	}
+
+	.badge {
+		position: absolute;
+		top: 4px;
+		right: 2px;
+		min-width: 18px;
+		height: 18px;
+		padding: 0 5px;
+		border-radius: var(--r-pill);
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		font-size: 11px;
+		font-weight: var(--fw-bold);
+		line-height: 18px;
+		text-align: center;
+	}
+
+	.icon {
 		display: grid;
 		place-items: center;
 		width: var(--layout-touch);
@@ -618,20 +637,6 @@
 		padding: var(--sp-16);
 		border-radius: var(--r-card-lg);
 		background: var(--c-card);
-	}
-
-	.opts {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--sp-8);
-	}
-
-	.opts .chip {
-		background: var(--c-bg);
-	}
-
-	.opts .chip[aria-pressed='true'] {
-		background: var(--c-accent);
 	}
 
 	.list {

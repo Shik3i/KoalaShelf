@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, itemId, player, playerCall, resetListening, stopPlayer } from './helpers.ts';
+import {
+	api,
+	itemId,
+	player,
+	playerCall,
+	resetListening,
+	stopPlayer,
+	needsDevServer
+} from './helpers.ts';
 
 const playing = (page: Page) => player<boolean>(page, 'playing');
 const time = (page: Page) => player<number>(page, 'currentTime');
@@ -11,6 +19,7 @@ test.describe('quality of life', () => {
 	});
 
 	test('a link to a moment (?t=) starts playback there', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await page.goto(`/book/${await itemId('Der lange Weg')}?t=1:30`);
 		await page.getByRole('button', { name: 'Play from 1:30' }).click();
 		await expect.poll(() => playing(page)).toBe(true);
@@ -19,6 +28,7 @@ test.describe('quality of life', () => {
 	});
 
 	test('bookmark delete can be undone; links to moments are copied', async ({ page, context }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 		const id = await itemId('Salzwasser');
 		await page.goto(`/book/${id}`);
@@ -53,6 +63,7 @@ test.describe('quality of life', () => {
 	});
 
 	test('speed is remembered per book', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await page.goto(`/book/${await itemId('Glasfluss')}`);
 		await page.locator('.cta .btn.primary').click();
 		await expect.poll(() => playing(page)).toBe(true);
@@ -112,6 +123,7 @@ test.describe('quality of life', () => {
 	});
 
 	test('finishing a book offers the next one in its series', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		const first = await itemId('Der lange Weg');
 		await page.goto(`/book/${first}`);
 		await page.locator('.cta .btn.primary').click();
@@ -131,6 +143,7 @@ test.describe('quality of life', () => {
 	test('timeline previews the time under the mouse; mini player shows the sleep timer', async ({
 		page
 	}) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await page.goto(`/book/${await itemId('Wintergrün')}`);
 		await page.locator('.cta .btn.primary').click();
 		await expect.poll(() => playing(page)).toBe(true);

@@ -20,7 +20,9 @@
 				)
 			: player.sleep.kind === 'chapter'
 				? t.timerEndOfChapter
-				: ''
+				: player.sleepForecast
+					? `≈${clock(player.sleepForecast.seconds)}`
+					: ''
 	);
 	const v = $derived(player.item ? view(player.item) : null);
 	const sub = $derived(

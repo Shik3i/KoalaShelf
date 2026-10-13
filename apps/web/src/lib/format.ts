@@ -20,6 +20,11 @@ export function duration(seconds: number) {
 	return m ? `${h} ${hours} ${m} ${minutes}` : `${h} ${hours}`;
 }
 
+/** Like duration(), but short spans in seconds ("6 s" instead of "1 min"). */
+export function span(seconds: number) {
+	return seconds < 60 ? `${Math.round(seconds)} ${i18n.m.format.seconds}` : duration(seconds);
+}
+
 export function bytes(n: number) {
 	const units = ['B', 'KB', 'MB', 'GB', 'TB'];
 	let i = 0;

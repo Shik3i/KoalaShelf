@@ -9,6 +9,14 @@ import {
 	stopPlayer
 } from './helpers.ts';
 
+/** Known starting point for tests that toggle finished. */
+async function unfinished(id: string) {
+	await api(`/api/me/progress/${id}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ isFinished: false, currentTime: 0, progress: 0 })
+	});
+}
+
 async function openBook(page: Page, title: string) {
 	await page.goto(`/book/${await itemId(title)}`);
 	await expect(page.getByRole('heading', { level: 1, name: title })).toBeVisible();
@@ -32,6 +40,7 @@ test.describe('player', () => {
 	});
 
 	test('plays, shows the mini player, pauses and syncs progress', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Der lange Weg');
 		await expect(page.getByRole('region', { name: 'Player' })).toBeVisible();
 		const t0 = await time(page);
@@ -50,6 +59,7 @@ test.describe('player', () => {
 	});
 
 	test('skip, chapter navigation and speed', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Der lange Weg');
 		await page.getByRole('button', { name: 'Open player' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Player' });
@@ -69,6 +79,7 @@ test.describe('player', () => {
 	});
 
 	test('bookmarks: add with note, edit, show as pin, delete', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Salzwasser');
 		await seek(page, 20);
 		await page.getByRole('button', { name: 'Open player' }).click();
@@ -95,6 +106,7 @@ test.describe('player', () => {
 	});
 
 	test('sleep timer "end of chapter" pauses at the chapter boundary', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Wintergrün');
 		await seek(page, 41);
 		await page.getByRole('button', { name: 'Open player' }).click();
@@ -109,6 +121,7 @@ test.describe('player', () => {
 	});
 
 	test('multi-file book continues seamlessly into the next file', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Nachtzug');
 		await seek(page, 43);
 		await expect.poll(() => time(page), { timeout: 15_000 }).toBeGreaterThan(46.5);
@@ -119,6 +132,7 @@ test.describe('player', () => {
 	});
 
 	test('end of book marks it finished; playing again starts over', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Ohne Kapitel');
 		await seek(page, 57);
 		await expect.poll(() => playing(page), { timeout: 15_000 }).toBe(false);
@@ -132,6 +146,7 @@ test.describe('player', () => {
 	});
 
 	test('reload restores the mini player at the saved position', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Glasfluss');
 		await seek(page, 70);
 		await page
@@ -148,6 +163,7 @@ test.describe('player', () => {
 	});
 
 	test('keyboard: space toggles, arrows skip', async ({ page }) => {
+		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Kleine Eulen');
 		await page.locator('body').click({ position: { x: 5, y: 5 } });
 		await page.keyboard.press('Space');
@@ -185,6 +201,57 @@ test.describe('player', () => {
 		await page.goto('/library?status=finished');
 		await expect(page.locator('.tile', { hasText: 'Kleine Eulen' })).toBeVisible();
 		await openBook(page, 'Kleine Eulen');
+		await page.getByRole('button', { name: 'Mark as not finished' }).click();
+		await expect(page.getByRole('button', { name: 'Mark as finished' })).toBeVisible();
+	});
+
+	test('an older duplicate progress entry from the server does not win', async ({ page }) => {
+		// Seen on real servers: a late sync after a reset leaves a second, older entry for the
+		// same book, listed after the current one.
+		const id = await itemId('Ohne Kapitel');
+		await unfinished(id);
+		await page.route('**/api/me', async (route) => {
+			if (route.request().method() !== 'GET') return route.continue();
+			const response = await route.fetch();
+			const me = await response.json();
+			const current = me.mediaProgress.find(
+				(p: { libraryItemId: string }) => p.libraryItemId === id
+			);
+			if (current)
+				me.mediaProgress.push({
+					...current,
+					id: 'stale-duplicate',
+					isFinished: !current.isFinished,
+					lastUpdate: current.lastUpdate - 60_000
+				});
+			await route.fulfill({ response, json: me });
+		});
+		await page.goto(`/book/${id}`);
+		await page.getByRole('button', { name: 'Mark as finished' }).click();
+		await expect(page.getByRole('button', { name: 'Mark as not finished' })).toBeVisible();
+		await page.reload();
+		await expect(page.getByRole('button', { name: 'Mark as not finished' })).toBeVisible();
+		await page.getByRole('button', { name: 'Mark as not finished' }).click();
+		await expect(page.getByRole('button', { name: 'Mark as finished' })).toBeVisible();
+	});
+
+	test('a slow first progress load does not undo a newer change', async ({ page }) => {
+		// The page's first /api/me is answered by the server right away (old state) but arrives
+		// late: after the change and the reload that follows it.
+		let delayed = false;
+		await page.route('**/api/me', async (route) => {
+			if (delayed || route.request().method() !== 'GET') return route.continue();
+			delayed = true;
+			const response = await route.fetch();
+			await new Promise((r) => setTimeout(r, 2000));
+			await route.fulfill({ response });
+		});
+		await unfinished(await itemId('Ohne Kapitel'));
+		await page.goto(`/book/${await itemId('Ohne Kapitel')}`);
+		await page.getByRole('button', { name: 'Mark as finished' }).click();
+		await expect(page.getByRole('button', { name: 'Mark as not finished' })).toBeVisible();
+		await page.waitForTimeout(2500);
+		await expect(page.getByRole('button', { name: 'Mark as not finished' })).toBeVisible();
 		await page.getByRole('button', { name: 'Mark as not finished' }).click();
 		await expect(page.getByRole('button', { name: 'Mark as finished' })).toBeVisible();
 	});

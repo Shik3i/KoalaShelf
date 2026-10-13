@@ -87,13 +87,19 @@ export async function playerCall(page: Page, method: string, ...args: unknown[])
 
 /** Fresh listening state (no progress, no bookmarks) so specs do not depend on each other. */
 export async function resetListening() {
-	const me = await api<{
-		mediaProgress: { id: string }[];
-		bookmarks: { libraryItemId: string; time: number }[];
-	}>('/api/me');
-	for (const p of me.mediaProgress) await api(`/api/me/progress/${p.id}`, { method: 'DELETE' });
-	for (const b of me.bookmarks)
-		await api(`/api/me/item/${b.libraryItemId}/bookmark/${b.time}`, { method: 'DELETE' });
+	// A page closed just before may still send its final sync and recreate progress: repeat
+	// until the slate stays clean.
+	for (let round = 0; round < 3; round++) {
+		const me = await api<{
+			mediaProgress: { id: string }[];
+			bookmarks: { libraryItemId: string; time: number }[];
+		}>('/api/me');
+		if (round && !me.mediaProgress.length && !me.bookmarks.length) return;
+		for (const p of me.mediaProgress) await api(`/api/me/progress/${p.id}`, { method: 'DELETE' });
+		for (const b of me.bookmarks)
+			await api(`/api/me/item/${b.libraryItemId}/bookmark/${b.time}`, { method: 'DELETE' });
+		await new Promise((r) => setTimeout(r, 300));
+	}
 }
 
 /** Stops playback between tests (no-op against a production build, see needsDevServer). */

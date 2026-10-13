@@ -19,7 +19,9 @@ export const en = {
 		settings: 'Settings',
 		collections: 'Collections',
 		stats: 'Statistics',
-		downloads: 'Downloads'
+		downloads: 'Downloads',
+		history: 'History',
+		more: 'More'
 	},
 	collections: {
 		title: 'Collections',
@@ -126,6 +128,10 @@ export const en = {
 		chapterCount: (n: number) => plural(n, 'chapter', 'chapters'),
 		bookmarks: 'Bookmarks',
 		moreByAuthor: 'More by the author',
+		history: 'History',
+		noHistory: 'No listening sessions for this book yet.',
+		addToQueue: 'Add to queue',
+		inQueue: 'In queue',
 		noBookmarks: 'No bookmarks yet. Add one while listening.',
 		description: 'Description',
 		details: 'Details',
@@ -183,6 +189,28 @@ export const en = {
 		errorFatal: 'Playback failed. Press play to try again.',
 		edit: 'Edit note',
 		copyLink: 'Copy link to this moment',
+		queue: 'Up next',
+		queueOpen: (n: number) => `Up next (${n})`,
+		queueEmpty: 'Nothing queued. Add books from their page to play them one after another.',
+		queueClear: 'Clear',
+		queueUp: 'Move up',
+		queueRemove: 'Remove from queue',
+		queuePlay: (title: string) => `Play ${title} now`,
+		timerMode: 'Timer mode',
+		timerExact: 'Exact',
+		timerSmart: 'Smart',
+		timerSmartHint: 'Stops at the first chapter end in this window, at the latest when it closes.',
+		timerEarliest: 'Earliest',
+		timerLatest: 'Latest',
+		timerLess: (what: string) => `${what}: 5 minutes earlier`,
+		timerMore: (what: string) => `${what}: 5 minutes later`,
+		timerStart: 'Start timer',
+		timerUpdate: 'Update timer',
+		timerRunning: 'Timer running',
+		timerStop: 'Stop timer',
+		timerAtChapter: (n: number, t: string) => `Stops at the end of chapter ${n} · in ${t}`,
+		timerAtLatest: (t: string) => `No chapter ends in this window · stops in ${t}`,
+		timerSmartLeft: (t: string) => `Stops in ≈ ${t}`,
 		timeMode: 'Switch between elapsed and remaining time',
 		bookmarkFailed: 'Bookmark could not be saved. Is there already one at this second?',
 		syncFailed: 'Progress could not be saved. Will retry.',
@@ -242,6 +270,9 @@ export const en = {
 		smartRewindHint:
 			'After a longer pause, playback starts a few seconds earlier (5 s after 1 min, 15 s after 10 min, 30 s after 1 h).',
 		account: 'Account',
+		leveling: 'Even out volume',
+		levelingHint:
+			'Lifts quiet passages and softens loud ones, so you rarely need to reach for the volume. On iPhone and iPad, playback may pause in the background while this is on.',
 		user: 'User',
 		server: 'Audiobookshelf server',
 		version: 'Version',
@@ -265,7 +296,26 @@ export const en = {
 		downloadFailed: (title: string) => `Download failed: ${title}`,
 		synced: 'Offline listening synced',
 		nextInSeries: (title: string) => `Next in the series: ${title}`,
-		playNext: 'Play'
+		playNext: 'Play',
+		nowPlaying: (title: string) => `Now playing: ${title}`,
+		queued: (title: string) => `Added to queue: ${title}`,
+		unqueued: 'Removed from queue',
+		queueCleared: 'Queue cleared'
+	},
+	history: {
+		title: 'Listening history',
+		intro:
+			'Every session on every device, newest first. Jump back to where a session started or ended.',
+		empty: 'No listening sessions yet.',
+		error: 'The history could not be loaded.',
+		more: 'Show more',
+		today: 'Today',
+		yesterday: 'Yesterday',
+		listened: (d: string) => `${d} listened`,
+		playFrom: (t: string) => `Play from ${t}`,
+		sessionStart: 'Session start',
+		sessionEnd: 'Session end',
+		removed: 'No longer in the library'
 	},
 	shortcuts: {
 		title: 'Keyboard shortcuts',
@@ -286,7 +336,8 @@ export const en = {
 	},
 	format: {
 		hours: 'h',
-		minutes: 'min'
+		minutes: 'min',
+		seconds: 's'
 	}
 };
 

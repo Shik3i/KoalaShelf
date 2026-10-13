@@ -14,8 +14,13 @@
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';
 	import LogOut from '@lucide/svelte/icons/log-out';
+	import History from '@lucide/svelte/icons/history';
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
+	import Settings from '@lucide/svelte/icons/settings';
+	import { afterNavigate } from '$app/navigation';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import LocaleSwitch from './LocaleSwitch.svelte';
+	import { dur } from '#lib/motion.ts';
 
 	const t = $derived(i18n.m.nav);
 	const items = $derived([
@@ -24,6 +29,7 @@
 		{ href: '/series', label: t.series, icon: Layers, tab: false },
 		{ href: '/authors', label: t.authors, icon: Users, tab: false },
 		{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
+		{ href: '/history', label: t.history, icon: History, tab: false },
 		{ href: '/stats', label: t.stats, icon: ChartColumn, tab: false },
 		{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
 		{ href: '/search', label: t.search, icon: Search, tab: true }
@@ -31,6 +37,27 @@
 
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
+
+	// Phones: pages beyond the tab bar live in a "More" sheet.
+	const extra = $derived([
+		...items.filter((i) => !i.tab),
+		{ href: '/settings', label: t.settings, icon: Settings, tab: false }
+	]);
+	const moreActive = $derived(extra.some((i) => active(i.href)));
+	let sheet = $state<HTMLDialogElement>();
+	let closing = $state(false);
+
+	function closeSheet() {
+		if (!sheet?.open || closing) return;
+		closing = true;
+		const d = sheet;
+		setTimeout(() => {
+			d.close();
+			closing = false;
+		}, dur(200));
+	}
+
+	afterNavigate(() => closeSheet());
 
 	const themeLabel = $derived(
 		({ system: t.themeSystem, light: t.themeLight, dark: t.themeDark } as const)[theme.choice]
@@ -97,7 +124,51 @@
 			<span>{item.label}</span>
 		</a>
 	{/each}
+	<button
+		class:current={moreActive}
+		aria-haspopup="dialog"
+		aria-expanded={sheet?.open ?? false}
+		onclick={() => sheet?.showModal()}
+	>
+		<Ellipsis size={22} strokeWidth={2} aria-hidden="true" />
+		<span>{t.more}</span>
+	</button>
 </nav>
+
+<dialog
+	class="sheet"
+	class:closing
+	bind:this={sheet}
+	aria-label={t.more}
+	oncancel={(e) => {
+		e.preventDefault();
+		closeSheet();
+	}}
+	onclick={(e) => e.target === sheet && closeSheet()}
+>
+	<span class="grip" aria-hidden="true"></span>
+	<nav aria-label={t.more}>
+		{#each extra as item (item.href)}
+			<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+				<item.icon size={22} strokeWidth={2} aria-hidden="true" />
+				<span>{item.label}</span>
+			</a>
+		{/each}
+	</nav>
+	{#if session.libraries.length > 1}
+		<label class="field">
+			<span class="label">{t.library}</span>
+			<select
+				value={session.libraryId}
+				onchange={(e) => session.selectLibrary(e.currentTarget.value)}
+			>
+				{#each session.libraries as lib (lib.id)}
+					<option value={lib.id}>{lib.name}</option>
+				{/each}
+			</select>
+		</label>
+	{/if}
+</dialog>
 
 <style>
 	.side {
@@ -245,7 +316,8 @@
 			border-top: 1px solid var(--c-line);
 		}
 
-		.tabs a {
+		.tabs a,
+		.tabs button {
 			display: grid;
 			justify-items: center;
 			gap: 2px;
@@ -256,8 +328,98 @@
 			color: var(--c-muted);
 		}
 
+		.tabs button {
+			padding: 0;
+			border: 0;
+			background: transparent;
+			font: inherit;
+			font-size: var(--fs-12);
+			font-weight: var(--fw-bold);
+			color: var(--c-muted);
+		}
+
+		.tabs button.current,
 		.tabs a[aria-current='page'] {
 			color: var(--c-accent);
 		}
+	}
+
+	/* "More" sheet (phones): slides up from the tab bar. */
+	.sheet {
+		inset: auto 0 0;
+		width: 100%;
+		max-width: none;
+		margin: 0;
+		padding: var(--sp-8) var(--sp-16) calc(var(--sp-24) + env(safe-area-inset-bottom));
+		border: 0;
+		border-radius: var(--r-card-lg) var(--r-card-lg) 0 0;
+		background: var(--c-panel);
+		color: var(--c-ink);
+		box-shadow: 0 -20px 40px -20px rgb(0 0 0 / 0.4);
+	}
+
+	.sheet[open] {
+		display: grid;
+		gap: var(--sp-16);
+		animation: sheet-up var(--motion-base) var(--motion-out);
+	}
+
+	.sheet.closing {
+		animation: sheet-down 200ms var(--motion-ease) forwards;
+	}
+
+	.sheet::backdrop {
+		background: rgb(0 0 0 / 0.35);
+		animation: fade-in var(--motion-base) var(--motion-ease);
+	}
+
+	@keyframes sheet-up {
+		from {
+			translate: 0 100%;
+		}
+	}
+
+	@keyframes sheet-down {
+		to {
+			translate: 0 100%;
+		}
+	}
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+
+	.grip {
+		justify-self: center;
+		width: 40px;
+		height: 4px;
+		border-radius: 2px;
+		background: var(--c-line);
+	}
+
+	.sheet nav {
+		grid-template-columns: repeat(3, 1fr);
+		gap: var(--sp-8);
+	}
+
+	.sheet nav a {
+		display: grid;
+		justify-items: center;
+		align-content: center;
+		gap: var(--sp-8);
+		min-height: 84px;
+		padding: var(--sp-8);
+		border-radius: var(--r-card);
+		background: var(--c-card);
+		font-size: var(--fs-13);
+		font-weight: var(--fw-bold);
+		text-align: center;
+	}
+
+	.sheet nav a[aria-current='page'] {
+		background: var(--c-sel);
+		color: var(--c-sel-ink);
 	}
 </style>

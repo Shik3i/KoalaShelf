@@ -31,6 +31,7 @@ test.describe('screens', () => {
 					['series', '/series'],
 					['authors', '/authors'],
 					['collections', '/collections'],
+					['history', '/history'],
 					['stats', '/stats'],
 					['search', '/search?q=lange'],
 					['settings', '/settings'],
@@ -39,7 +40,13 @@ test.describe('screens', () => {
 					await page.goto(path);
 					await shot(name);
 				}
+				// Two books queued (as added from their pages).
+				for (const title of ['Salzwasser', 'Wintergrün']) {
+					await page.goto(`/book/${await itemId(title)}`);
+					await page.getByRole('button', { name: 'Add to queue' }).click();
+				}
 				await page.goto(`/book/${book}`);
+				await shot('book-queued');
 				await page.locator('.cta .btn.primary').click();
 				await page.getByRole('button', { name: 'Open player' }).click();
 				await expect(page.getByRole('dialog', { name: 'Player' })).toBeVisible();
@@ -52,6 +59,15 @@ test.describe('screens', () => {
 				await page.mouse.move(box.x + box.width * 0.7, box.y + box.height / 2);
 				await shot('player-hover');
 				await playerCall(page, 'deleteBookmark', 40);
+				await page.mouse.move(0, 0);
+				await dialog.getByRole('button', { name: 'Sleep timer' }).click();
+				await dialog.getByRole('button', { name: 'Smart' }).click();
+				await shot('player-smart-timer');
+				await dialog.getByRole('button', { name: 'Start timer' }).click();
+				await shot('player-smart-running');
+				await dialog.getByRole('button', { name: /^Up next/ }).click();
+				await shot('player-queue');
+				await page.evaluate(() => localStorage.removeItem('ks.queue'));
 				await playerCall(page, 'setSleep', {
 					kind: 'minutes',
 					minutes: 15,
@@ -59,6 +75,11 @@ test.describe('screens', () => {
 				});
 				await page.keyboard.press('Escape');
 				await shot('mini');
+				if (device === 'mobile') {
+					await page.getByRole('button', { name: 'More', exact: true }).click();
+					await shot('more');
+					await page.keyboard.press('Escape');
+				}
 				await playerCall(page, 'stop');
 			});
 		}

@@ -16,6 +16,12 @@ import { progress } from '../progress.svelte.ts';
 import { view } from '../items.ts';
 import { bookRate, prefs, setBookRate, smartRewindSeconds } from '../prefs.svelte.ts';
 import { downloads, type LocalSession } from '../downloads.svelte.ts';
+import { queue } from '../queue.svelte.ts';
+import { isTauri } from '../platform.ts';
+import { Leveler } from './leveler.ts';
+import { forecast, type SleepForecast, type SleepTimer } from './sleep.ts';
+
+export type { SleepTimer } from './sleep.ts';
 
 const SYNC_INTERVAL_MS = 15_000;
 const RATE_KEY = 'ks.rate';
@@ -24,9 +30,6 @@ const DEVICE_KEY = 'ks.deviceId';
 const FADE_SECONDS = 10;
 
 export const RATES = [0.8, 1, 1.2, 1.5, 2] as const;
-
-export type SleepTimer =
-	{ kind: 'off' } | { kind: 'minutes'; endsAt: number; minutes: number } | { kind: 'chapter' };
 
 function storage<T>(key: string, fallback: T): T {
 	try {
@@ -107,6 +110,9 @@ class Player {
 	sleepPausedLeft = $state<number | null>(null);
 	/** Seconds left on a minutes sleep timer (updated while playing). */
 	sleepRemaining = $state(0);
+	/** When playback paused with a running timer (timers only count while playing). */
+	#sleepPausedAt = $state<number | null>(null);
+	#leveler = new Leveler();
 	#session: PlaybackSession | null = null;
 	#tracks: AudioTrack[] = [];
 	#track = 0;
@@ -123,6 +129,20 @@ class Player {
 	);
 	readonly chapterIndex = $derived(this.chapter ? this.chapters.indexOf(this.chapter) : -1);
 	readonly progress = $derived(this.duration ? this.currentTime / this.duration : 0);
+
+	/** Where a smart sleep timer will stop (follows seeks, speed and pauses). */
+	readonly sleepForecast = $derived.by((): SleepForecast | null => {
+		const s = this.sleep;
+		if (s.kind !== 'window') return null;
+		const base = this.#sleepPausedAt ?? Date.now();
+		return forecast(
+			this.chapters,
+			this.currentTime,
+			this.rate,
+			(s.minAt - base) / 1000,
+			(s.maxAt - base) / 1000
+		);
+	});
 
 	constructor() {
 		if (typeof window === 'undefined') return;
@@ -159,10 +179,10 @@ class Player {
 				this.#retries = 0;
 				this.error = null;
 				this.#lastTick = performance.now();
-				if (this.sleep.kind === 'minutes' && this.sleepPausedLeft !== null) {
-					this.sleep = { ...this.sleep, endsAt: Date.now() + this.sleepPausedLeft };
-				}
+				if (this.#sleepPausedAt !== null) this.#shiftSleep(Date.now() - this.#sleepPausedAt);
+				this.#sleepPausedAt = null;
 				this.sleepPausedLeft = null;
+				void this.#leveler.resume();
 				this.#positionState();
 			});
 			a.addEventListener('pause', () => {
@@ -170,7 +190,7 @@ class Player {
 				this.loadingId = null;
 				this.#lastTick = 0;
 				this.#pausedAt = Date.now();
-				if (this.sleep.kind === 'minutes') this.sleepPausedLeft = this.sleep.endsAt - Date.now();
+				this.#holdSleep();
 				this.#sync();
 			});
 			a.addEventListener('waiting', () => (this.buffering = true));
@@ -221,8 +241,7 @@ class Player {
 				{
 					deviceId: deviceId(),
 					clientName: 'KoalaShelf Web',
-					clientVersion: '0.1.0',
-					model: navigator.userAgent.slice(0, 64)
+					clientVersion: '0.1.0'
 				},
 				supportedMimeTypes()
 			);
@@ -241,6 +260,7 @@ class Player {
 			return;
 		}
 		this.#session = s;
+		queue.remove(id);
 		this.#tracks = [...s.audioTracks].sort((a, b) => a.startOffset - b.startOffset);
 		this.item = s.libraryItem;
 		this.chapters = s.chapters?.length ? s.chapters : s.libraryItem.media.chapters;
@@ -263,6 +283,7 @@ class Player {
 	async #playOffline(id: string, preset: number | undefined) {
 		const book = downloads.books.get(id)!;
 		const item = book.item;
+		queue.remove(id);
 		this.#tracks = book.tracks.map((t) => ({
 			index: t.index,
 			startOffset: t.startOffset,
@@ -316,6 +337,7 @@ class Player {
 	/** audio.play() can be refused (autoplay policy); never leave a spinner behind. */
 	async #start() {
 		try {
+			await this.#leveler.resume();
 			await this.audio.play();
 		} catch {
 			this.loadingId = null;
@@ -391,8 +413,71 @@ class Player {
 
 	setSleep(t: SleepTimer) {
 		this.sleep = t;
-		this.sleepPausedLeft = t.kind === 'minutes' && !this.playing ? t.endsAt - Date.now() : null;
+		this.#sleepPausedAt = null;
+		this.sleepPausedLeft = null;
+		if (!this.playing) this.#holdSleep();
 		if (this.#audio) this.#audio.volume = 1;
+	}
+
+	/** Starts a smart timer: the first chapter end between `min` and `max` minutes. */
+	setSleepWindow(min: number, max: number) {
+		const now = Date.now();
+		this.setSleep({
+			kind: 'window',
+			min,
+			max,
+			minAt: now + min * 60_000,
+			maxAt: now + max * 60_000
+		});
+	}
+
+	/** Freezes a running countdown while paused. */
+	#holdSleep() {
+		const s = this.sleep;
+		const end = s.kind === 'minutes' ? s.endsAt : s.kind === 'window' ? s.maxAt : null;
+		if (end === null) return;
+		const now = Date.now();
+		this.#sleepPausedAt = now;
+		this.sleepPausedLeft = end - now;
+	}
+
+	#shiftSleep(ms: number) {
+		const s = this.sleep;
+		if (s.kind === 'minutes') this.sleep = { ...s, endsAt: s.endsAt + ms };
+		if (s.kind === 'window') this.sleep = { ...s, minAt: s.minAt + ms, maxAt: s.maxAt + ms };
+	}
+
+	// --- Volume leveling --------------------------------------------------------
+
+	/** Web Audio needs CORS for remote audio; the desktop shell cannot provide it. */
+	get levelingAvailable() {
+		return !isTauri && typeof AudioContext !== 'undefined';
+	}
+
+	/** For tests and meters. */
+	get leveler() {
+		return this.#leveler;
+	}
+
+	setLeveling(on: boolean) {
+		prefs.set('leveling', on);
+		const a = this.#audio;
+		// A remote stream loaded without CORS would play silently through Web Audio: reload it.
+		const reload =
+			on &&
+			!!a?.currentSrc &&
+			a.crossOrigin !== 'anonymous' &&
+			new URL(a.currentSrc).origin !== location.origin;
+		this.#prepareLeveling();
+		if (reload && (this.#session || this.#local)) this.#loadTrackAt(this.currentTime, this.playing);
+	}
+
+	#prepareLeveling() {
+		if (!this.levelingAvailable || (!prefs.leveling && !this.#leveler.attached)) return;
+		const a = this.audio;
+		a.crossOrigin = 'anonymous';
+		this.#leveler.attach(a);
+		this.#leveler.set(prefs.leveling);
 	}
 
 	// --- Bookmarks ------------------------------------------------------------
@@ -439,6 +524,7 @@ class Player {
 		if (!track) return;
 		this.#track = idx;
 		this.#pendingSeek = t - track.startOffset;
+		this.#prepareLeveling();
 		const local = this.#localUrls?.get(track.index);
 		if (local) {
 			this.#hls?.destroy();
@@ -505,15 +591,24 @@ class Player {
 			}
 			return;
 		}
-		const left = (s.endsAt - Date.now()) / 1000;
-		this.sleepRemaining = Math.max(0, left);
+		if (s.kind === 'window') {
+			// Past the earliest time, the next chapter end is a natural place to stop.
+			if (Date.now() >= s.minAt && this.chapter && this.currentTime >= this.chapter.end - 0.4) {
+				this.pause();
+				a.volume = 1;
+				this.sleep = { kind: 'off' };
+				return;
+			}
+		}
+		const left = ((s.kind === 'window' ? s.maxAt : s.endsAt) - Date.now()) / 1000;
+		this.sleepRemaining = Math.max(0, this.sleepForecast?.seconds ?? left);
 		if (left <= 0) {
 			this.pause();
 			a.volume = 1;
 			// Rewind a little so the listener does not miss what they fell asleep to.
 			this.skip(-15);
 			this.sleep = { kind: 'off' };
-		} else if (left < FADE_SECONDS) {
+		} else if (left < FADE_SECONDS && this.sleepForecast?.chapter == null) {
 			a.volume = Math.max(0.05, left / FADE_SECONDS);
 		}
 	}
@@ -533,7 +628,17 @@ class Player {
 				.catch(() => undefined);
 			const p = progress.get(id);
 			if (p) progress.set({ ...p, isFinished: true, progress: 1 });
-			void this.#offerNextInSeries(this.item);
+			// A timer that stops at a chapter end treats the end of the book as one.
+			const s = this.sleep;
+			if (s.kind === 'chapter' || (s.kind === 'window' && Date.now() >= s.minAt)) {
+				this.sleep = { kind: 'off' };
+				return;
+			}
+			const next = queue.shift();
+			if (next) {
+				toasts.show(i18n.m.toast.nowPlaying(view(next).title));
+				void this.play(next.id);
+			} else void this.#offerNextInSeries(this.item);
 		}
 	}
 

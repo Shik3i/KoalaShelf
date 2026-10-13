@@ -19,11 +19,12 @@ Design language: **KoalaShelf Vinyl** – covers first, the record as a motif, c
 - **Home**: "Continue listening" turntable, crates from your personalized shelves, hide from continue listening
 - **Library**: shelf or list, filters (status, genre, narrator, series, author, combinable), sorting, group series; everything in the URL
 - **Book page**: spinning record, chapters, bookmarks, more by the author, file details, description, download
-- **Player**: multi-file books, chapters, configurable skip (10–60 s), speed 0.8–2.0×, sleep timer (minutes with fade-out or end of chapter), smart rewind after pauses, bookmarks as pins with editable notes, lock-screen/media-key controls, keyboard shortcuts, HLS fallback for formats the browser cannot play
+- **Player**: multi-file books, chapters, configurable skip (10–60 s), speed 0.8–2.0×, sleep timer (exact minutes with fade-out, end of chapter, or smart: the first chapter end inside a window such as 20–40 min), "up next" queue that continues automatically, volume leveling for quiet and loud passages, smart rewind after pauses, bookmarks as pins with editable notes, lock-screen/media-key controls, keyboard shortcuts, HLS fallback for formats the browser cannot play
 - **Little things**: share a link to a moment, undo for deletions, speed remembered per book, elapsed/remaining clock, next book in the series offered when one ends, time preview when hovering the timeline, sleep timer badge, `?` shortcut overview, gentle motion everywhere (respects reduced motion)
 - **Downloads & offline**: books stored in the browser (OPFS) and played from local files; offline listening is synced when the connection is back; installable PWA with offline app shell
 - **Live progress** from other devices (socket.io)
-- **Series, authors, collections, statistics** (heatmap, streak, weekdays, most listened), **search**, **settings**
+- **Listening history**: every session on every device by day, with jumps to where it started or ended; per book on its page
+- **Series, authors, collections, statistics** (heatmap, streak, weekdays, most listened), **search**, **settings**; on phones via the "More" sheet
 - English and German, light/dark following the system, WCAG 2.2 AA checked
 
 ## Repository

@@ -32,7 +32,7 @@ export function startLive() {
 		s.on('init', () => (retried = false));
 		s.on('user_item_progress_updated', (e: ProgressEvent) => {
 			if (!e?.data || e.data.episodeId) return;
-			progress.set(e.data);
+			if (!progress.merge(e.data)) return;
 			// Our own syncs come back as events too; only other devices move the position.
 			if (e.sessionId && e.sessionId === player.sessionId) return;
 			player.applyRemoteProgress(e.data);

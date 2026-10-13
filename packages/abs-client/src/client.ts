@@ -15,6 +15,7 @@ import type {
 	ProgressUpdate,
 	Series,
 	ServerStatus,
+	SessionPage,
 	SessionSync,
 	Shelf,
 	User
@@ -247,6 +248,16 @@ export class AbsClient {
 	/** Hides an item from "continue listening" without touching its progress. */
 	hideFromContinueListening(progressId: string) {
 		return this.request<void>(`/api/me/progress/${progressId}/remove-from-continue-listening`);
+	}
+
+	/** The user's listening history, newest first. */
+	listeningSessions(page = 0, itemsPerPage = 50) {
+		return this.request<SessionPage>('/api/me/listening-sessions', { query: { page, itemsPerPage } });
+	}
+
+	/** Listening history of one book, newest first. */
+	itemListeningSessions(itemId: string, page = 0, itemsPerPage = 20) {
+		return this.request<SessionPage>(`/api/me/item/listening-sessions/${itemId}`, { query: { page, itemsPerPage } });
 	}
 
 	listeningStats() {

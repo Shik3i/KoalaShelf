@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import '../app.css';
 	import { goto, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
@@ -25,7 +26,10 @@
 
 	// Live progress from other devices while signed in.
 	$effect(() => {
-		if (session.client) startLive();
+		if (!session.client) return;
+		startLive();
+		// The last book comes back paused, so the mini player is there after a reload.
+		untrack(() => void player.restoreLast());
 	});
 	let online = $state(navigator.onLine);
 

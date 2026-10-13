@@ -4,6 +4,7 @@
 	import { theme, type ThemeChoice } from '#lib/theme.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { prefs, SKIP_STEPS } from '#lib/prefs.svelte.ts';
+	import { player } from '#lib/player/player.svelte.ts';
 	import { apiFetch } from '#lib/platform.ts';
 	import LocaleSwitch from '#lib/components/LocaleSwitch.svelte';
 	import Segmented from '#lib/components/Segmented.svelte';
@@ -87,6 +88,23 @@
 			<span></span>
 		</button>
 	</div>
+	{#if player.levelingAvailable}
+		<div class="row">
+			<span class="stack">
+				{t.leveling}
+				<small class="muted">{t.levelingHint}</small>
+			</span>
+			<button
+				class="switch"
+				role="switch"
+				aria-checked={prefs.leveling}
+				aria-label={t.leveling}
+				onclick={() => player.setLeveling(!prefs.leveling)}
+			>
+				<span></span>
+			</button>
+		</div>
+	{/if}
 </section>
 
 <section class="card">

@@ -10,9 +10,22 @@ interface Prefs {
 	smartRewind: boolean;
 	/** Big player clock shows the time left in the book instead of the elapsed time. */
 	remainingTime: boolean;
+	/** Even out loud and quiet passages (Web Audio compressor). */
+	leveling: boolean;
+	/** Last smart sleep timer window, in minutes. */
+	sleepMin: number;
+	sleepMax: number;
 }
 
-const DEFAULTS: Prefs = { skipBack: 30, skipForward: 30, smartRewind: true, remainingTime: false };
+const DEFAULTS: Prefs = {
+	skipBack: 30,
+	skipForward: 30,
+	smartRewind: true,
+	remainingTime: false,
+	leveling: false,
+	sleepMin: 20,
+	sleepMax: 40
+};
 
 function load(): Prefs {
 	try {
@@ -36,6 +49,15 @@ class PrefsStore {
 	}
 	get remainingTime() {
 		return this.#p.remainingTime;
+	}
+	get leveling() {
+		return this.#p.leveling;
+	}
+	get sleepMin() {
+		return this.#p.sleepMin;
+	}
+	get sleepMax() {
+		return this.#p.sleepMax;
 	}
 
 	set<K extends keyof Prefs>(key: K, value: Prefs[K]) {

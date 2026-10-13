@@ -243,6 +243,40 @@ export interface PlaybackSession {
 	libraryItem: LibraryItem;
 }
 
+/** A past playback session as listed in the listening history. */
+export interface ListeningSession {
+	id: string;
+	libraryItemId: string;
+	libraryId: string;
+	displayTitle: string;
+	displayAuthor: string;
+	duration: number;
+	/** Book position (seconds) when the session started and where it ended. */
+	startTime: number;
+	currentTime: number;
+	/** Seconds actually listened. */
+	timeListening: number;
+	startedAt: number;
+	updatedAt: number;
+	/** Local day, YYYY-MM-DD. */
+	date: string;
+	deviceInfo?: {
+		clientName?: string;
+		osName?: string;
+		browserName?: string;
+		manufacturer?: string;
+		model?: string;
+	};
+}
+
+export interface SessionPage {
+	total: number;
+	numPages: number;
+	page: number;
+	itemsPerPage: number;
+	sessions: ListeningSession[];
+}
+
 export interface ProgressUpdate {
 	currentTime?: number;
 	duration?: number;

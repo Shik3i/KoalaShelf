@@ -17,7 +17,9 @@ export const de: Messages = {
 		settings: 'Einstellungen',
 		collections: 'Sammlungen',
 		stats: 'Statistik',
-		downloads: 'Downloads'
+		downloads: 'Downloads',
+		history: 'Verlauf',
+		more: 'Mehr'
 	},
 	collections: {
 		title: 'Sammlungen',
@@ -125,6 +127,10 @@ export const de: Messages = {
 		chapterCount: (n) => `${n} Kapitel`,
 		bookmarks: 'Marken',
 		moreByAuthor: 'Mehr vom Autor',
+		history: 'Verlauf',
+		noHistory: 'Noch keine Hörsitzungen für dieses Buch.',
+		addToQueue: 'Zur Warteschlange',
+		inQueue: 'In der Warteschlange',
 		noBookmarks: 'Noch keine Marken. Setze eine beim Hören.',
 		description: 'Beschreibung',
 		details: 'Details',
@@ -182,6 +188,29 @@ export const de: Messages = {
 		errorFatal: 'Wiedergabe fehlgeschlagen. Zum erneuten Versuch auf Play drücken.',
 		edit: 'Notiz bearbeiten',
 		copyLink: 'Link zu dieser Stelle kopieren',
+		queue: 'Warteschlange',
+		queueOpen: (n) => `Warteschlange (${n})`,
+		queueEmpty:
+			'Nichts in der Warteschlange. Füge Bücher auf ihrer Seite hinzu, um sie nacheinander zu hören.',
+		queueClear: 'Leeren',
+		queueUp: 'Nach oben',
+		queueRemove: 'Aus der Warteschlange entfernen',
+		queuePlay: (title) => `${title} jetzt abspielen`,
+		timerMode: 'Timer-Modus',
+		timerExact: 'Exakt',
+		timerSmart: 'Smart',
+		timerSmartHint: 'Stoppt am ersten Kapitelende in diesem Zeitfenster, spätestens wenn es endet.',
+		timerEarliest: 'Frühestens',
+		timerLatest: 'Spätestens',
+		timerLess: (what) => `${what}: 5 Minuten früher`,
+		timerMore: (what) => `${what}: 5 Minuten später`,
+		timerStart: 'Timer starten',
+		timerUpdate: 'Timer anpassen',
+		timerRunning: 'Timer läuft',
+		timerStop: 'Timer beenden',
+		timerAtChapter: (n, t) => `Stoppt am Ende von Kapitel ${n} · in ${t}`,
+		timerAtLatest: (t) => `Kein Kapitelende im Fenster · stoppt in ${t}`,
+		timerSmartLeft: (t) => `Stoppt in ≈ ${t}`,
 		timeMode: 'Zwischen vergangener und verbleibender Zeit wechseln',
 		bookmarkFailed: 'Marke konnte nicht gespeichert werden. Gibt es an dieser Sekunde schon eine?',
 		syncFailed: 'Fortschritt konnte nicht gespeichert werden. Neuer Versuch folgt.',
@@ -241,6 +270,9 @@ export const de: Messages = {
 		smartRewindHint:
 			'Nach einer längeren Pause beginnt die Wiedergabe ein paar Sekunden früher (5 s nach 1 Min., 15 s nach 10 Min., 30 s nach 1 Std.).',
 		account: 'Konto',
+		leveling: 'Lautstärke ausgleichen',
+		levelingHint:
+			'Hebt leise Passagen an und dämpft laute, damit du seltener zur Lautstärke greifen musst. Auf iPhone und iPad kann die Wiedergabe im Hintergrund pausieren, solange das an ist.',
 		user: 'Benutzer',
 		server: 'Audiobookshelf-Server',
 		version: 'Version',
@@ -264,7 +296,26 @@ export const de: Messages = {
 		downloadFailed: (title) => `Download fehlgeschlagen: ${title}`,
 		synced: 'Offline Gehörtes synchronisiert',
 		nextInSeries: (title) => `Weiter in der Serie: ${title}`,
-		playNext: 'Abspielen'
+		playNext: 'Abspielen',
+		nowPlaying: (title) => `Jetzt läuft: ${title}`,
+		queued: (title) => `Zur Warteschlange hinzugefügt: ${title}`,
+		unqueued: 'Aus der Warteschlange entfernt',
+		queueCleared: 'Warteschlange geleert'
+	},
+	history: {
+		title: 'Hörverlauf',
+		intro:
+			'Jede Sitzung auf jedem Gerät, die neueste zuerst. Spring zurück an den Anfang oder das Ende einer Sitzung.',
+		empty: 'Noch keine Hörsitzungen.',
+		error: 'Der Verlauf konnte nicht geladen werden.',
+		more: 'Mehr anzeigen',
+		today: 'Heute',
+		yesterday: 'Gestern',
+		listened: (d) => `${d} gehört`,
+		playFrom: (t) => `Ab ${t} abspielen`,
+		sessionStart: 'Beginn der Sitzung',
+		sessionEnd: 'Ende der Sitzung',
+		removed: 'Nicht mehr in der Bibliothek'
 	},
 	shortcuts: {
 		title: 'Tastenkürzel',
@@ -286,6 +337,7 @@ export const de: Messages = {
 	},
 	format: {
 		hours: 'Std.',
-		minutes: 'Min.'
+		minutes: 'Min.',
+		seconds: 's'
 	}
 };

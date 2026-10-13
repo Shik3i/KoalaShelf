@@ -8,9 +8,9 @@ Last full pass: 2026-10-13. The web app is verified by automated tests and a scr
 |---|---|---|
 | `pnpm check` | svelte-check over app, tests, configs | 0 errors, 0 warnings |
 | `pnpm lint` | Prettier + ESLint | clean |
-| `pnpm test` | unit: formatting, filters, version check, placeholder contrast, turntable ramp | 7/7 |
-| `pnpm test:e2e` | 57 Playwright tests in Edge against a local Audiobookshelf 2.37.1 with generated sample books (+ screenshot spec on demand) | 57/57, stable over repeated runs |
-| `E2E_BASE_URL=… pnpm test:e2e` | production Docker image (Caddy, strict CSP, service worker) | 41/41; tests that read player internals need the dev server and skip themselves |
+| `pnpm test` | unit: formatting, filters, version check, placeholder contrast, turntable ramp, smart sleep forecast | 14/14 |
+| `pnpm test:e2e` | 66 Playwright tests in Edge against a local Audiobookshelf 2.37.1 with generated sample books (+ screenshot spec on demand) | 66/66, stable over repeated runs |
+| `E2E_BASE_URL=… pnpm test:e2e` | production Docker image (Caddy, strict CSP, service worker) | 48/48 (twice in a row); tests that read player internals need the dev server and skip before any playback starts |
 | axe-core | every page, mini player, full player and its panels, light + dark, WCAG 2.2 AA | no violations |
 | Screenshot review (`e2e/screens.spec.ts`) | all pages and player states, desktop + mobile, light + dark | reviewed |
 
@@ -23,11 +23,12 @@ Last full pass: 2026-10-13. The web app is verified by automated tests and a scr
 - **Pages**: home continue card + hide, series, authors, collections, statistics, search, settings persistence (theme, language, skip steps)
 - **Live & offline**: progress from another device without reload; download → offline playback → sync on reconnect → remove; offline app shell and playback after a full reload (production build)
 - **Quality of life**: links to a moment (`?t=`), bookmark delete with undo, copy moment link, per-book speed, elapsed/remaining clock, shortcut overview, remembered library view, undo for hiding, next book in the series offered at the end, timeline hover preview, sleep timer badge in the mini player
-- **Mobile**: tab bar, mini player above it, full player fits one screen, no horizontal overflow on any page
+- **Listening**: queue (add, reorder, remove with undo, automatic continue at the end, leaves the queue when played), smart sleep timer (window steppers, forecast, stop at a chapter end, fallback to the latest time), volume leveling (audible output through the compressor, on/off, across files, on a server of another origin with CORS), listening history (by day, jump points, book tab, device names), stale or duplicate progress from the server
+- **Mobile**: tab bar with "More" sheet (all pages, library switch), mini player above it, full player fits one screen, no horizontal overflow on any page (measured against the device width)
 
 ## Bugs found and fixed by the tests and reviews
 
-Sign-in hid the server field · blank page on direct book URLs · horizontal overflow from long titles · tonearm beside the record · misaligned timeline · raw HTML in descriptions · placeholder instead of cover in the player · bookmarks from the server never loaded · series page reload loop · dev proxy swallowing `/authors` · insufficient contrast in two placeholder palettes · "no library" shown offline · 404s for missing covers in statistics · races when switching books quickly · finished books ending immediately · sleep timer counting while paused · toasts hidden behind the open player · a11y scans racing fly-in animations · spinning record crashing the page under load (a frame timestamp before the ramp start produced a negative playback rate).
+Sign-in hid the server field · blank page on direct book URLs · horizontal overflow from long titles · tonearm beside the record · misaligned timeline · raw HTML in descriptions · placeholder instead of cover in the player · bookmarks from the server never loaded · series page reload loop · dev proxy swallowing `/authors` · insufficient contrast in two placeholder palettes · "no library" shown offline · 404s for missing covers in statistics · races when switching books quickly · finished books ending immediately · sleep timer counting while paused · toasts hidden behind the open player · a11y scans racing fly-in animations · spinning record crashing the page under load (a frame timestamp before the ramp start produced a negative playback rate) · series, authors, collections and statistics unreachable on phones · book tabs widening the page on 375 px phones · a slower first progress load overwriting a newer change · a duplicate, older progress entry from the server winning over the current one · the device shown as a user agent dump in Audiobookshelf.
 
 ## Not included (by decision)
 

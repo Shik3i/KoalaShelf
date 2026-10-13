@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { itemId, playerCall } from './helpers.ts';
+import { itemId } from './helpers.ts';
 
 // Automated accessibility scan (WCAG 2.2 AA) of every page in both themes.
 for (const scheme of ['light', 'dark'] as const) {
@@ -16,6 +16,7 @@ for (const scheme of ['light', 'dark'] as const) {
 				'/series',
 				'/authors',
 				'/collections',
+				'/history',
 				'/stats',
 				'/search',
 				'/settings',
@@ -55,6 +56,8 @@ for (const scheme of ['light', 'dark'] as const) {
 								x.effect?.getTiming().iterations === Infinity
 						)
 				);
+				// ...and CSS transitions such as a gliding segment pill (motion-base is 280 ms).
+				await page.waitForTimeout(350);
 				const r = await new AxeBuilder({ page })
 					.withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
 					.analyze();
@@ -72,8 +75,17 @@ for (const scheme of ['light', 'dark'] as const) {
 				await dialog.getByRole('button', { name: panel }).click();
 				await scan(`panel ${panel}`);
 			}
+			await dialog.getByRole('button', { name: 'Sleep timer' }).click();
+			await dialog.getByRole('button', { name: 'Smart' }).click();
+			await scan('panel smart sleep timer');
+			await dialog.getByRole('button', { name: /^Up next/ }).click();
+			await scan('panel up next');
 			await page.keyboard.press('Escape');
-			await playerCall(page, 'stop');
+			// Pause through the UI: works on production builds as well.
+			await page
+				.getByRole('region', { name: 'Player' })
+				.getByRole('button', { name: 'Pause' })
+				.click();
 		});
 	});
 }

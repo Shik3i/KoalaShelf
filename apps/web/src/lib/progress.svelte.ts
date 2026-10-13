@@ -6,6 +6,10 @@ import { session } from './session.svelte';
 class ProgressStore {
 	byItem = new SvelteMap<string, MediaProgress>();
 	#loaded: Promise<void> | null = null;
+	/** Only the latest load may write: an older, slower response must not undo newer state. */
+	#generation = 0;
+	/** Entries written by this device (stamped with its own clock, not the server's). */
+	#local = new WeakSet<MediaProgress>();
 
 	constructor() {
 		session.onSignOut(() => this.reset());
@@ -18,10 +22,18 @@ class ProgressStore {
 
 	load(force = false) {
 		if (!this.#loaded || force) {
+			const generation = ++this.#generation;
 			this.#loaded = session.api.me().then((me) => {
+				if (generation !== this.#generation) return;
 				session.canDownload = me.permissions?.download !== false;
 				this.byItem.clear();
-				for (const p of me.mediaProgress) if (!p.episodeId) this.byItem.set(p.libraryItemId, p);
+				for (const p of me.mediaProgress) {
+					if (p.episodeId) continue;
+					// A server can list a book twice (e.g. a late sync after its progress was reset):
+					// the most recent entry is the true state.
+					const known = this.byItem.get(p.libraryItemId);
+					if (!known || p.lastUpdate >= known.lastUpdate) this.byItem.set(p.libraryItemId, p);
+				}
 			});
 		}
 		return this.#loaded;
@@ -30,6 +42,7 @@ class ProgressStore {
 	/** Forget everything (sign-out / user switch). */
 	reset() {
 		this.#loaded = null;
+		this.#generation++;
 		this.byItem.clear();
 	}
 
@@ -37,8 +50,19 @@ class ProgressStore {
 		return this.byItem.get(itemId);
 	}
 
+	/** Local update from this device's player. */
 	set(p: MediaProgress) {
+		this.#local.add(p);
 		this.byItem.set(p.libraryItemId, p);
+	}
+
+	/** Applies a pushed update unless we already know a newer state (events can arrive late). */
+	merge(p: MediaProgress) {
+		const known = this.byItem.get(p.libraryItemId);
+		// Timestamps are only comparable between server states (device clocks can be off).
+		if (known && !this.#local.has(known) && known.lastUpdate > p.lastUpdate) return false;
+		this.byItem.set(p.libraryItemId, p);
+		return true;
 	}
 
 	status(itemId: string): 'new' | 'running' | 'done' {

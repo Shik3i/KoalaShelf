@@ -15,6 +15,7 @@ test.describe('pwa (production build)', () => {
 			'/series',
 			'/authors',
 			'/collections',
+			'/history',
 			'/stats',
 			'/search',
 			'/settings',
