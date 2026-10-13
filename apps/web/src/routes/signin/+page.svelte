@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { AbsError } from '@koalashelf/abs-client';
+	import { AbsError, isVersionAtLeast, MIN_SERVER_VERSION } from '@koalashelf/abs-client';
 	import { presetServer, ServerTooOldError, session } from '#lib/session.svelte.ts';
 	import {
 		forgetServer,
@@ -89,7 +89,13 @@
 
 	// Translated at render time, so switching the language also translates a shown error.
 	const message = $derived(error ? describe(error) : null);
-	const checkMessage = $derived(check.state === 'error' ? describe(check.error) : null);
+	const checkMessage = $derived(
+		check.state === 'error'
+			? describe(check.error)
+			: check.state === 'ok' && !isVersionAtLeast(check.version, MIN_SERVER_VERSION)
+				? t.errTooOld(check.version, MIN_SERVER_VERSION)
+				: null
+	);
 	const shortUrl = (u: string) => u.replace(/^https?:\/\//, '');
 
 	async function submit(e: SubmitEvent) {
@@ -146,10 +152,10 @@
 			<p class="status" aria-live="polite">
 				{#if check.state === 'checking'}
 					<span class="muted">{t.serverChecking}</span>
-				{:else if check.state === 'ok'}
-					<span class="ok">✓ {t.serverOk(check.version)}</span>
 				{:else if checkMessage}
 					<span class="warn">{checkMessage}</span>
+				{:else if check.state === 'ok'}
+					<span class="ok">✓ {t.serverOk(check.version)}</span>
 				{/if}
 			</p>
 			{#if recent.some((r) => shortUrl(r) !== shortUrl(server.trim()))}

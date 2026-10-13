@@ -184,6 +184,14 @@ button {
 	box-shadow: inset 0 0 0 1.5px var(--c-line);
 }
 
+/* Active state wins over the outline variant (filters, toggles). */
+.chip.outline[aria-pressed='true'],
+.chip.outline.on {
+	background: var(--c-accent);
+	color: var(--c-on-accent);
+	box-shadow: none;
+}
+
 .card {
 	background: var(--c-card);
 	border-radius: var(--r-card);

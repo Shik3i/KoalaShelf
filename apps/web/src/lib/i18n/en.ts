@@ -92,6 +92,8 @@ export const en = {
 		view: 'View',
 		viewShelf: 'Shelf',
 		viewList: 'List',
+		collapse: 'Group series',
+		seriesBooks: (n: number) => plural(n, 'book', 'books'),
 		empty: 'No titles match this selection.',
 		loadError: (msg: string) => `Could not load the library: ${msg}`,
 		loading: 'Loading …',

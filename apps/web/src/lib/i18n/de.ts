@@ -90,6 +90,8 @@ export const de: Messages = {
 		view: 'Ansicht',
 		viewShelf: 'Regal',
 		viewList: 'Liste',
+		collapse: 'Serien bündeln',
+		seriesBooks: (n) => (n === 1 ? '1 Band' : `${n} Bände`),
 		empty: 'Keine Titel für diese Auswahl.',
 		loadError: (msg) => `Konnte die Bibliothek nicht laden: ${msg}`,
 		loading: 'Lade …',

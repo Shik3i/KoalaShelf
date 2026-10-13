@@ -86,7 +86,11 @@
 	<div class="shell">
 		<AppNav />
 		<main class:has-player={player.item}>
-			{@render children()}
+			{#if !session.libraries.length && !page.url.pathname.startsWith('/settings')}
+				<p class="no-lib">{i18n.m.common.noLibrary}</p>
+			{:else}
+				{@render children()}
+			{/if}
 		</main>
 	</div>
 	<MiniPlayer />
@@ -107,6 +111,12 @@
 		container: page / inline-size;
 		padding: var(--sp-32) var(--sp-40) var(--sp-64);
 		view-transition-name: main;
+	}
+
+	.no-lib {
+		padding: var(--sp-64) var(--sp-16);
+		text-align: center;
+		color: var(--c-muted);
 	}
 
 	.offline {

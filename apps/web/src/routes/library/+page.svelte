@@ -47,6 +47,8 @@
 	const genre = $derived(q.get('genre') ?? '');
 	const narrator = $derived(q.get('narrator') ?? '');
 	const series = $derived(q.get('series') ?? '');
+	// Grouping only makes sense when not already looking at one series.
+	const collapse = $derived(q.get('group') === '1' && !series);
 	const author = $derived(q.get('author') ?? '');
 
 	function set(changes: Record<string, string | null>) {
@@ -102,7 +104,13 @@
 		return {
 			filter: primary?.server,
 			local: rest.map((r) => r.local!).filter(Boolean),
-			key: JSON.stringify([session.libraryId, sort.key, desc, active.map((a) => a.server)])
+			key: JSON.stringify([
+				session.libraryId,
+				sort.key,
+				desc,
+				collapse,
+				active.map((a) => a.server)
+			])
 		};
 	});
 
@@ -123,7 +131,7 @@
 					sort: sort.key,
 					desc,
 					filter: plan.filter,
-					collapseSeries: false
+					collapseSeries: collapse
 				},
 				signal
 			);
@@ -204,6 +212,13 @@
 	{/await}
 
 	<div class="chips end">
+		{#if !series}
+			<button
+				class="chip outline"
+				aria-pressed={collapse}
+				onclick={() => set({ group: collapse ? null : '1' })}>{t.collapse}</button
+			>
+		{/if}
 		<label class="chip outline select">
 			<ArrowDownUp size={14} aria-hidden="true" />
 			<span class="sr-only">{t.sort}</span>
@@ -353,6 +368,12 @@
 		cursor: pointer;
 		max-width: 160px;
 		text-overflow: ellipsis;
+	}
+
+	/* The native option list must stay readable when the chip is highlighted. */
+	.select option {
+		color: var(--c-ink);
+		background: var(--c-card);
 	}
 
 	.select select:focus-visible {
