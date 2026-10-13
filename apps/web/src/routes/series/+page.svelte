@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import type { Series } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -47,7 +48,7 @@
 </header>
 
 {#if error}<p class="muted">{i18n.m.common.error(error)}</p>{/if}
-{#if done && !list.length}<p class="muted">{t.empty}</p>{/if}
+{#if done && !list.length}<EmptyState text={t.empty} />{/if}
 
 <div class="grid">
 	{#if !list.length && !done && !error}

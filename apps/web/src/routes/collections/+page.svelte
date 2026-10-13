@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import type { Collection } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -24,7 +25,7 @@
 <h1>{t.title}</h1>
 
 {#if error}<p class="muted">{i18n.m.common.error(error)}</p>{/if}
-{#if list && !list.length}<p class="muted empty">{t.empty}</p>{/if}
+{#if list && !list.length}<EmptyState text={t.empty} />{/if}
 
 <div class="crates">
 	{#each list ?? [] as c (c.id)}
@@ -54,10 +55,5 @@
 	.crates {
 		display: grid;
 		gap: var(--sp-32);
-	}
-
-	.empty {
-		padding: var(--sp-48) 0;
-		text-align: center;
 	}
 </style>

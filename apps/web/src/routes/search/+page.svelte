@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { AbsClient } from '@koalashelf/abs-client';
@@ -60,9 +61,9 @@
 </label>
 
 {#if !result && !busy}
-	<p class="muted hint">{t.hint}</p>
+	<EmptyState text={t.hint} />
 {:else if empty}
-	<p class="muted hint">{t.nothing(q.trim())}</p>
+	<EmptyState text={t.nothing(q.trim())} />
 {/if}
 
 {#if result}
@@ -137,11 +138,6 @@
 		color: var(--c-ink);
 		font-size: var(--fs-18);
 		outline: none;
-	}
-
-	.hint {
-		text-align: center;
-		padding: var(--sp-48) 0;
 	}
 
 	h2 {

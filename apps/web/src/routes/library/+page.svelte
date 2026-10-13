@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { encodeFilter, type LibraryItemMinified } from '@koalashelf/abs-client';
@@ -270,7 +271,7 @@
 {#if error}
 	<p class="error" role="alert">{t.loadError(error)}</p>
 {:else if !firstLoad && !loading && items.length === 0}
-	<p class="empty muted">{t.empty}</p>
+	<EmptyState text={t.empty} />
 {/if}
 
 {#if firstLoad && items.length === 0 && !error}
@@ -485,11 +486,6 @@
 
 	.error {
 		color: var(--c-accent);
-	}
-
-	.empty {
-		padding: var(--sp-48) 0;
-		text-align: center;
 	}
 
 	@container page (max-width: 700px) {

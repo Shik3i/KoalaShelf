@@ -1,5 +1,6 @@
 <script lang="ts">
 	/* eslint-disable svelte/prefer-svelte-reactivity -- local date math inside $derived, not state */
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import type { ListeningStats } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -106,7 +107,7 @@
 	</div>
 
 	{#if stats.totalTime === 0}
-		<p class="muted empty">{t.empty}</p>
+		<EmptyState text={t.empty} />
 	{:else}
 		<section class="card block">
 			<h2 class="label">{t.year}</h2>

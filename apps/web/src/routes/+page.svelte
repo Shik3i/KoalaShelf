@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EmptyState from '#lib/components/EmptyState.svelte';
 	import type { LibraryItemMinified, Shelf } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
@@ -121,10 +122,9 @@
 {#if error}
 	<p class="muted">{i18n.m.common.error(error)}</p>
 {:else if shelves && !hero && crates.length === 0}
-	<div class="empty">
-		<p class="muted">{t.empty}</p>
+	<EmptyState text={t.empty}>
 		<a class="btn primary" href="/library">{t.toLibrary}</a>
-	</div>
+	</EmptyState>
 {/if}
 
 {#if hero && heroView}
@@ -293,13 +293,6 @@
 	.crates {
 		display: grid;
 		gap: var(--sp-32);
-	}
-
-	.empty {
-		display: grid;
-		justify-items: center;
-		gap: var(--sp-16);
-		padding: var(--sp-64) 0;
 	}
 
 	/* Without the sidebar (phones) settings are reached from here. */
