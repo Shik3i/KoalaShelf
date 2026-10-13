@@ -6,6 +6,7 @@ services:
       - '13378:80'
     volumes:
       - ./data/audiobooks:/audiobooks
+      - ./data/stories:/stories
       - ./data/config:/config
       - ./data/metadata:/metadata
     environment:

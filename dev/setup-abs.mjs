@@ -57,6 +57,13 @@ if (!lib) {
   console.log('library created', lib.id);
 }
 await json('POST', `/api/libraries/${lib.id}/scan`, null, token).catch(() => undefined);
+
+// Second library (70 short stories) for paging and library switching.
+let stories = libraries.find((l) => l.name === 'Kurzgeschichten');
+if (!stories) {
+  stories = await json('POST', '/api/libraries', { name: 'Kurzgeschichten', mediaType: 'book', icon: 'books', folders: [{ fullPath: '/stories' }] }, token);
+}
+await json('POST', `/api/libraries/${stories.id}/scan`, null, token).catch(() => undefined);
 // Wait until the scanner has indexed all sample books.
 let items = [];
 for (let i = 0; i < 60; i++) {

@@ -47,3 +47,15 @@ for (const b of books) {
   }
   console.log('created', dir);
 }
+
+// Second library: 70 tiny stories, for paging (infinite scroll) and library switching.
+const stories = join(import.meta.dirname, 'data', 'stories', 'Anthologie');
+for (let i = 1; i <= 70; i++) {
+  const n = String(i).padStart(2, '0');
+  const dir = join(stories, `Geschichte ${n}`);
+  if (existsSync(dir)) continue;
+  mkdirSync(dir, { recursive: true });
+  ff('-f', 'lavfi', '-i', `sine=frequency=${300 + i * 7}:duration=3`, '-ac', '1', '-b:a', '24k',
+    '-metadata', `title=Geschichte ${n}`, '-metadata', 'artist=Anthologie', '-metadata', 'genre=Kurzgeschichte', join(dir, `Geschichte ${n}.mp3`));
+}
+console.log('stories ready');

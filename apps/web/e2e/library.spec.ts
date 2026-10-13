@@ -78,4 +78,18 @@ test.describe('library', () => {
 		await expect(page.getByRole('button', { name: /Jonas Falk ✕/ })).toBeVisible();
 		await expect.poll(() => titles(page)).toEqual(['Nachtzug']);
 	});
+
+	test('switching library and paging through 70 titles (infinite scroll)', async ({ page }) => {
+		await page
+			.getByRole('combobox', { name: /^Library/ })
+			.selectOption({ label: 'Kurzgeschichten' });
+		await expect(page.getByText('70 titles')).toBeVisible();
+		await expect(page.locator('.tile')).toHaveCount(60);
+		await page.locator('.more').scrollIntoViewIfNeeded();
+		await expect(page.locator('.tile')).toHaveCount(70);
+		await expect(page.locator('.more')).toHaveCount(0);
+		// The choice is remembered across reloads.
+		await page.reload();
+		await expect(page.getByText('70 titles')).toBeVisible();
+	});
 });
