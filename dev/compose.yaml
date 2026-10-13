@@ -8,4 +8,7 @@ services:
       - ./data/audiobooks:/audiobooks
       - ./data/config:/config
       - ./data/metadata:/metadata
+    environment:
+      # Dev server only: the e2e suite signs in often; never disable this in production.
+      RATE_LIMIT_AUTH_MAX: '0'
     restart: unless-stopped

@@ -57,9 +57,6 @@ if (!lib) {
   console.log('library created', lib.id);
 }
 await json('POST', `/api/libraries/${lib.id}/scan`, null, token).catch(() => undefined);
-// Dev server only: the e2e suite signs in often, so relax the login rate limit.
-await json('PATCH', '/api/settings', { rateLimitLoginRequests: 1000 }, token).catch(() => undefined);
-
 // Wait until the scanner has indexed all sample books.
 let items = [];
 for (let i = 0; i < 60; i++) {
