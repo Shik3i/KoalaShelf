@@ -119,6 +119,7 @@ export const de: Messages = {
 		readBy: 'Gelesen von',
 		play: 'Abspielen',
 		resume: (time) => `Weiter bei ${time}`,
+		playFrom: (time) => `Abspielen ab ${time}`,
 		listenAgain: 'Nochmal hören',
 		chapters: 'Kapitel',
 		chapterCount: (n) => `${n} Kapitel`,
@@ -179,6 +180,8 @@ export const de: Messages = {
 		error: 'Wiedergabe fehlgeschlagen. Neuer Versuch …',
 		errorFatal: 'Wiedergabe fehlgeschlagen. Zum erneuten Versuch auf Play drücken.',
 		edit: 'Notiz bearbeiten',
+		copyLink: 'Link zu dieser Stelle kopieren',
+		timeMode: 'Zwischen vergangener und verbleibender Zeit wechseln',
 		bookmarkFailed: 'Marke konnte nicht gespeichert werden. Gibt es an dieser Sekunde schon eine?',
 		syncFailed: 'Fortschritt konnte nicht gespeichert werden. Neuer Versuch folgt.',
 		shortcuts: 'Leertaste Play/Pause · ← → springen · Shift ← → Kapitel · B Marke'
@@ -247,6 +250,28 @@ export const de: Messages = {
 		source: 'Quellcode',
 		on: 'An',
 		off: 'Aus'
+	},
+	toast: {
+		undo: 'Rückgängig',
+		bookmarkSaved: 'Marke gespeichert',
+		bookmarkDeleted: 'Marke gelöscht',
+		linkCopied: 'Link kopiert',
+		hidden: 'Aus „Weiterhören“ entfernt',
+		finished: 'Als gehört markiert',
+		unfinished: 'Als ungehört markiert',
+		downloaded: (title) => `Heruntergeladen: ${title}`,
+		downloadFailed: (title) => `Download fehlgeschlagen: ${title}`,
+		synced: 'Offline Gehörtes synchronisiert'
+	},
+	shortcuts: {
+		title: 'Tastenkürzel',
+		playPause: 'Abspielen / Pause',
+		skip: 'Zurück / vor springen',
+		chapter: 'Kapitel zurück / vor',
+		speed: 'Langsamer / schneller',
+		bookmark: 'Marke setzen',
+		help: 'Kürzel anzeigen',
+		close: 'Schließen'
 	},
 	common: {
 		error: (msg) => `Etwas ist schiefgelaufen: ${msg}`,

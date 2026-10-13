@@ -12,7 +12,7 @@ import { AbsError } from '@koalashelf/abs-client';
 import { session } from '../session.svelte.ts';
 import { progress } from '../progress.svelte.ts';
 import { view } from '../items.ts';
-import { prefs, smartRewindSeconds } from '../prefs.svelte.ts';
+import { bookRate, prefs, setBookRate, smartRewindSeconds } from '../prefs.svelte.ts';
 import { downloads, type LocalSession } from '../downloads.svelte.ts';
 
 const SYNC_INTERVAL_MS = 15_000;
@@ -247,6 +247,7 @@ class Player {
 		this.currentTime = start;
 		this.#listened = 0;
 		store(LAST_KEY, id);
+		this.#applyBookRate(id);
 		this.#updateMediaSession();
 		this.#loadBookmarks();
 		this.#loadTrackAt(this.currentTime);
@@ -300,6 +301,12 @@ class Player {
 		this.#loadTrackAt(this.currentTime);
 		this.#syncTimer = setInterval(() => this.#sync(), SYNC_INTERVAL_MS);
 		await this.#start();
+	}
+
+	#applyBookRate(id: string) {
+		const r = bookRate(id) ?? storage<number>(RATE_KEY, 1);
+		this.rate = r;
+		if (this.#audio) this.#audio.playbackRate = r;
 	}
 
 	/** audio.play() can be refused (autoplay policy); never leave a spinner behind. */
@@ -372,6 +379,7 @@ class Player {
 
 	setRate(r: number) {
 		this.rate = r;
+		if (this.item) setBookRate(this.item.id, r);
 		if (this.#audio) this.#audio.playbackRate = r;
 		store(RATE_KEY, r);
 		this.#positionState();

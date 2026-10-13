@@ -8,9 +8,11 @@ interface Prefs {
 	skipForward: number;
 	/** Rewind a little after longer pauses, so the listener finds back into the story. */
 	smartRewind: boolean;
+	/** Big player clock shows the time left in the book instead of the elapsed time. */
+	remainingTime: boolean;
 }
 
-const DEFAULTS: Prefs = { skipBack: 30, skipForward: 30, smartRewind: true };
+const DEFAULTS: Prefs = { skipBack: 30, skipForward: 30, smartRewind: true, remainingTime: false };
 
 function load(): Prefs {
 	try {
@@ -32,6 +34,9 @@ class PrefsStore {
 	get smartRewind() {
 		return this.#p.smartRewind;
 	}
+	get remainingTime() {
+		return this.#p.remainingTime;
+	}
 
 	set<K extends keyof Prefs>(key: K, value: Prefs[K]) {
 		this.#p[key] = value;
@@ -44,6 +49,27 @@ class PrefsStore {
 }
 
 export const prefs = new PrefsStore();
+
+const BOOK_RATES = 'ks.bookRates';
+
+/** Speed remembered per book (e.g. a fast narrator), falls back to the global default. */
+export function bookRate(itemId: string): number | null {
+	try {
+		return JSON.parse(localStorage.getItem(BOOK_RATES) ?? '{}')[itemId] ?? null;
+	} catch {
+		return null;
+	}
+}
+
+export function setBookRate(itemId: string, rate: number) {
+	try {
+		const all = JSON.parse(localStorage.getItem(BOOK_RATES) ?? '{}');
+		all[itemId] = rate;
+		localStorage.setItem(BOOK_RATES, JSON.stringify(all));
+	} catch {
+		/* ignore */
+	}
+}
 
 /** Seconds to rewind after a pause of `pausedMs`. */
 export function smartRewindSeconds(pausedMs: number) {

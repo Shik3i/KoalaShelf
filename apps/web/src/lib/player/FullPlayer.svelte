@@ -10,6 +10,11 @@
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import Segmented from '#lib/components/Segmented.svelte';
 	import { dur } from '#lib/motion.ts';
+	import { toasts } from '#lib/toast.svelte.ts';
+	import { copyMomentLink } from '#lib/share.ts';
+	import { coverColor } from '#lib/cover-color.ts';
+	import Toaster from '#lib/components/Toaster.svelte';
+	import Link from '@lucide/svelte/icons/link';
 	import RotateCw from '@lucide/svelte/icons/rotate-cw';
 	import SkipBack from '@lucide/svelte/icons/skip-back';
 	import SkipForward from '@lucide/svelte/icons/skip-forward';
@@ -27,6 +32,13 @@
 	let panel = $state<Panel>(null);
 	let dialog = $state<HTMLDialogElement>();
 	let closing = $state(false);
+	/** Tint taken from the cover for a soft background glow. */
+	let glow = $state<string | null>(null);
+	$effect(() => {
+		const url = v?.cover?.(64);
+		glow = null;
+		if (url) coverColor(url).then((c) => (glow = c));
+	});
 	let note = $state('');
 	let noteInput = $state<HTMLInputElement>();
 	/** Click counters: re-keying the icon replays its little "jump" animation. */
@@ -85,12 +97,22 @@
 		return t.timer;
 	});
 
+	/** Delete with an undo: the bookmark is recreated with the same note and time. */
+	async function removeBookmark(time: number, title: string) {
+		await player.deleteBookmark(time);
+		toasts.show(i18n.m.toast.bookmarkDeleted, {
+			label: i18n.m.toast.undo,
+			run: () => void player.addBookmark(title, time)
+		});
+	}
+
 	async function saveBookmark(e: SubmitEvent) {
 		e.preventDefault();
 		bookmarkError = false;
 		try {
 			await player.addBookmark(note.trim() || clock(player.currentTime));
 			note = '';
+			toasts.show(i18n.m.toast.bookmarkSaved);
 		} catch {
 			bookmarkError = true;
 		}
@@ -100,6 +122,7 @@
 <dialog
 	bind:this={dialog}
 	class:closing
+	style:--glow={glow ?? 'transparent'}
 	onclose={() => (player.expanded = false)}
 	oncancel={(e) => {
 		// Escape: animate out instead of the browser closing instantly.
@@ -143,7 +166,16 @@
 					</div>
 
 					<div class="time">
-						<span class="big tabular display">{clock(player.currentTime)}</span>
+						<button
+							class="big tabular display"
+							title={t.timeMode}
+							aria-label={t.timeMode}
+							onclick={() => prefs.set('remainingTime', !prefs.remainingTime)}
+						>
+							{prefs.remainingTime
+								? `−${clock((player.duration - player.currentTime) / player.rate)}`
+								: clock(player.currentTime)}
+						</button>
 						<span class="muted tabular">
 							{player.chapter
 								? t.remainingChapter(clock((player.chapter.end - player.currentTime) / player.rate))
@@ -313,10 +345,18 @@
 											>
 												<Pencil size={16} />
 											</button>
+											<button
+												class="icon"
+												onclick={() => player.item && copyMomentLink(player.item.id, b.time)}
+												aria-label={t.copyLink}
+												title={t.copyLink}
+											>
+												<Link size={16} />
+											</button>
 										{/if}
 										<button
 											class="icon"
-											onclick={() => player.deleteBookmark(b.time)}
+											onclick={() => removeBookmark(b.time, b.title)}
 											aria-label={t.delete}
 										>
 											<Trash2 size={16} />
@@ -334,6 +374,7 @@
 				<p class="err" role="status">{player.error === 'fatal' ? t.errorFatal : t.error}</p>
 			{/if}
 			<p class="keys muted">{t.shortcuts}</p>
+			<Toaster />
 		</div>
 	{/if}
 </dialog>
@@ -347,8 +388,15 @@
 		margin: 0;
 		padding: 0;
 		border: 0;
-		background: var(--c-bg);
+		background:
+			radial-gradient(
+				110% 70% at 15% 0%,
+				color-mix(in oklab, var(--glow) 28%, transparent),
+				transparent 70%
+			),
+			var(--c-bg);
 		color: var(--c-ink);
+		transition: background-color var(--motion-slow) var(--motion-ease);
 	}
 
 	dialog[open] {
@@ -434,6 +482,14 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: var(--sp-12);
+	}
+
+	button.big {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		cursor: pointer;
 	}
 
 	.big {

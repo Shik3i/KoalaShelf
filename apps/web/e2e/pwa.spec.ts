@@ -51,7 +51,7 @@ test.describe('pwa (production build)', () => {
 		await page.goto(`/book/${id}`);
 		await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
 		await page.getByRole('button', { name: 'Download' }).click();
-		await expect(page.getByText('Downloaded')).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByText('Downloaded', { exact: true })).toBeVisible({ timeout: 30_000 });
 		await page.goto('/downloads');
 		await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
 

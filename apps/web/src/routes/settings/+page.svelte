@@ -52,7 +52,7 @@
 
 <section class="card">
 	<h2 class="label">{t.playback}</h2>
-	<div class="row">
+	<div class="row stacked">
 		<span>{t.skipBack}</span>
 		<Segmented
 			size="sm"
@@ -62,7 +62,7 @@
 			onchange={(s) => prefs.set('skipBack', s)}
 		/>
 	</div>
-	<div class="row">
+	<div class="row stacked">
 		<span>{t.skipForward}</span>
 		<Segmented
 			size="sm"
@@ -135,6 +135,13 @@
 		justify-content: space-between;
 		gap: var(--sp-16);
 		flex-wrap: wrap;
+	}
+
+	/* Label above the control (wide segmented rows stay aligned on phones). */
+	.row.stacked {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--sp-8);
 	}
 
 	.row > span {

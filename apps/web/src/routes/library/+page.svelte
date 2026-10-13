@@ -53,6 +53,29 @@
 	const collapse = $derived(q.get('group') === '1' && !series);
 	const author = $derived(q.get('author') ?? '');
 
+	// View, sort and grouping are remembered; filters are not (they are per visit).
+	const REMEMBER = ['view', 'sort', 'desc', 'group'];
+	const MEMORY_KEY = 'ks.libraryView';
+
+	$effect(() => {
+		const q = page.url.searchParams;
+		const kept = REMEMBER.filter((k) => q.has(k)).map((k) => [k, q.get(k)!]);
+		if (!page.url.search) {
+			try {
+				const saved = localStorage.getItem(MEMORY_KEY);
+				if (saved) goto(`?${saved}`, { replace: true, reset: false });
+			} catch {
+				/* ignore */
+			}
+			return;
+		}
+		try {
+			localStorage.setItem(MEMORY_KEY, new URLSearchParams(kept).toString());
+		} catch {
+			/* ignore */
+		}
+	});
+
 	function set(changes: Record<string, string | null>) {
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not reactive state
 		const next = new URLSearchParams(page.url.search);

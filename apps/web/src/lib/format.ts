@@ -49,3 +49,10 @@ export function htmlToText(html: string | null | undefined) {
 		.replace(/\n{3,}/g, '\n\n')
 		.trim();
 }
+
+/** "1:02:05", "2:05" or "125" -> seconds; null when it is not a time. */
+export function parseClock(text: string | null | undefined): number | null {
+	if (!text) return null;
+	if (!/^\d+(:\d{1,2}){0,2}$/.test(text)) return null;
+	return text.split(':').reduce((s, part) => s * 60 + Number(part), 0);
+}

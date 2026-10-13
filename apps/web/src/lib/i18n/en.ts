@@ -120,6 +120,7 @@ export const en = {
 		readBy: 'Narrated by',
 		play: 'Play',
 		resume: (time: string) => `Resume at ${time}`,
+		playFrom: (time: string) => `Play from ${time}`,
 		listenAgain: 'Listen again',
 		chapters: 'Chapters',
 		chapterCount: (n: number) => plural(n, 'chapter', 'chapters'),
@@ -180,6 +181,8 @@ export const en = {
 		error: 'Playback failed. Retrying …',
 		errorFatal: 'Playback failed. Press play to try again.',
 		edit: 'Edit note',
+		copyLink: 'Copy link to this moment',
+		timeMode: 'Switch between elapsed and remaining time',
 		bookmarkFailed: 'Bookmark could not be saved. Is there already one at this second?',
 		syncFailed: 'Progress could not be saved. Will retry.',
 		shortcuts: 'Space play/pause · ← → skip · Shift ← → chapter · B bookmark'
@@ -248,6 +251,28 @@ export const en = {
 		source: 'Source code',
 		on: 'On',
 		off: 'Off'
+	},
+	toast: {
+		undo: 'Undo',
+		bookmarkSaved: 'Bookmark saved',
+		bookmarkDeleted: 'Bookmark deleted',
+		linkCopied: 'Link copied',
+		hidden: 'Removed from continue listening',
+		finished: 'Marked as finished',
+		unfinished: 'Marked as not finished',
+		downloaded: (title: string) => `Downloaded: ${title}`,
+		downloadFailed: (title: string) => `Download failed: ${title}`,
+		synced: 'Offline listening synced'
+	},
+	shortcuts: {
+		title: 'Keyboard shortcuts',
+		playPause: 'Play / pause',
+		skip: 'Skip back / forward',
+		chapter: 'Previous / next chapter',
+		speed: 'Slower / faster',
+		bookmark: 'Add bookmark',
+		help: 'Show shortcuts',
+		close: 'Close'
 	},
 	common: {
 		error: (msg: string) => `Something went wrong: ${msg}`,

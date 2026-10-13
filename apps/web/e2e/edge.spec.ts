@@ -30,7 +30,7 @@ test.describe('live and offline', () => {
 		await api(`/api/me/progress/${id}`, { method: 'DELETE' }).catch(() => undefined);
 		await page.goto(`/book/${id}`);
 		await page.getByRole('button', { name: 'Download' }).click();
-		await expect(page.getByText('Downloaded')).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByText('Downloaded', { exact: true })).toBeVisible({ timeout: 30_000 });
 
 		await page.goto('/downloads');
 		const row = page.locator('.list li', { hasText: 'Kleine Eulen' });

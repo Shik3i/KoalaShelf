@@ -4,6 +4,8 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { AudioTrack, LibraryItem } from '@koalashelf/abs-client';
 import { session } from './session.svelte.ts';
+import { toasts } from './toast.svelte.ts';
+import { i18n } from './i18n/index.svelte.ts';
 
 const ROOT = 'ks-downloads';
 const QUEUE_KEY = 'ks.localSessions';
@@ -195,10 +197,16 @@ class Downloads {
 			await meta.close();
 			this.books.set(id, book);
 			this.jobs.delete(id);
+			toasts.show(i18n.m.toast.downloaded(item.media.metadata.title));
 		} catch (e) {
 			await (await root()).removeEntry(id, { recursive: true }).catch(() => undefined);
 			if ((e as Error).name === 'AbortError') this.jobs.delete(id);
-			else this.jobs.set(id, { received: 0, total: 0, state: 'failed' });
+			else {
+				this.jobs.set(id, { received: 0, total: 0, state: 'failed' });
+				toasts.show(
+					i18n.m.toast.downloadFailed(this.books.get(id)?.item.media.metadata.title ?? '')
+				);
+			}
 		} finally {
 			this.#controllers.delete(id);
 		}

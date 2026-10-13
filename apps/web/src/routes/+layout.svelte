@@ -9,6 +9,9 @@
 	import { player } from '#lib/player/player.svelte.ts';
 	import { isTauri } from '#lib/platform.ts';
 	import { startLive } from '#lib/live.ts';
+	import Toaster from '#lib/components/Toaster.svelte';
+	import Shortcuts from '#lib/components/Shortcuts.svelte';
+	import { RATES } from '#lib/player/player.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { dev } from '$app/env';
 	import type { LayoutProps } from './$types';
@@ -18,6 +21,7 @@
 	const isPublic = $derived(page.url.pathname.startsWith('/signin'));
 
 	let full = $state<FullPlayer>();
+	let shortcuts = $state(false);
 
 	// Live progress from other devices while signed in.
 	$effect(() => {
@@ -34,10 +38,22 @@
 
 	/** Global player shortcuts, ignored while typing or on focused controls. */
 	function onKey(e: KeyboardEvent) {
-		if (!player.item || e.ctrlKey || e.metaKey || e.altKey) return;
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
 		const el = e.target as HTMLElement;
 		if (el.closest('input, textarea, select, [contenteditable]')) return;
 		const key = e.key;
+		if (key === '?') {
+			shortcuts = !shortcuts;
+			return;
+		}
+		if (!player.item) return;
+		if (key === '[' || key === ']') {
+			const i = RATES.findIndex((r) => r === player.rate);
+			const next =
+				RATES[Math.min(RATES.length - 1, Math.max(0, (i < 0 ? 1 : i) + (key === ']' ? 1 : -1)))];
+			player.setRate(next);
+			return;
+		}
 		if (key === ' ' && !el.closest('button, a')) {
 			e.preventDefault();
 			player.toggle();
@@ -103,6 +119,8 @@
 	</div>
 	<MiniPlayer />
 	<FullPlayer bind:this={full} />
+	<Toaster hidden={player.expanded} />
+	<Shortcuts bind:open={shortcuts} />
 {/if}
 
 <style>

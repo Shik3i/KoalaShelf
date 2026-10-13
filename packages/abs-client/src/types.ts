@@ -248,6 +248,7 @@ export interface ProgressUpdate {
 	duration?: number;
 	progress?: number;
 	isFinished?: boolean;
+	hideFromContinueListening?: boolean;
 }
 
 export interface SessionSync {

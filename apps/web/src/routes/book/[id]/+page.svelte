@@ -4,7 +4,11 @@
 	import { progress } from '#lib/progress.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
 	import { view } from '#lib/items.ts';
-	import { bytes, clock, duration, htmlToText } from '#lib/format.ts';
+	import { bytes, clock, duration, htmlToText, parseClock } from '#lib/format.ts';
+	import { page } from '$app/state';
+	import { toasts } from '#lib/toast.svelte.ts';
+	import { copyMomentLink } from '#lib/share.ts';
+	import Link from '@lucide/svelte/icons/link';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from '#lib/components/Cover.svelte';
 	import Vinyl from '#lib/components/Vinyl.svelte';
@@ -86,8 +90,14 @@
 				.catch(() => undefined);
 	});
 
+	/** A shared link to a moment (?t=754 or ?t=12:34) starts playback there. */
+	const linkedTime = $derived(parseClock(page.url.searchParams.get('t')));
+
 	function playAt(time?: number) {
 		if (!item) return;
+		if (time === undefined && linkedTime !== null && !(isCurrent && player.playing)) {
+			return void player.play(item.id, linkedTime);
+		}
 		if (isCurrent && time === undefined) return player.toggle();
 		void player.play(item.id, time);
 	}
@@ -99,6 +109,7 @@
 			isFinished: done,
 			...(done ? {} : { currentTime: 0, progress: 0 })
 		});
+		toasts.show(done ? i18n.m.toast.finished : i18n.m.toast.unfinished);
 		await progress.load(true);
 	}
 
@@ -202,7 +213,13 @@
 						{#if isCurrent && player.playing}
 							{i18n.m.player.pause}
 						{:else}
-							{p?.isFinished ? t.listenAgain : position > 5 ? t.resume(clock(position)) : t.play}
+							{linkedTime !== null
+								? t.playFrom(clock(linkedTime))
+								: p?.isFinished
+									? t.listenAgain
+									: position > 5
+										? t.resume(clock(position))
+										: t.play}
 						{/if}
 					</button>
 					{#if !data.offline}
@@ -266,6 +283,14 @@
 									<button onclick={() => playAt(b.time)}>
 										<span class="pin tabular">{clock(b.time)}</span>
 										<span class="ttl">{b.title}</span>
+									</button>
+									<button
+										class="link-btn"
+										onclick={() => copyMomentLink(item.id, b.time)}
+										aria-label={i18n.m.player.copyLink}
+										title={i18n.m.player.copyLink}
+									>
+										<Link size={16} />
 									</button>
 								</li>
 							{:else}
@@ -506,6 +531,34 @@
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.rows li {
+		display: flex;
+		align-items: center;
+	}
+
+	.rows li > button:first-child {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.rows .link-btn {
+		display: grid;
+		place-items: center;
+		width: var(--layout-touch);
+		height: var(--layout-touch);
+		flex: none;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: transparent;
+		color: var(--c-muted);
+	}
+
+	.rows .link-btn:hover {
+		color: var(--c-ink);
+		background: var(--c-card);
 	}
 
 	.pin {

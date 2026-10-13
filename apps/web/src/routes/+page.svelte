@@ -10,6 +10,7 @@
 	import Turntable from '#lib/components/Turntable.svelte';
 	import Crate, { type CrateEntry } from '#lib/components/Crate.svelte';
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
+	import { toasts } from '#lib/toast.svelte.ts';
 	import X from '@lucide/svelte/icons/x';
 	import Settings from '@lucide/svelte/icons/settings';
 
@@ -93,8 +94,17 @@
 	async function hideHero() {
 		const p = hero && progress.get(hero.id);
 		if (!p || !session.libraryId) return;
+		const lib = session.libraryId;
+		const itemId = p.libraryItemId;
 		await session.api.hideFromContinueListening(p.id);
-		shelves = await session.api.personalized(session.libraryId, 16);
+		shelves = await session.api.personalized(lib, 16);
+		toasts.show(i18n.m.toast.hidden, {
+			label: i18n.m.toast.undo,
+			run: async () => {
+				await session.api.updateProgress(itemId, { hideFromContinueListening: false });
+				shelves = await session.api.personalized(lib, 16);
+			}
+		});
 	}
 
 	function resume() {
