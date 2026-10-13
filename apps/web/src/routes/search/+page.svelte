@@ -8,6 +8,7 @@
 	import { coverSrc, view } from '#lib/items.ts';
 	import Cover from '#lib/components/Cover.svelte';
 	import SearchIcon from '@lucide/svelte/icons/search';
+	import X from '@lucide/svelte/icons/x';
 
 	type Result = Awaited<ReturnType<AbsClient['search']>>;
 
@@ -58,6 +59,11 @@
 	<span class="sr-only">{t.title}</span>
 	<!-- svelte-ignore a11y_autofocus -->
 	<input bind:value={q} type="search" placeholder={t.placeholder} autofocus enterkeyhint="search" />
+	{#if q}
+		<button class="clear" type="button" onclick={() => (q = '')} aria-label={t.clear}>
+			<X size={18} />
+		</button>
+	{/if}
 </label>
 
 {#if !result && !busy}
@@ -128,6 +134,29 @@
 
 	.box:focus-within {
 		box-shadow: 0 0 0 2px var(--c-accent);
+	}
+
+	/* Own clear button instead of the browser's (blue, unstyleable) one. */
+	input::-webkit-search-cancel-button {
+		appearance: none;
+		display: none;
+	}
+
+	.clear {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: transparent;
+		color: var(--c-muted);
+	}
+
+	.clear:hover {
+		color: var(--c-ink);
+		background: var(--c-bg);
 	}
 
 	input {

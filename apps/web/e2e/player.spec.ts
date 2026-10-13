@@ -27,7 +27,10 @@ test.describe('player', () => {
 		const t0 = await time(page);
 		await page.waitForTimeout(2500);
 		expect(await time(page)).toBeGreaterThan(t0 + 1);
-		await page.getByRole('region', { name: 'Player' }).getByRole('button', { name: 'Pause' }).click();
+		await page
+			.getByRole('region', { name: 'Player' })
+			.getByRole('button', { name: 'Pause' })
+			.click();
 		await expect.poll(() => playing(page)).toBe(false);
 		const local = await time(page);
 		const id = await itemId('Der lange Weg');
@@ -71,7 +74,11 @@ test.describe('player', () => {
 		await expect(dialog.locator('.list li', { hasText: 'Die zweite Möwe' })).toBeVisible();
 		const id = await itemId('Salzwasser');
 		await expect
-			.poll(async () => (await api<{ bookmarks: { title: string }[] }>(`/api/me/bookmarks/${id}`)).bookmarks.map((b) => b.title))
+			.poll(async () =>
+				(await api<{ bookmarks: { title: string }[] }>(`/api/me/bookmarks/${id}`)).bookmarks.map(
+					(b) => b.title
+				)
+			)
 			.toEqual(['Die zweite Möwe']);
 		await dialog.getByRole('button', { name: 'Delete' }).click();
 		await expect(dialog.locator('.timeline .pin')).toHaveCount(0);
@@ -117,7 +124,10 @@ test.describe('player', () => {
 	test('reload restores the mini player at the saved position', async ({ page }) => {
 		await startPlaying(page, 'Glasfluss');
 		await seek(page, 70);
-		await page.getByRole('region', { name: 'Player' }).getByRole('button', { name: 'Pause' }).click();
+		await page
+			.getByRole('region', { name: 'Player' })
+			.getByRole('button', { name: 'Pause' })
+			.click();
 		await page.waitForTimeout(1000);
 		await page.reload();
 		const mini = page.getByRole('region', { name: 'Player' });

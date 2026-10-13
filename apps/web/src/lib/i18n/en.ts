@@ -219,7 +219,8 @@ export const en = {
 		authors: 'Authors',
 		narrators: 'Narrators',
 		nothing: (q: string) => `Nothing found for “${q}”.`,
-		hint: 'Search across your library.'
+		hint: 'Search across your library.',
+		clear: 'Clear search'
 	},
 	settings: {
 		title: 'Settings',

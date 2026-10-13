@@ -34,16 +34,22 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
 		.then((r) => r.user.accessToken as string);
 	const res = await fetch(`${ABS}${path}`, {
 		...init,
-		headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token}`, ...init.headers }
+		headers: {
+			'Content-Type': 'application/json',
+			Authorization: `Bearer ${await token}`,
+			...init.headers
+		}
 	});
-	return (res.headers.get('content-type')?.includes('json') ? res.json() : res.text()) as Promise<T>;
+	return (
+		res.headers.get('content-type')?.includes('json') ? res.json() : res.text()
+	) as Promise<T>;
 }
 
 export async function itemId(title: string) {
 	const { libraries } = await api<{ libraries: { id: string }[] }>('/api/libraries');
-	const { results } = await api<{ results: { id: string; media: { metadata: { title: string } } }[] }>(
-		`/api/libraries/${libraries[0].id}/items?limit=0&minified=1`
-	);
+	const { results } = await api<{
+		results: { id: string; media: { metadata: { title: string } } }[];
+	}>(`/api/libraries/${libraries[0].id}/items?limit=0&minified=1`);
 	return results.find((r) => r.media.metadata.title === title)!.id;
 }
 
@@ -52,7 +58,12 @@ export async function player<T>(page: Page, path: string): Promise<T> {
 	return page.evaluate(async (path) => {
 		const mod = '/src/lib/player/player.svelte.ts';
 		const { player } = await import(/* @vite-ignore */ mod);
-		return path.split('.').reduce((o: Record<string, unknown> | undefined, k) => o?.[k] as Record<string, unknown>, player) as unknown;
+		return path
+			.split('.')
+			.reduce(
+				(o: Record<string, unknown> | undefined, k) => o?.[k] as Record<string, unknown>,
+				player
+			) as unknown;
 	}, path) as Promise<T>;
 }
 

@@ -55,6 +55,8 @@ interface RequestOptions {
 	method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
 	/** Let the request outlive the page (final progress sync on tab close). */
 	keepalive?: boolean;
+	/** Per-request fetch (e.g. the one SvelteKit passes to load functions). */
+	fetch?: FetchFn;
 	query?: Query;
 	body?: unknown;
 	signal?: AbortSignal;
@@ -171,10 +173,10 @@ export class AbsClient {
 
 	async request<T>(
 		path: string,
-		{ method = 'GET', query, body, signal, keepalive }: RequestOptions = {}
+		{ method = 'GET', query, body, signal, keepalive, fetch: fetchFn }: RequestOptions = {}
 	): Promise<T> {
 		const send = () =>
-			this.fetchFn(`${this.baseUrl}${withQuery(path, query)}`, {
+			(fetchFn ?? this.fetchFn)(`${this.baseUrl}${withQuery(path, query)}`, {
 				method,
 				signal,
 				keepalive,
@@ -330,9 +332,10 @@ export class AbsClient {
 
 	// --- Items & playback ---------------------------------------------------
 
-	item(itemId: string, signal?: AbortSignal) {
+	item(itemId: string, signal?: AbortSignal, fetchFn?: FetchFn) {
 		return this.request<LibraryItem>(`/api/items/${itemId}`, {
 			signal,
+			fetch: fetchFn,
 			query: { expanded: 1, include: 'progress' }
 		});
 	}

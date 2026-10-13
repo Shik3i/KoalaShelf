@@ -218,7 +218,8 @@ export const de: Messages = {
 		authors: 'Autor:innen',
 		narrators: 'Sprecher:innen',
 		nothing: (q) => `Nichts gefunden für „${q}“.`,
-		hint: 'Durchsuche deine Bibliothek.'
+		hint: 'Durchsuche deine Bibliothek.',
+		clear: 'Suche leeren'
 	},
 	settings: {
 		title: 'Einstellungen',

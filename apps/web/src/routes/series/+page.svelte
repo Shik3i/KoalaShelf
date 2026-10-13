@@ -1,5 +1,6 @@
 <script lang="ts">
 	import EmptyState from '#lib/components/EmptyState.svelte';
+	import { untrack } from 'svelte';
 	import type { Series } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -14,29 +15,38 @@
 	let loading = $state(false);
 	let done = $state(false);
 	let error = $state<string | null>(null);
+	let controller: AbortController | null = null;
 
 	async function more() {
 		if (loading || done || !session.libraryId) return;
 		loading = true;
+		const signal = controller?.signal;
 		try {
-			const r = await session.api.series(session.libraryId, { page, limit: 48 });
+			const r = await session.api.series(session.libraryId, { page, limit: 48 }, signal);
 			list = [...list, ...r.results];
 			total = r.total;
 			page++;
 			done = list.length >= r.total;
 		} catch (e) {
-			error = (e as Error).message;
+			if ((e as Error).name !== 'AbortError') error = (e as Error).message;
 		} finally {
-			loading = false;
+			if (!signal?.aborted) loading = false;
 		}
 	}
 
+	// Reload only when the library changes (more() must not become a dependency).
 	$effect(() => {
 		void session.libraryId;
-		list = [];
-		page = 0;
-		done = false;
-		more();
+		untrack(() => {
+			controller?.abort();
+			controller = new AbortController();
+			list = [];
+			page = 0;
+			done = false;
+			error = null;
+			loading = false;
+			void more();
+		});
 	});
 </script>
 

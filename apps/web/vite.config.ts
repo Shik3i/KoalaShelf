@@ -5,7 +5,8 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 // Dev only: proxy the Audiobookshelf API so the app runs same-origin (no CORS, cookie mode).
 // ABS_URL comes from the environment or dev/.env (see dev/README.md).
-const ABS_PATHS = ['/api', '/login', '/logout', '/auth', '/status', '/socket.io', '/hls'];
+// Regex keys with exact segments, so app routes like /authors are never proxied.
+const ABS_PATHS = ['^/(api|auth|hls)/', '^/socket\\.io/', '^/(login|logout|status)$'];
 
 export default defineConfig(({ mode }) => {
 	const env = { ...loadEnv(mode, '../../dev', 'ABS_'), ...loadEnv(mode, process.cwd(), 'ABS_') };
@@ -54,7 +55,7 @@ export default defineConfig(({ mode }) => {
 		],
 		server: {
 			proxy: Object.fromEntries(
-				ABS_PATHS.map((p) => [p, { target, changeOrigin: true, ws: p === '/socket.io' }])
+				ABS_PATHS.map((p) => [p, { target, changeOrigin: true, ws: p.includes('socket') }])
 			)
 		},
 		build: { target: 'es2024' },
