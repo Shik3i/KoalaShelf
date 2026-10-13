@@ -65,12 +65,27 @@ Cover: `?width=&height=&format=webp|jpeg&raw=0|1`. Folder conventions picked up 
 | All progress | part of `GET /api/me` (`mediaProgress[]`) |
 | Set progress | `PATCH /api/me/progress/:libraryItemId` `{currentTime, progress, isFinished, duration}` |
 | In progress | `GET /api/me/items-in-progress` |
-| Bookmarks | `GET /api/me/bookmarks/:libraryItemId` |
+| Bookmarks | `GET /api/me/bookmarks/:libraryItemId` → `{ bookmarks: [...] }` (not a bare array) |
 | Create / update | `POST` / `PATCH /api/me/item/:id/bookmark` `{time, title}` |
 | Delete | `DELETE /api/me/item/:id/bookmark/:time` |
 | Stats (later) | `GET /api/me/listening-stats`, `GET /api/me/stats/year/:year` |
 
 Bookmarks only have `time` + `title`. Socket.io (`/socket.io`, event `auth` with the token) pushes progress from other devices; planned.
+
+## More endpoints in use
+
+| Purpose | Call |
+|---|---|
+| Several items at once | `POST /api/items/batch/get` `{ libraryItemIds }` → `{ libraryItems }` |
+| Hide from continue listening | `GET /api/me/progress/:progressId/remove-from-continue-listening` (progress id, not item id) |
+| Listening stats | `GET /api/me/listening-stats` → `totalTime, today, days{date: sec}, dayOfWeek, items{id: {timeListening, mediaMetadata}}` |
+| Collections | `GET /api/libraries/:id/collections` → `{ results }`, `GET /api/collections/:id` |
+| File download | `GET /api/items/:id/file/:ino/download` (needs the user's download permission, `user.permissions.download`) |
+| Offline session upload | `POST /api/session/local` with a full session (id, libraryItemId, currentTime, timeListening, startedAt, updatedAt, date, dayOfWeek, playMethod 3); the server keeps whichever progress is newer |
+| Live events | socket.io `/socket.io`: emit `auth` with the access token; `user_item_progress_updated` `{ id, sessionId, data }`; `auth_failed` on expired tokens |
+
+- The auth rate limiter (`RATE_LIMIT_AUTH_MAX`, default 10 per 10 min) also covers `/auth/refresh`.
+- Unauthenticated `/status` also returns `authMethods` (e.g. `["local", "openid"]`).
 
 ## Not in the server
 

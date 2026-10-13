@@ -15,12 +15,15 @@ Design language: **KoalaShelf Vinyl** – covers first, the record as a motif, c
 
 ## Features (web)
 
-- Sign-in with access/refresh tokens (httpOnly cookie when served on the same origin)
-- Home with "Continue listening" turntable and crates from your personalized shelves
-- Library as shelf or list; filters for status, genre, narrator, series, author; sorting; everything in the URL
-- Book page with spinning record, chapters, bookmarks, more by the author, file details
-- Player: multi-file books, chapters, ±30 s, speed 0.8–2.0×, sleep timer (minutes with fade-out, or end of chapter), bookmarks as pins on the timeline, progress sync, lock-screen / media-key controls, keyboard shortcuts
-- Series, authors, search; light/dark theme following the system; installable PWA
+- **Sign-in** to any Audiobookshelf server: live server check, recent servers, clear hints for CORS, old servers and SSO-only servers; access/refresh tokens (httpOnly cookie behind the bundled proxy)
+- **Home**: "Continue listening" turntable, crates from your personalized shelves, hide from continue listening
+- **Library**: shelf or list, filters (status, genre, narrator, series, author, combinable), sorting, group series; everything in the URL
+- **Book page**: spinning record, chapters, bookmarks, more by the author, file details, description, download
+- **Player**: multi-file books, chapters, configurable skip (10–60 s), speed 0.8–2.0×, sleep timer (minutes with fade-out or end of chapter), smart rewind after pauses, bookmarks as pins with editable notes, lock-screen/media-key controls, keyboard shortcuts, HLS fallback for formats the browser cannot play
+- **Downloads & offline**: books stored in the browser (OPFS) and played from local files; offline listening is synced when the connection is back; installable PWA with offline app shell
+- **Live progress** from other devices (socket.io)
+- **Series, authors, collections, statistics** (heatmap, streak, weekdays, most listened), **search**, **settings**
+- English and German, light/dark following the system, WCAG 2.2 AA checked
 
 ## Repository
 
@@ -47,7 +50,7 @@ Serving the app from a different origin also works: add that origin to *Allowed 
 
 ## Development
 
-Requirements: Node.js 24+ (26 recommended), pnpm 12, Docker and ffmpeg for the local test server.
+Requirements: Node.js 24+ (26 recommended), pnpm 12, Docker and ffmpeg for the local test server, Microsoft Edge for the end-to-end tests.
 
 ```bash
 pnpm install
@@ -55,4 +58,14 @@ node dev/make-samples.mjs && docker compose -f dev/compose.yaml up -d && node de
 pnpm --filter @koalashelf/web dev
 ```
 
-More in [docs/plan.md](docs/plan.md) and [docs/tech-stack.md](docs/tech-stack.md).
+Tests (in `apps/web`):
+
+```bash
+pnpm check        # types (svelte-check)
+pnpm lint         # prettier + eslint
+pnpm test         # unit tests
+pnpm test:e2e     # end-to-end against the local test server (Playwright, Edge)
+E2E_BASE_URL=http://localhost:8088 pnpm test:e2e   # against a production build, incl. PWA/offline
+```
+
+More in [docs/plan.md](docs/plan.md), [docs/tech-stack.md](docs/tech-stack.md) and [docs/audit.md](docs/audit.md).

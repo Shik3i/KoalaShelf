@@ -20,14 +20,14 @@ Every decision is checked against: **performance, quality-of-life features, self
 | 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | scaffolded, paused until the web app is approved |
 | 6 | Android: Compose with tokens, Media3 service, background playback, downloads, offline sessions | skeleton parked on branch `wip/android`, paused |
 
-Later: downloads/offline in the web app, Android Auto, driving mode, statistics, author pages, collections, socket.io live progress.
+Web extras done: downloads and offline listening, statistics, collections, live progress (socket.io), settings. Later (native): Android Auto, driving mode.
 
 ## Routes (web)
 
-`/signin`, `/` (home), `/library`, `/series`, `/authors`, `/search`, `/book/:id`.
+`/signin`, `/` (home), `/library`, `/series`, `/authors`, `/collections`, `/collections/:id`, `/stats`, `/downloads`, `/search`, `/settings`, `/book/:id`.
 Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin proxy forwards.
 
-Library URL parameters: `view=list`, `status=in-progress|not-started|finished`, `genre`, `narrator`, `series`, `author`, `sort=title|author|added|played|duration|published`, `desc=0|1`.
+Library URL parameters: `view=list`, `status=in-progress|not-started|finished`, `genre`, `narrator`, `series`, `author`, `group=1`, `sort=title|author|added|played|duration|published`, `desc=0|1`.
 
 ## Decisions
 
