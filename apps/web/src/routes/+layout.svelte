@@ -83,7 +83,9 @@
 />
 
 {#if !online}
-	<div class="offline" role="status">{i18n.m.common.offline}</div>
+	<div class="offline" role="status">
+		{i18n.m.common.offline} <a href="/downloads">{i18n.m.downloads.offlineHint}</a>
+	</div>
 {/if}
 
 {#if isPublic}
@@ -123,6 +125,11 @@
 		padding: var(--sp-64) var(--sp-16);
 		text-align: center;
 		color: var(--c-muted);
+	}
+
+	.offline a {
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.offline {

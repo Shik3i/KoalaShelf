@@ -348,6 +348,25 @@ export class AbsClient {
 		return this.request<void>(`/api/session/${sessionId}/sync`, { method: 'POST', body: sync, keepalive });
 	}
 
+	/** Uploads a playback session recorded offline (server keeps the newer progress). */
+	syncLocalSession(local: Record<string, unknown>) {
+		return this.request<void>('/api/session/local', { method: 'POST', body: local });
+	}
+
+	/** Raw authorized fetch for binary downloads (audio files, covers). */
+	async download(path: string, signal?: AbortSignal) {
+		const send = () =>
+			this.fetchFn(`${this.baseUrl}${path}`, {
+				signal,
+				credentials: 'omit',
+				headers: { Authorization: `Bearer ${this.tokens.accessToken}` }
+			});
+		let res = await send();
+		if (res.status === 401 && (await this.refresh())) res = await send();
+		if (!res.ok) throw new AbsError(res.status, res.statusText);
+		return res;
+	}
+
 	closeSession(sessionId: string, sync?: SessionSync) {
 		return this.request<void>(`/api/session/${sessionId}/close`, { method: 'POST', body: sync ?? {} });
 	}

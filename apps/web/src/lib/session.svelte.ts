@@ -77,6 +77,8 @@ class Session {
 	ready = $state(false);
 	/** Set when the server rejected the refresh token (shown on the sign-in page). */
 	expired = $state(false);
+	/** Server permission to download files (false hides download buttons). */
+	canDownload = $state(true);
 
 	#readyPromise: Promise<void>;
 	#resolveReady!: () => void;

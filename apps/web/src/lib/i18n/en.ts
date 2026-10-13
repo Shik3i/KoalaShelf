@@ -18,13 +18,27 @@ export const en = {
 		language: 'Language',
 		settings: 'Settings',
 		collections: 'Collections',
-		stats: 'Statistics'
+		stats: 'Statistics',
+		downloads: 'Downloads'
 	},
 	collections: {
 		title: 'Collections',
 		books: (n: number) => plural(n, 'book', 'books'),
 		empty: 'No collections in this library yet. Create them in Audiobookshelf.',
 		notFound: 'This collection does not exist (anymore).'
+	},
+	downloads: {
+		title: 'Downloads',
+		download: 'Download',
+		downloading: (p: number) => `Downloading … ${p} %`,
+		cancel: 'Cancel download',
+		downloaded: 'Downloaded',
+		remove: 'Remove download',
+		failed: 'Download failed. Try again.',
+		empty: 'Nothing downloaded yet. Download books from their page to listen offline.',
+		usage: (used: string, free: string) => `${used} used · ${free} free on this device`,
+		unsupported: 'This browser cannot store downloads.',
+		offlineHint: 'Offline: only downloaded books can be played.'
 	},
 	stats: {
 		title: 'Statistics',

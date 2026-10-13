@@ -9,6 +9,7 @@
 	import Search from '@lucide/svelte/icons/search';
 	import FolderHeart from '@lucide/svelte/icons/folder-heart';
 	import ChartColumn from '@lucide/svelte/icons/chart-column';
+	import Download from '@lucide/svelte/icons/download';
 	import SunMoon from '@lucide/svelte/icons/sun-moon';
 	import Sun from '@lucide/svelte/icons/sun';
 	import Moon from '@lucide/svelte/icons/moon';
@@ -20,10 +21,11 @@
 	const items = $derived([
 		{ href: '/', label: t.home, icon: House, tab: true },
 		{ href: '/library', label: t.library, icon: LibraryBig, tab: true },
-		{ href: '/series', label: t.series, icon: Layers, tab: true },
+		{ href: '/series', label: t.series, icon: Layers, tab: false },
 		{ href: '/authors', label: t.authors, icon: Users, tab: false },
 		{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
 		{ href: '/stats', label: t.stats, icon: ChartColumn, tab: false },
+		{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
 		{ href: '/search', label: t.search, icon: Search, tab: true }
 	]);
 

@@ -13,6 +13,7 @@ import { session } from '../session.svelte.ts';
 import { progress } from '../progress.svelte.ts';
 import { view } from '../items.ts';
 import { prefs, smartRewindSeconds } from '../prefs.svelte.ts';
+import { downloads, type LocalSession } from '../downloads.svelte.ts';
 
 const SYNC_INTERVAL_MS = 15_000;
 const RATE_KEY = 'ks.rate';
@@ -40,6 +41,12 @@ function store(key: string, value: unknown) {
 	} catch {
 		/* ignore */
 	}
+}
+
+/** YYYY-MM-DD in local time (the server groups listening stats by day). */
+function localDate(ms: number) {
+	const d = new Date(ms);
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function deviceId() {
@@ -87,6 +94,10 @@ class Player {
 
 	#audio: HTMLAudioElement | null = null;
 	#hls: { destroy(): void } | null = null;
+	/** Downloaded files by track index (played instead of streaming). */
+	#localUrls: Map<number, string> | null = null;
+	/** Offline playback: progress goes to the local queue instead of the server. */
+	#local: LocalSession | null = null;
 	#pausedAt = 0;
 	/** Increments per play request; stale requests (user picked another book meanwhile) bail out. */
 	#request = 0;
@@ -197,6 +208,8 @@ class Player {
 		await this.#close();
 		if (req !== this.#request) return;
 		this.buffering = true;
+		await downloads.init();
+		this.#localUrls = downloads.has(id) ? await downloads.trackUrls(id) : null;
 		let s: PlaybackSession;
 		try {
 			s = await session.api.play(
@@ -211,6 +224,8 @@ class Player {
 			);
 		} catch {
 			if (req !== this.#request) return;
+			// No server, but the book is downloaded: play offline.
+			if (this.#localUrls) return this.#playOffline(id, preset);
 			this.error = 'fatal';
 			this.buffering = false;
 			this.loadingId = null;
@@ -239,6 +254,54 @@ class Player {
 		await this.#start();
 	}
 
+	/** Offline session from a downloaded book; synced via /api/session/local later. */
+	async #playOffline(id: string, preset: number | undefined) {
+		const book = downloads.books.get(id)!;
+		const item = book.item;
+		this.#tracks = book.tracks.map((t) => ({
+			index: t.index,
+			startOffset: t.startOffset,
+			duration: t.duration,
+			title: '',
+			contentUrl: '',
+			mimeType: t.mimeType
+		}));
+		this.item = item;
+		this.chapters = item.media.chapters;
+		this.duration = item.media.duration;
+		const known = progress.get(id)?.currentTime ?? item.userMediaProgress?.currentTime ?? 0;
+		let start = preset ?? known;
+		if (start >= this.duration - 2) start = 0;
+		this.currentTime = start;
+		this.#listened = 0;
+		const now = Date.now();
+		const v = view(item);
+		this.#local = {
+			id: crypto.randomUUID(),
+			libraryItemId: id,
+			libraryId: item.libraryId,
+			mediaType: 'book',
+			displayTitle: v.title,
+			displayAuthor: v.author,
+			duration: this.duration,
+			playMethod: 3,
+			mediaPlayer: 'html5',
+			deviceInfo: { deviceId: deviceId(), clientName: 'KoalaShelf Web', clientVersion: '0.1.0' },
+			startTime: start,
+			currentTime: start,
+			timeListening: 0,
+			startedAt: now,
+			updatedAt: now,
+			date: localDate(now),
+			dayOfWeek: new Date(now).toLocaleDateString('en-US', { weekday: 'long' })
+		};
+		store(LAST_KEY, id);
+		this.#updateMediaSession();
+		this.#loadTrackAt(this.currentTime);
+		this.#syncTimer = setInterval(() => this.#sync(), SYNC_INTERVAL_MS);
+		await this.#start();
+	}
+
 	/** audio.play() can be refused (autoplay policy); never leave a spinner behind. */
 	async #start() {
 		try {
@@ -255,7 +318,7 @@ class Player {
 
 	/** Id of our own playback session (to tell our syncs apart from other devices). */
 	get sessionId() {
-		return this.#session?.id ?? null;
+		return this.#session?.id ?? this.#local?.id ?? null;
 	}
 
 	/** Another device moved on: follow it unless we are playing here right now. */
@@ -364,6 +427,14 @@ class Player {
 		if (!track) return;
 		this.#track = idx;
 		this.#pendingSeek = t - track.startOffset;
+		const local = this.#localUrls?.get(track.index);
+		if (local) {
+			this.#hls?.destroy();
+			this.#hls = null;
+			this.audio.src = local;
+			if (autoplay) void this.audio.play().catch(() => undefined);
+			return;
+		}
 		const url = session.api.trackUrl(track.contentUrl);
 		// The server transcodes formats the browser cannot play into HLS.
 		const isHls = /\.m3u8(\?|$)/.test(track.contentUrl);
@@ -468,6 +539,7 @@ class Player {
 	}
 
 	async #sync(final = false) {
+		if (this.#local) return this.#syncLocal();
 		const s = this.#session;
 		if (!s) return;
 		const listened = Math.round(this.#listened);
@@ -511,8 +583,28 @@ class Player {
 		this.#syncTimer = null;
 	}
 
+	#syncLocal() {
+		const l = this.#local;
+		if (!l) return;
+		const now = Date.now();
+		l.currentTime = this.currentTime;
+		l.timeListening += Math.round(this.#listened);
+		this.#listened = 0;
+		l.updatedAt = now;
+		l.date = localDate(now);
+		downloads.saveLocal({ ...l });
+		this.#updateLocalProgress();
+		if (navigator.onLine) void downloads.flush();
+	}
+
 	async #close() {
 		this.#clearTimer();
+		if (this.#local) {
+			this.#syncLocal();
+			this.#local = null;
+			this.#audio?.pause();
+			return;
+		}
 		const s = this.#session;
 		if (!s) return;
 		this.#session = null;

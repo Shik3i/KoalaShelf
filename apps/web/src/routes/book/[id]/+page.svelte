@@ -12,6 +12,8 @@
 	import Play from '@lucide/svelte/icons/play';
 	import Pause from '@lucide/svelte/icons/pause';
 	import Check from '@lucide/svelte/icons/check';
+	import DownloadButton from '#lib/components/DownloadButton.svelte';
+	import { downloads } from '#lib/downloads.svelte.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -19,6 +21,21 @@
 	const t = $derived(i18n.m.book);
 	const item = $derived(data.item);
 	const v = $derived(item ? view(item) : null);
+
+	// Offline: the cover comes from the download instead of the server.
+	let localCover = $state<string | null>(null);
+	$effect(() => {
+		const id = item?.id;
+		if (!data.offline || !id) return;
+		let url: string | null = null;
+		downloads.coverUrl(id).then((u) => (localCover = url = u));
+		return () => {
+			if (url) URL.revokeObjectURL(url);
+		};
+	});
+	const coverSrc = $derived(
+		data.offline ? (localCover ? () => localCover! : null) : (v?.cover ?? null)
+	);
 	const meta = $derived(item?.media.metadata);
 	const p = $derived(item ? progress.get(item.id) : undefined);
 	const isCurrent = $derived(!!item && player.item?.id === item.id);
@@ -102,7 +119,7 @@
 					<Vinyl
 						title={v.title}
 						author={v.author}
-						src={v.cover}
+						src={coverSrc}
 						playing={isCurrent && player.playing}
 						{marks}
 					/>
@@ -111,7 +128,7 @@
 					<Cover
 						title={v.title}
 						author={v.author}
-						src={v.cover}
+						src={coverSrc}
 						sizes="(max-width: 800px) 70vw, 300px"
 						eager
 					/>
@@ -173,10 +190,13 @@
 							{p?.isFinished ? t.listenAgain : position > 5 ? t.resume(clock(position)) : t.play}
 						{/if}
 					</button>
-					<button class="btn ghost" onclick={toggleFinished}>
-						<Check size={16} />
-						{p?.isFinished ? t.markUnfinished : t.markFinished}
-					</button>
+					{#if !data.offline}
+						<button class="btn ghost" onclick={toggleFinished}>
+							<Check size={16} />
+							{p?.isFinished ? t.markUnfinished : t.markFinished}
+						</button>
+					{/if}
+					<DownloadButton id={item.id} hasAudio={item.media.audioFiles.length > 0} />
 				</div>
 			</div>
 		</section>

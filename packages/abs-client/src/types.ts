@@ -15,6 +15,7 @@ export interface User {
 	mediaProgress: MediaProgress[];
 	bookmarks: Bookmark[];
 	librariesAccessible: string[];
+	permissions?: { download?: boolean; update?: boolean; delete?: boolean; upload?: boolean };
 	accessToken: string;
 	refreshToken: string | null;
 }

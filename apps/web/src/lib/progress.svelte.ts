@@ -19,6 +19,7 @@ class ProgressStore {
 	load(force = false) {
 		if (!this.#loaded || force) {
 			this.#loaded = session.api.me().then((me) => {
+				session.canDownload = me.permissions?.download !== false;
 				this.byItem.clear();
 				for (const p of me.mediaProgress) if (!p.episodeId) this.byItem.set(p.libraryItemId, p);
 			});

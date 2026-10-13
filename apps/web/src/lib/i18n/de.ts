@@ -16,13 +16,28 @@ export const de: Messages = {
 		language: 'Sprache',
 		settings: 'Einstellungen',
 		collections: 'Sammlungen',
-		stats: 'Statistik'
+		stats: 'Statistik',
+		downloads: 'Downloads'
 	},
 	collections: {
 		title: 'Sammlungen',
 		books: (n) => (n === 1 ? '1 Buch' : `${n} Bücher`),
 		empty: 'In dieser Bibliothek gibt es noch keine Sammlungen. Lege sie in Audiobookshelf an.',
 		notFound: 'Diese Sammlung gibt es nicht (mehr).'
+	},
+	downloads: {
+		title: 'Downloads',
+		download: 'Herunterladen',
+		downloading: (p) => `Lade herunter … ${p} %`,
+		cancel: 'Download abbrechen',
+		downloaded: 'Heruntergeladen',
+		remove: 'Download entfernen',
+		failed: 'Download fehlgeschlagen. Nochmal versuchen.',
+		empty:
+			'Noch nichts heruntergeladen. Lade Bücher auf ihrer Seite herunter, um offline zu hören.',
+		usage: (used, free) => `${used} belegt · ${free} frei auf diesem Gerät`,
+		unsupported: 'Dieser Browser kann keine Downloads speichern.',
+		offlineHint: 'Offline: Nur heruntergeladene Bücher lassen sich abspielen.'
 	},
 	stats: {
 		title: 'Statistik',
