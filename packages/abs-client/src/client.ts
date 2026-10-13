@@ -260,7 +260,7 @@ export class AbsClient {
 	}
 
 	bookmarks(itemId: string) {
-		return this.request<Bookmark[]>(`/api/me/bookmarks/${itemId}`);
+		return this.request<{ bookmarks: Bookmark[] }>(`/api/me/bookmarks/${itemId}`).then((r) => r.bookmarks);
 	}
 
 	createBookmark(itemId: string, time: number, title: string) {

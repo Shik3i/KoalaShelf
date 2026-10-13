@@ -11,7 +11,9 @@ const books = [
   { author: 'Jonas Falk', title: 'Nachtzug', narrator: 'Paul Dahm', genre: 'Krimi', color: '#11183A', chapters: 5, cover: true, multiFile: true },
   { author: 'Tilda Weiss', title: 'Kleine Eulen', narrator: 'Hanna Voss', genre: 'Kinderbuch', color: '#C9563E', chapters: 3, cover: false },
   { author: 'Levin Aral', title: 'Glasfluss', narrator: 'Sarah Obermann', genre: 'Science-Fiction', color: '#F3E3CF', chapters: 4, cover: false },
-  { author: 'Hanna Voss', title: 'Wintergrün', narrator: 'Jonas Falk', genre: 'Hörspiel', color: '#22533A', chapters: 3, cover: true }
+  { author: 'Hanna Voss', title: 'Wintergrün', narrator: 'Jonas Falk', genre: 'Hörspiel', color: '#22533A', chapters: 3, cover: true },
+  // Edge case: one plain file without chapter markers.
+  { author: 'Paul Dahm', title: 'Ohne Kapitel', narrator: 'Paul Dahm', genre: 'Essay', color: '#4B3FB8', chapters: 1, cover: false, plain: true }
 ];
 
 const CH = 45; // seconds per chapter
@@ -28,7 +30,9 @@ for (const b of books) {
   const tone = (i, secs) => ['-f', 'lavfi', '-i', `sine=frequency=${220 + i * 55}:duration=${secs}`];
   const tags = ['-metadata', `title=${b.title}`, '-metadata', `album=${b.title}`, '-metadata', `artist=${b.author}`, '-metadata', `genre=${b.genre}`];
 
-  if (b.multiFile) {
+  if (b.plain) {
+    ff(...tone(0, 60), '-ac', '1', '-b:a', '32k', ...tags, join(dir, `${b.title}.mp3`));
+  } else if (b.multiFile) {
     for (let i = 0; i < b.chapters; i++) {
       ff(...tone(i, CH), '-ac', '1', '-b:a', '32k', ...tags, '-metadata', `track=${i + 1}`, join(dir, `${String(i + 1).padStart(2, '0')} - Teil ${i + 1}.mp3`));
     }

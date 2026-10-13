@@ -1,4 +1,3 @@
-/// <reference lib="webworker" />
 // Offline app shell + cover image cache. Privacy: API responses and audio are never cached.
 import { self } from '$app/service-worker';
 import { assets, immutable } from '$app/manifest';
