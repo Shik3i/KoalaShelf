@@ -2,56 +2,69 @@
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { encodeFilter, type LibraryItemMinified } from '@koalashelf/abs-client';
+	import { untrack } from 'svelte';
+	import type { FilterData, LibraryItemMinified } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
+	import { prefs } from '#lib/prefs.svelte.ts';
+	import { toasts } from '#lib/toast.svelte.ts';
 	import { cached } from '#lib/cache.ts';
 	import { onVisible } from '#lib/attach.ts';
 	import { view } from '#lib/items.ts';
 	import { duration } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
+	import {
+		activeCount,
+		LENGTHS,
+		parseQuery,
+		plan,
+		runSet,
+		type Length,
+		type SortId
+	} from '#lib/library-query.ts';
 	import BookTile from '#lib/components/BookTile.svelte';
 	import Cover from '#lib/components/Cover.svelte';
+	import FacetPicker from '#lib/components/FacetPicker.svelte';
+	import Segmented from '#lib/components/Segmented.svelte';
 	import LayoutGrid from '@lucide/svelte/icons/layout-grid';
 	import Rows3 from '@lucide/svelte/icons/rows-3';
-	import Segmented from '#lib/components/Segmented.svelte';
 	import ArrowDownUp from '@lucide/svelte/icons/arrow-down-up';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import Shuffle from '@lucide/svelte/icons/shuffle';
+	import SearchIcon from '@lucide/svelte/icons/search';
+	import X from '@lucide/svelte/icons/x';
+	import Bookmark from '@lucide/svelte/icons/bookmark-plus';
 
 	const PAGE = 60;
 	const t = $derived(i18n.m.library);
-	const STATUS = $derived([
-		{ id: '', label: t.all },
-		{ id: 'in-progress', label: t.inProgress, local: 'running' },
-		{ id: 'not-started', label: t.notStarted, local: 'new' },
-		{ id: 'finished', label: t.finished, local: 'done' }
-	] as const);
-	const SORTS = $derived([
-		{ id: 'title', key: 'media.metadata.title', label: t.sortTitle, desc: false },
-		{ id: 'author', key: 'media.metadata.authorNameLF', label: t.sortAuthor, desc: false },
-		{ id: 'added', key: 'addedAt', label: t.sortAdded, desc: true },
-		{ id: 'played', key: 'progress', label: t.sortProgress, desc: true },
-		{ id: 'duration', key: 'media.duration', label: t.sortDuration, desc: false },
-		{ id: 'published', key: 'media.metadata.publishedYear', label: t.sortPublished, desc: true }
-	]);
 
 	// All view state lives in the URL: shareable, bookmarkable, back button works.
-	const q = $derived(page.url.searchParams);
-	const layout = $derived(q.get('view') === 'list' ? 'list' : 'shelf');
-	// Inside a series the natural order is the volume number.
-	const sort = $derived(
-		SORTS.find((s) => s.id === q.get('sort')) ??
-			(q.get('series')
-				? { id: 'sequence', key: 'sequence', label: t.series, desc: false }
-				: SORTS[0])
+	const params = $derived(page.url.searchParams);
+	const query = $derived(parseQuery(params));
+	const layout = $derived(params.get('view') === 'list' ? 'list' : 'shelf');
+	const how = $derived(plan(query));
+
+	const STATUS = $derived([
+		{ id: '', label: t.all },
+		{ id: 'in-progress', label: t.inProgress },
+		{ id: 'not-started', label: t.notStarted },
+		{ id: 'finished', label: t.finished }
+	] as const);
+	const SORT_LABELS = $derived<Record<SortId, string>>({
+		title: t.sortTitle,
+		author: t.sortAuthor,
+		added: t.sortAdded,
+		played: t.sortProgress,
+		started: t.sortStarted,
+		finished: t.sortFinished,
+		duration: t.sortDuration,
+		published: t.sortPublished,
+		random: t.sortRandom,
+		sequence: t.sortSequence
+	});
+	const sortIds = $derived(
+		(Object.keys(SORT_LABELS) as SortId[]).filter((s) => s !== 'sequence' || query.values.series)
 	);
-	const desc = $derived(q.has('desc') ? q.get('desc') === '1' : sort.desc);
-	const status = $derived(STATUS.find((s) => s.id === (q.get('status') ?? '')) ?? STATUS[0]);
-	const genre = $derived(q.get('genre') ?? '');
-	const narrator = $derived(q.get('narrator') ?? '');
-	const series = $derived(q.get('series') ?? '');
-	// Grouping only makes sense when not already looking at one series.
-	const collapse = $derived(q.get('group') === '1' && !series);
-	const author = $derived(q.get('author') ?? '');
 
 	// View, sort and grouping are remembered; filters are not (they are per visit).
 	const REMEMBER = ['view', 'sort', 'desc', 'group'];
@@ -76,95 +89,81 @@
 		}
 	});
 
-	function set(changes: Record<string, string | null>) {
+	/** Change URL parameters (arrays become repeated parameters, empty removes). */
+	function set(changes: Record<string, string | string[] | null>) {
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not reactive state
 		const next = new URLSearchParams(page.url.search);
 		for (const [k, v] of Object.entries(changes)) {
-			if (v === null || v === '') next.delete(k);
-			else next.set(k, v);
+			next.delete(k);
+			for (const x of Array.isArray(v) ? v : v ? [v] : []) next.append(k, x);
 		}
 		goto(`?${next}`, { replace: true, reset: false });
 	}
 
-	const filterData = $derived(
-		session.libraryId
-			? cached(`fd:${session.libraryId}`, () => session.api.filterData(session.libraryId!), 300_000)
-			: null
-	);
+	/** Filter parameters only (for "clear all" and saved views). */
+	const FILTER_KEYS = [
+		'status',
+		'genre',
+		'tag',
+		'narrator',
+		'language',
+		'author',
+		'series',
+		'publisher',
+		'decade',
+		'length',
+		'q'
+	];
+
+	let fd = $state.raw<FilterData | null>(null);
+	$effect(() => {
+		const lib = session.libraryId;
+		if (!lib) return;
+		cached(`fd:${lib}`, () => session.api.filterData(lib), 300_000)
+			.then((x) => (fd = x))
+			.catch(() => (fd = null));
+	});
+	const authorName = (id: string) => fd?.authors.find((a) => a.id === id)?.name ?? '…';
+	const seriesName = (id: string) => fd?.series.find((s) => s.id === id)?.name ?? '…';
+
+	// --- Results -----------------------------------------------------------------
 
 	let items = $state.raw<LibraryItemMinified[]>([]);
 	let total = $state(0);
 	let pageNo = 0;
+	/** Combined queries: the whole result, revealed in pages while scrolling. */
+	let shownCount = $state(PAGE);
 	let loading = $state(false);
-	/** True until the first page for the current filters arrived (skeleton instead of "empty"). */
+	/** True until the first result for the current query arrived (skeleton instead of "empty"). */
 	let firstLoad = $state(true);
 	let error = $state<string | null>(null);
 	let done = $state(false);
 	let controller: AbortController | null = null;
 
-	/** Server takes one filter; the most selective one goes to the server, the rest is applied here. */
-	const plan = $derived.by(() => {
-		const active: { server: string; local?: (i: LibraryItemMinified) => boolean }[] = [];
-		if (series) active.push({ server: encodeFilter('series', series) });
-		// Minified items carry no author ids, so the author filter only works server-side.
-		if (author) active.push({ server: encodeFilter('authors', author) });
-		if (narrator)
-			active.push({
-				server: encodeFilter('narrators', narrator),
-				local: (i) => i.media.metadata.narratorName.split(', ').includes(narrator)
-			});
-		if (genre)
-			active.push({
-				server: encodeFilter('genres', genre),
-				local: (i) => i.media.metadata.genres.includes(genre)
-			});
-		if ('local' in status) {
-			const local = status.local;
-			active.push({
-				server: encodeFilter('progress', status.id),
-				local: (i) => progress.status(i.id) === local
-			});
-		}
-		const [primary, ...rest] = active;
-		return {
-			filter: primary?.server,
-			local: rest.map((r) => r.local!).filter(Boolean),
-			key: JSON.stringify([
-				session.libraryId,
-				sort.key,
-				desc,
-				collapse,
-				active.map((a) => a.server)
-			])
-		};
-	});
+	const visible = $derived(how.mode === 'set' ? items.slice(0, shownCount) : items);
 
-	// A plain string, so switching the UI language does not reload the list.
-	const planKey = $derived(plan.key);
-
-	async function loadMore() {
-		if (loading || done || !session.libraryId) return;
+	async function loadPage() {
+		const lib = session.libraryId;
+		if (loading || done || !lib || how.mode !== 'paged') return;
 		loading = true;
 		const signal = controller?.signal;
 		try {
-			const all = plan.local.length > 0;
 			const res = await session.api.libraryItems(
-				session.libraryId,
+				lib,
 				{
 					page: pageNo,
-					limit: all ? 0 : PAGE,
-					sort: sort.key,
-					desc,
-					filter: plan.filter,
-					collapseSeries: collapse
+					limit: PAGE,
+					sort: how.sort,
+					desc: how.desc,
+					filter: how.filter,
+					collapseSeries: how.group
 				},
 				signal
 			);
-			const found = all ? res.results.filter((i) => plan.local.every((f) => f(i))) : res.results;
-			items = pageNo === 0 ? found : [...items, ...found];
-			total = all ? found.length : res.total;
+			items = pageNo === 0 ? res.results : [...items, ...res.results];
+			total = res.total;
 			pageNo++;
-			done = all || items.length >= res.total;
+			done = items.length >= res.total;
 		} catch (e) {
 			if ((e as Error).name !== 'AbortError') error = (e as Error).message;
 		} finally {
@@ -175,18 +174,151 @@
 		}
 	}
 
+	async function loadSet() {
+		const lib = session.libraryId;
+		if (!lib) return;
+		loading = true;
+		const signal = controller?.signal;
+		try {
+			const result = await runSet(session.api, lib, query, (id) => progress.status(id), signal);
+			if (signal?.aborted) return;
+			items = result;
+			total = result.length;
+			shownCount = PAGE;
+			done = result.length <= PAGE;
+		} catch (e) {
+			if ((e as Error).name !== 'AbortError') error = (e as Error).message;
+		} finally {
+			if (!signal?.aborted) {
+				loading = false;
+				firstLoad = false;
+			}
+		}
+	}
+
+	function more() {
+		if (how.mode === 'set') {
+			shownCount += PAGE;
+			done = shownCount >= items.length;
+		} else void loadPage();
+	}
+
+	// A plain string, so switching the UI language does not reload the list.
+	const queryKey = $derived(JSON.stringify([session.libraryId, query]));
+
 	$effect(() => {
-		void planKey;
-		controller?.abort();
-		controller = new AbortController();
-		items = [];
-		pageNo = 0;
-		done = false;
-		error = null;
-		loading = false;
-		firstLoad = true;
-		progress.load().then(loadMore);
+		void queryKey;
+		untrack(() => {
+			controller?.abort();
+			controller = new AbortController();
+			items = [];
+			pageNo = 0;
+			done = false;
+			error = null;
+			loading = false;
+			firstLoad = true;
+			progress.load().then(() => (how.mode === 'set' ? loadSet() : loadPage()));
+		});
 	});
+
+	// --- Text filter (debounced into the URL) ---------------------------------------
+
+	let text = $state(untrack(() => query.q));
+	$effect(() => {
+		// The URL changed elsewhere (clear all, saved view): follow it.
+		const q = query.q;
+		untrack(() => {
+			if (text.trim() !== q) text = q;
+		});
+	});
+	$effect(() => {
+		const value = text.trim();
+		const timer = setTimeout(() => {
+			if (value !== untrack(() => query.q)) set({ q: value || null });
+		}, 300);
+		return () => clearTimeout(timer);
+	});
+
+	// --- Filter panel, active filters, saved views ------------------------------------
+
+	// Starts closed: the active filters show as chips anyway.
+	let panelOpen = $state(false);
+	const filterCount = $derived(activeCount(query) - (query.status ? 1 : 0) - (query.q ? 1 : 0));
+
+	const active = $derived.by(() => {
+		const out: { key: string; label: string; remove: () => void }[] = [];
+		const v = query.values;
+		const multi = (k: 'genre' | 'tag' | 'narrator' | 'language', label: (x: string) => string) =>
+			v[k].forEach((x) =>
+				out.push({
+					key: `${k}:${x}`,
+					label: label(x),
+					remove: () => set({ [k]: v[k].filter((y) => y !== x) })
+				})
+			);
+		if (v.author)
+			out.push({ key: 'author', label: authorName(v.author), remove: () => set({ author: null }) });
+		if (v.series)
+			out.push({ key: 'series', label: seriesName(v.series), remove: () => set({ series: null }) });
+		multi('narrator', (x) => x);
+		multi('genre', (x) => x);
+		multi('tag', (x) => `#${x}`);
+		multi('language', (x) => x);
+		if (v.publisher)
+			out.push({ key: 'publisher', label: v.publisher, remove: () => set({ publisher: null }) });
+		if (v.decade)
+			out.push({
+				key: 'decade',
+				label: t.decadeLabel(v.decade),
+				remove: () => set({ decade: null })
+			});
+		if (query.length)
+			out.push({
+				key: 'length',
+				label: t.lengths[query.length],
+				remove: () => set({ length: null })
+			});
+		if (query.q) out.push({ key: 'q', label: `“${query.q}”`, remove: () => set({ q: null }) });
+		return out;
+	});
+
+	function clearAll() {
+		set(Object.fromEntries(FILTER_KEYS.map((k) => [k, null])));
+	}
+
+	/** The current filter (and sort) parameters, as stored in a saved view. */
+	const viewQuery = $derived.by(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not reactive state
+		const p = new URLSearchParams(params.toString());
+		p.delete('view');
+		p.delete('shuffle');
+		p.sort();
+		return p.toString();
+	});
+	let naming = $state(false);
+	let viewName = $state('');
+
+	function saveView(e: SubmitEvent) {
+		e.preventDefault();
+		const name = viewName.trim();
+		if (!name) return;
+		prefs.set('savedViews', [
+			...prefs.savedViews,
+			{ id: crypto.randomUUID(), name, query: viewQuery }
+		]);
+		naming = false;
+		viewName = '';
+		toasts.show(t.viewSaved(name));
+	}
+
+	function openView(query: string) {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not reactive state
+		const next = new URLSearchParams(query);
+		if (params.get('view')) next.set('view', params.get('view')!);
+		goto(`?${next}`, { replace: true, reset: false });
+	}
+
+	const lengthIds = Object.keys(LENGTHS) as Length[];
 </script>
 
 <svelte:head><title>{t.title} · KoalaShelf</title></svelte:head>
@@ -196,68 +328,88 @@
 		<span class="label">{session.library?.name ?? t.title}</span>
 		<h1>{t.title}</h1>
 	</div>
-	<span class="muted count tabular">{t.count(total)}</span>
+	<span class="muted count tabular" aria-live="polite">{t.count(total)}</span>
 </header>
+
+{#if prefs.savedViews.length}
+	<div class="chips views" role="group" aria-label={t.views}>
+		{#each prefs.savedViews as v (v.id)}
+			<span class="saved">
+				<button class="chip" aria-pressed={v.query === viewQuery} onclick={() => openView(v.query)}
+					>{v.name}</button
+				>
+				<button
+					class="drop"
+					aria-label={t.deleteView(v.name)}
+					title={t.deleteView(v.name)}
+					onclick={() =>
+						prefs.set(
+							'savedViews',
+							prefs.savedViews.filter((x) => x.id !== v.id)
+						)}><X size={12} /></button
+				>
+			</span>
+		{/each}
+	</div>
+{/if}
 
 <div class="toolbar">
 	<div class="chips" role="group" aria-label={t.statusGroup}>
 		{#each STATUS as s (s.id)}
-			<button class="chip" aria-pressed={status.id === s.id} onclick={() => set({ status: s.id })}
-				>{s.label}</button
+			<button
+				class="chip"
+				aria-pressed={query.status === s.id}
+				onclick={() => set({ status: s.id || null })}>{s.label}</button
 			>
 		{/each}
 	</div>
 
-	{#await filterData then fd}
-		{#if fd}
-			<div class="chips">
-				<label class="chip outline select" class:on={genre}>
-					<span class="sr-only">{t.genre}</span>
-					<select value={genre} onchange={(e) => set({ genre: e.currentTarget.value })}>
-						<option value="">{t.genre}</option>
-						{#each fd.genres as g (g)}<option value={g}>{g}</option>{/each}
-					</select>
-				</label>
-				<label class="chip outline select" class:on={narrator}>
-					<span class="sr-only">{t.narrator}</span>
-					<select value={narrator} onchange={(e) => set({ narrator: e.currentTarget.value })}>
-						<option value="">{t.narrator}</option>
-						{#each fd.narrators as n (n)}<option value={n}>{n}</option>{/each}
-					</select>
-				</label>
-				<label class="chip outline select" class:on={series}>
-					<span class="sr-only">{t.series}</span>
-					<select value={series} onchange={(e) => set({ series: e.currentTarget.value })}>
-						<option value="">{t.series}</option>
-						{#each fd.series as s (s.id)}<option value={s.id}>{s.name}</option>{/each}
-					</select>
-				</label>
-			</div>
-		{/if}
-	{/await}
+	<div class="chips">
+		<button
+			class="chip outline"
+			class:on={filterCount > 0}
+			aria-expanded={panelOpen}
+			aria-controls="filter-panel"
+			onclick={() => (panelOpen = !panelOpen)}
+		>
+			<SlidersHorizontal size={14} aria-hidden="true" />
+			{filterCount ? t.filtersActive(filterCount) : t.filters}
+		</button>
+	</div>
 
 	<div class="chips end">
-		{#if !series}
+		{#if !query.values.series}
 			<button
 				class="chip outline"
-				aria-pressed={collapse}
-				onclick={() => set({ group: collapse ? null : '1' })}>{t.collapse}</button
+				aria-pressed={query.group && how.mode === 'paged'}
+				disabled={how.mode === 'set'}
+				title={how.mode === 'set' ? t.groupNeedsSimple : undefined}
+				onclick={() => set({ group: query.group ? null : '1' })}>{t.collapse}</button
 			>
 		{/if}
 		<label class="chip outline select">
 			<ArrowDownUp size={14} aria-hidden="true" />
 			<span class="sr-only">{t.sort}</span>
-			<select value={sort.id} onchange={(e) => set({ sort: e.currentTarget.value, desc: null })}>
-				{#each SORTS as s (s.id)}<option value={s.id}>{s.label}</option>{/each}
+			<select value={query.sort} onchange={(e) => set({ sort: e.currentTarget.value, desc: null })}>
+				{#each sortIds as s (s)}<option value={s}>{SORT_LABELS[s]}</option>{/each}
 			</select>
 		</label>
-		<button
-			class="chip outline"
-			onclick={() => set({ desc: desc ? '0' : '1' })}
-			aria-label={t.reverse}
-		>
-			{desc ? '↓' : '↑'}
-		</button>
+		{#if query.sort === 'random'}
+			<button
+				class="chip outline"
+				onclick={() => set({ shuffle: String(Date.now()) })}
+				aria-label={t.shuffle}
+				title={t.shuffle}><Shuffle size={14} /></button
+			>
+		{:else}
+			<button
+				class="chip outline"
+				onclick={() => set({ desc: query.desc ? '0' : '1' })}
+				aria-label={t.reverse}
+			>
+				{query.desc ? '↓' : '↑'}
+			</button>
+		{/if}
 		<Segmented
 			label={t.view}
 			value={layout}
@@ -270,20 +422,138 @@
 	</div>
 </div>
 
-{#await filterData then fd}
-	{@const authorName = author && fd?.authors.find((a) => a.id === author)?.name}
-	{@const seriesName = series && fd?.series.find((x) => x.id === series)?.name}
-	{#if authorName || seriesName}
-		<div class="chips active">
-			{#if authorName}<button class="chip on" onclick={() => set({ author: null })}
-					>{authorName} ✕</button
-				>{/if}
-			{#if seriesName}<button class="chip on" onclick={() => set({ series: null })}
-					>{seriesName} ✕</button
-				>{/if}
-		</div>
-	{/if}
-{/await}
+<label class="find">
+	<SearchIcon size={16} aria-hidden="true" />
+	<span class="sr-only">{t.textFilterLabel}</span>
+	<input type="search" bind:value={text} placeholder={t.textFilter} enterkeyhint="search" />
+</label>
+
+{#if panelOpen && fd}
+	<section id="filter-panel" class="panel" aria-label={t.filters}>
+		{#if fd.authors.length}
+			<FacetPicker
+				label={t.author}
+				options={fd.authors.map((a) => ({ value: a.id, label: a.name }))}
+				selected={query.values.author ? [query.values.author] : []}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ author: v[0] ?? null })}
+			/>
+		{/if}
+		{#if fd.series.length}
+			<FacetPicker
+				label={t.series}
+				options={fd.series.map((s) => ({ value: s.id, label: s.name }))}
+				selected={query.values.series ? [query.values.series] : []}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ series: v[0] ?? null, sort: null })}
+			/>
+		{/if}
+		{#if fd.narrators.length}
+			<FacetPicker
+				multi
+				label={t.narrator}
+				options={fd.narrators.map((n) => ({ value: n, label: n }))}
+				selected={query.values.narrator}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ narrator: v })}
+			/>
+		{/if}
+		{#if fd.genres.length}
+			<FacetPicker
+				multi
+				label={t.genre}
+				options={fd.genres.map((g) => ({ value: g, label: g }))}
+				selected={query.values.genre}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ genre: v })}
+			/>
+		{/if}
+		{#if fd.tags.length}
+			<FacetPicker
+				multi
+				label={t.tag}
+				options={fd.tags.map((g) => ({ value: g, label: `#${g}` }))}
+				selected={query.values.tag}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ tag: v })}
+			/>
+		{/if}
+		{#if fd.languages.length}
+			<FacetPicker
+				multi
+				label={t.language}
+				options={fd.languages.map((g) => ({ value: g, label: g }))}
+				selected={query.values.language}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ language: v })}
+			/>
+		{/if}
+		{#if fd.publishers?.length}
+			<FacetPicker
+				label={t.publisher}
+				options={fd.publishers.map((g) => ({ value: g, label: g }))}
+				selected={query.values.publisher ? [query.values.publisher] : []}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ publisher: v[0] ?? null })}
+			/>
+		{/if}
+		{#if fd.publishedDecades?.length}
+			<FacetPicker
+				label={t.decade}
+				options={fd.publishedDecades.map((d) => ({ value: d, label: t.decadeLabel(d) }))}
+				selected={query.values.decade ? [query.values.decade] : []}
+				searchLabel={t.findIn}
+				showAllLabel={t.showAll}
+				onchange={(v) => set({ decade: v[0] ?? null })}
+			/>
+		{/if}
+		<FacetPicker
+			label={t.length}
+			options={lengthIds.map((l) => ({ value: l, label: t.lengths[l] }))}
+			selected={query.length ? [query.length] : []}
+			searchLabel={t.findIn}
+			showAllLabel={t.showAll}
+			onchange={(v) => set({ length: v[0] ?? null })}
+		/>
+	</section>
+{/if}
+
+{#if active.length}
+	<div class="chips active" role="group" aria-label={t.filters}>
+		{#each active as a (a.key)}
+			<button class="chip on" onclick={a.remove}>{a.label} ✕</button>
+		{/each}
+		<button class="chip outline" onclick={clearAll}>{t.clearAll}</button>
+		{#if naming}
+			<form class="name" onsubmit={saveView}>
+				<!-- svelte-ignore a11y_autofocus -->
+				<input
+					bind:value={viewName}
+					placeholder={t.viewName}
+					aria-label={t.viewName}
+					maxlength="40"
+					autofocus
+				/>
+				<button class="chip" type="submit">{t.save}</button>
+				<button class="chip outline" type="button" onclick={() => (naming = false)}
+					>{t.cancel}</button
+				>
+			</form>
+		{:else}
+			<button class="chip outline" onclick={() => (naming = true)}>
+				<Bookmark size={14} aria-hidden="true" />
+				{t.saveView}
+			</button>
+		{/if}
+	</div>
+{/if}
 
 {#if error}
 	<p class="error" role="alert">{t.loadError(error)}</p>
@@ -299,13 +569,13 @@
 	</div>
 {:else if layout === 'shelf'}
 	<div class="shelf">
-		{#each items as item, i (item.id)}
-			<BookTile {item} eager={i < 12} index={i} />
+		{#each visible as item, i (item.id)}
+			<BookTile {item} eager={i < 12} index={i % PAGE} />
 		{/each}
 	</div>
 {:else}
 	<ul class="list">
-		{#each items as item (item.id)}
+		{#each visible as item (item.id)}
 			{@const v = view(item)}
 			{@const p = progress.get(item.id)}
 			<li>
@@ -326,11 +596,113 @@
 	</ul>
 {/if}
 
-{#if !done && !error}
-	<div class="more" {@attach onVisible(loadMore)}>{loading ? t.loading : ''}</div>
+{#if !done && !error && !firstLoad}
+	<div class="more" {@attach onVisible(more)}>{loading ? t.loading : ''}</div>
 {/if}
 
 <style>
+	/* Saved views: chip plus a small delete button. */
+	.views {
+		margin-bottom: var(--sp-16);
+	}
+
+	.saved {
+		display: inline-flex;
+		align-items: center;
+	}
+
+	.drop {
+		position: relative;
+		display: grid;
+		place-items: center;
+		width: 24px;
+		height: 24px;
+		margin-left: -4px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: transparent;
+		color: var(--c-muted);
+	}
+
+	.drop::after {
+		content: '';
+		position: absolute;
+		inset: -10px -6px;
+	}
+
+	.drop:hover {
+		color: var(--c-ink);
+		background: var(--c-card);
+	}
+
+	.find {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-8);
+		max-width: 520px;
+		min-height: var(--layout-touch);
+		margin: calc(-1 * var(--sp-16)) 0 var(--sp-20);
+		padding: 0 var(--sp-16);
+		border: 1.5px solid var(--c-line);
+		border-radius: var(--r-pill);
+		background: var(--c-card);
+		color: var(--c-muted);
+	}
+
+	.find:focus-within {
+		border-color: var(--c-accent);
+	}
+
+	.find input {
+		flex: 1;
+		min-width: 0;
+		border: 0;
+		background: transparent;
+		color: var(--c-ink);
+		font: inherit;
+	}
+
+	.find input:focus-visible {
+		outline: none;
+	}
+
+	.panel {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+		gap: var(--sp-24) var(--sp-32);
+		margin-bottom: var(--sp-24);
+		padding: var(--sp-20) var(--sp-24);
+		border-radius: var(--r-card-lg);
+		background: var(--c-card);
+		animation: rise var(--motion-base) var(--motion-out);
+	}
+
+	.panel :global(.chip:not([aria-pressed='true'])) {
+		background: var(--c-bg);
+	}
+
+	.name {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-8);
+	}
+
+	.name input {
+		min-height: 36px;
+		padding: 0 var(--sp-12);
+		border: 1.5px solid var(--c-accent);
+		border-radius: var(--r-pill);
+		background: var(--c-card);
+		color: var(--c-ink);
+		font: inherit;
+		font-size: var(--fs-14);
+	}
+
+	.chip:disabled {
+		opacity: 0.45;
+	}
+
 	header {
 		display: flex;
 		align-items: end;

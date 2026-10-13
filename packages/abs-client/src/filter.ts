@@ -2,7 +2,17 @@
 
 export type ProgressFilter = 'finished' | 'not-started' | 'in-progress' | 'not-finished';
 
-export type FilterGroup = 'progress' | 'genres' | 'narrators' | 'tags' | 'languages' | 'authors' | 'series' | 'recent';
+export type FilterGroup =
+	| 'progress'
+	| 'genres'
+	| 'narrators'
+	| 'tags'
+	| 'languages'
+	| 'authors'
+	| 'series'
+	| 'publishers'
+	| 'publishedDecades'
+	| 'recent';
 
 /** UTF-8 safe base64 (umlauts in genres and narrator names). */
 export function base64(value: string) {

@@ -18,6 +18,14 @@ import type {
 	SessionPage,
 	SessionSync,
 	Shelf,
+	SearchResult,
+	AuthorDetail,
+	SeriesDetail,
+	Narrator,
+	Playlist,
+	YearStats,
+	LibraryStats,
+	AuthSession,
 	User
 } from './types.ts';
 
@@ -358,12 +366,102 @@ export class AbsClient {
 	}
 
 	search(libraryId: string, q: string, limit = 12, signal?: AbortSignal) {
-		return this.request<{
-			book: { libraryItem: LibraryItem }[];
-			series: { series: Series; books: LibraryItem[] }[];
-			authors: Author[];
-			narrators: { name: string; numBooks: number }[];
-		}>(`/api/libraries/${libraryId}/search`, { query: { q, limit }, signal });
+		return this.request<SearchResult>(`/api/libraries/${libraryId}/search`, { query: { q, limit }, signal });
+	}
+
+	// --- Browse -------------------------------------------------------------
+
+	author(authorId: string, libraryId: string) {
+		return this.request<AuthorDetail>(`/api/authors/${authorId}`, {
+			query: { include: 'items,series', library: libraryId }
+		});
+	}
+
+	seriesDetail(libraryId: string, seriesId: string) {
+		return this.request<SeriesDetail>(`/api/libraries/${libraryId}/series/${seriesId}`, {
+			query: { include: 'progress' }
+		});
+	}
+
+	/** Takes a series off (or back onto) the "continue series" shelf. */
+	setSeriesInContinue(seriesId: string, shown: boolean) {
+		return this.request<unknown>(
+			`/api/me/series/${seriesId}/${shown ? 'readd-to-continue-listening' : 'remove-from-continue-listening'}`
+		);
+	}
+
+	narrators(libraryId: string) {
+		return this.request<{ narrators: Narrator[] }>(`/api/libraries/${libraryId}/narrators`).then((r) => r.narrators);
+	}
+
+	libraryStats(libraryId: string) {
+		return this.request<LibraryStats>(`/api/libraries/${libraryId}/stats`);
+	}
+
+	yearStats(year: number) {
+		return this.request<YearStats>(`/api/me/stats/year/${year}`);
+	}
+
+	/** Every bookmark of the user, across books. */
+	allBookmarks() {
+		return this.request<{ bookmarks: Bookmark[] }>('/api/me/bookmarks').then((r) => r.bookmarks);
+	}
+
+	// --- Playlists ------------------------------------------------------------
+
+	playlists(libraryId: string) {
+		return this.request<Paged<Playlist>>(`/api/libraries/${libraryId}/playlists`, { query: { limit: 0 } }).then(
+			(r) => r.results
+		);
+	}
+
+	playlist(id: string) {
+		return this.request<Playlist>(`/api/playlists/${id}`);
+	}
+
+	createPlaylist(libraryId: string, name: string, itemIds: string[] = []) {
+		return this.request<Playlist>('/api/playlists', {
+			method: 'POST',
+			body: { libraryId, name, items: itemIds.map((libraryItemId) => ({ libraryItemId })) }
+		});
+	}
+
+	/** Rename and/or reorder (the item list replaces the current one). */
+	updatePlaylist(id: string, changes: { name?: string; description?: string; itemIds?: string[] }) {
+		const { itemIds, ...rest } = changes;
+		return this.request<Playlist>(`/api/playlists/${id}`, {
+			method: 'PATCH',
+			body: { ...rest, ...(itemIds ? { items: itemIds.map((libraryItemId) => ({ libraryItemId })) } : {}) }
+		});
+	}
+
+	deletePlaylist(id: string) {
+		return this.request<unknown>(`/api/playlists/${id}`, { method: 'DELETE' });
+	}
+
+	addToPlaylist(id: string, libraryItemId: string) {
+		return this.request<Playlist>(`/api/playlists/${id}/item`, { method: 'POST', body: { libraryItemId } });
+	}
+
+	removeFromPlaylist(id: string, libraryItemId: string) {
+		return this.request<Playlist>(`/api/playlists/${id}/item/${libraryItemId}`, { method: 'DELETE' });
+	}
+
+	// --- Account ----------------------------------------------------------------
+
+	changePassword(password: string, newPassword: string) {
+		return this.request<unknown>('/api/me/password', { method: 'PATCH', body: { password, newPassword } });
+	}
+
+	/** Signed-in devices of this user, most recently used first. */
+	authSessions() {
+		return this.request<{ sessions: AuthSession[] }>('/api/me/sessions', { query: { itemsPerPage: 50 } }).then(
+			(r) => r.sessions
+		);
+	}
+
+	signOutDevice(sessionId: string) {
+		return this.request<unknown>(`/api/me/sessions/${sessionId}`, { method: 'DELETE' });
 	}
 
 	// --- Items & playback ---------------------------------------------------

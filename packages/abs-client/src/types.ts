@@ -205,6 +205,94 @@ export interface FilterData {
 	series: { id: string; name: string }[];
 	narrators: string[];
 	languages: string[];
+	publishers: string[];
+	publishedDecades: string[];
+}
+
+/** `GET /api/libraries/:id/search`. */
+export interface SearchResult {
+	book: { libraryItem: LibraryItem }[];
+	series: { series: Series; books: LibraryItem[] }[];
+	authors: Author[];
+	narrators: { name: string; numBooks: number }[];
+	tags: { name: string; numItems: number }[];
+	genres: { name: string; numItems: number }[];
+}
+
+/** An author with their books and series in one library. */
+export interface AuthorDetail extends Author {
+	libraryItems: LibraryItem[];
+	series: { id: string; name: string; items: LibraryItem[] }[];
+}
+
+export interface SeriesDetail {
+	id: string;
+	name: string;
+	description: string | null;
+	progress?: { libraryItemIds: string[]; libraryItemIdsFinished: string[]; isFinished: boolean };
+}
+
+export interface Narrator {
+	id: string;
+	name: string;
+	numBooks: number;
+}
+
+/** A listener's own, server-side list of books. */
+export interface Playlist {
+	id: string;
+	name: string;
+	libraryId: string;
+	userId: string;
+	description: string | null;
+	lastUpdate: number;
+	createdAt: number;
+	items: { libraryItemId: string; episodeId?: string | null; libraryItem: LibraryItem }[];
+}
+
+/** `GET /api/me/stats/year/:year`. Times in seconds. */
+export interface YearStats {
+	totalListeningSessions: number;
+	totalListeningTime: number;
+	totalBookListeningTime: number;
+	topAuthors: { name: string; time: number }[];
+	topGenres: { genre: string; time: number }[];
+	mostListenedNarrator: { name: string; time: number } | null;
+	/** Month 0-11. */
+	mostListenedMonth: { month: number; time: number } | null;
+	numBooksFinished: number;
+	numBooksListened: number;
+	longestAudiobookFinished: { id: string; title: string; duration: number; finishedAt: number } | null;
+	/** Library item ids. */
+	booksWithCovers: string[];
+	finishedBooksWithCovers: string[];
+}
+
+/** `GET /api/libraries/:id/stats`. */
+export interface LibraryStats {
+	totalItems: number;
+	totalAuthors: number;
+	totalGenres: number;
+	/** Seconds. */
+	totalDuration: number;
+	/** Bytes. */
+	totalSize: number;
+	numAudioTracks: number;
+	longestItems: { id: string; title: string; duration: number }[];
+	largestItems: { id: string; title: string; size: number }[];
+	authorsWithCount: { id: string; name: string; count: number }[];
+	genresWithCount: { genre: string; count: number }[];
+}
+
+/** A signed-in device (login session). */
+export interface AuthSession {
+	id: string;
+	ipAddress: string | null;
+	userAgent: string | null;
+	createdAt: number;
+	updatedAt: number;
+	/** The session this client is using (when the server can tell). */
+	current: boolean;
 }
 
 export type ShelfId =

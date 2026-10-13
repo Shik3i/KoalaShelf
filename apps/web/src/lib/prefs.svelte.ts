@@ -48,6 +48,8 @@ export interface Prefs {
 	/** Home shelves (server ids) hidden by the listener, and their custom order. */
 	hiddenShelves: string[];
 	shelfOrder: string[];
+	/** Library filter combinations saved under a name (URL query without view settings). */
+	savedViews: { id: string; name: string; query: string }[];
 }
 
 export const DEFAULTS: Prefs = {
@@ -75,7 +77,8 @@ export const DEFAULTS: Prefs = {
 	sleepMax: 40,
 	startPage: 'home',
 	hiddenShelves: [],
-	shelfOrder: []
+	shelfOrder: [],
+	savedViews: []
 };
 
 function load(): Prefs {
