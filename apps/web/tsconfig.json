@@ -2,18 +2,8 @@
 	"extends": "$app/tsconfig",
 	"compilerOptions": {
 		"strict": true,
-		"types": [
-			"$app/types",
-			"node"
-		]
+		"types": ["$app/types", "node"]
 	},
-	"include": [
-		"src",
-		"e2e",
-		"vite.config.ts",
-		"playwright.config.ts"
-	],
-	"exclude": [
-		"src/service-worker"
-	]
+	"include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"],
+	"exclude": ["src/service-worker"]
 }

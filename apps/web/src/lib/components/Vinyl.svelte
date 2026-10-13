@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Cover from './Cover.svelte';
-	import { reducedMotion } from '#lib/motion.ts';
+	import { rampRate, reducedMotion } from '#lib/motion.ts';
 
 	interface Props {
 		title: string;
@@ -61,14 +61,17 @@
 		const a = anim;
 		if (!a) return;
 		cancelAnimationFrame(frame);
-		const from = a.playState === 'paused' ? 0 : a.playbackRate;
-		if (target) a.play();
-		const start = performance.now();
+		const from = a.playState === 'paused' ? 0 : Math.max(0, a.playbackRate);
+		if (target) {
+			a.playbackRate = from;
+			a.play();
+		}
+		// Timed from the first frame (a frame timestamp can precede a performance.now() taken here).
+		let start: number | null = null;
 		const step = (now: number) => {
-			const t = Math.min(1, (now - start) / RAMP_MS);
-			// Ease-out: quick at first, then settling into the target speed.
-			a.playbackRate = from + (target - from) * (1 - (1 - t) ** 3);
-			if (t < 1) frame = requestAnimationFrame(step);
+			start ??= now;
+			a.playbackRate = rampRate(from, target, now - start, RAMP_MS);
+			if (now - start < RAMP_MS) frame = requestAnimationFrame(step);
 			else if (!target) a.pause();
 		};
 		frame = requestAnimationFrame(step);

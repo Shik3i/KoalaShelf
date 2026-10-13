@@ -9,8 +9,19 @@
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import { fly } from 'svelte/transition';
 	import { flyUp } from '#lib/motion.ts';
+	import Timer from '@lucide/svelte/icons/timer';
 
 	const t = $derived(i18n.m.player);
+	/** Remaining sleep time (or "end of chapter"), shown as a small badge. */
+	const sleepText = $derived(
+		player.sleep.kind === 'minutes'
+			? clock(
+					player.sleepPausedLeft !== null ? player.sleepPausedLeft / 1000 : player.sleepRemaining
+				)
+			: player.sleep.kind === 'chapter'
+				? t.timerEndOfChapter
+				: ''
+	);
 	const v = $derived(player.item ? view(player.item) : null);
 	const sub = $derived(
 		player.chapter
@@ -37,7 +48,11 @@
 				{#if player.error}
 					<span class="err" role="status">{player.error === 'fatal' ? t.errorFatal : t.error}</span>
 				{:else}
-					<span class="muted tabular">{sub}</span>
+					<span class="muted tabular">
+						{#if sleepText}<span class="sleep" title={t.timerActive(sleepText)}
+								><Timer size={12} aria-hidden="true" />{sleepText}</span
+							>{/if}{sub}</span
+					>
 				{/if}
 			</span>
 		</button>
@@ -134,6 +149,18 @@
 	.text .muted {
 		font-size: var(--fs-12);
 		color: color-mix(in oklab, var(--c-ctrl-ink) 70%, transparent);
+	}
+
+	.sleep {
+		display: inline-flex;
+		align-items: center;
+		gap: 3px;
+		margin-right: var(--sp-8);
+		padding: 0 6px;
+		border-radius: var(--r-pill);
+		background: color-mix(in oklab, var(--c-accent) 25%, transparent);
+		color: var(--c-ctrl-ink);
+		font-weight: var(--fw-bold);
 	}
 
 	.err {

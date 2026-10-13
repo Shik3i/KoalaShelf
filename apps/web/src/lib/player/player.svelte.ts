@@ -8,7 +8,9 @@ import type {
 	MediaProgress,
 	PlaybackSession
 } from '@koalashelf/abs-client';
-import { AbsError } from '@koalashelf/abs-client';
+import { AbsError, encodeFilter } from '@koalashelf/abs-client';
+import { toasts } from '../toast.svelte.ts';
+import { i18n } from '../i18n/index.svelte.ts';
 import { session } from '../session.svelte.ts';
 import { progress } from '../progress.svelte.ts';
 import { view } from '../items.ts';
@@ -103,6 +105,8 @@ class Player {
 	#request = 0;
 	/** Sleep timer time left while paused (the countdown only runs while playing). */
 	sleepPausedLeft = $state<number | null>(null);
+	/** Seconds left on a minutes sleep timer (updated while playing). */
+	sleepRemaining = $state(0);
 	#session: PlaybackSession | null = null;
 	#tracks: AudioTrack[] = [];
 	#track = 0;
@@ -502,6 +506,7 @@ class Player {
 			return;
 		}
 		const left = (s.endsAt - Date.now()) / 1000;
+		this.sleepRemaining = Math.max(0, left);
 		if (left <= 0) {
 			this.pause();
 			a.volume = 1;
@@ -528,6 +533,29 @@ class Player {
 				.catch(() => undefined);
 			const p = progress.get(id);
 			if (p) progress.set({ ...p, isFinished: true, progress: 1 });
+			void this.#offerNextInSeries(this.item);
+		}
+	}
+
+	/** Book finished: if it belongs to a series, offer the next volume right away. */
+	async #offerNextInSeries(item: LibraryItem) {
+		const series = item.media.metadata.series?.[0];
+		if (!series) return;
+		try {
+			const { results } = await session.api.libraryItems(item.libraryId, {
+				filter: encodeFilter('series', series.id),
+				sort: 'sequence',
+				limit: 0
+			});
+			const next = results[results.findIndex((i) => i.id === item.id) + 1];
+			if (!next) return;
+			toasts.show(
+				i18n.m.toast.nextInSeries(next.media.metadata.title),
+				{ label: i18n.m.toast.playNext, run: () => void this.play(next.id) },
+				15_000
+			);
+		} catch {
+			/* offline or no access: nothing to offer */
 		}
 	}
 

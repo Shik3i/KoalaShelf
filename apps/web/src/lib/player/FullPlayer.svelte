@@ -9,11 +9,12 @@
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import Segmented from '#lib/components/Segmented.svelte';
-	import { dur } from '#lib/motion.ts';
+	import { dur, flyUp } from '#lib/motion.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { copyMomentLink } from '#lib/share.ts';
 	import { coverColor } from '#lib/cover-color.ts';
 	import Toaster from '#lib/components/Toaster.svelte';
+	import { fly } from 'svelte/transition';
 	import Link from '@lucide/svelte/icons/link';
 	import RotateCw from '@lucide/svelte/icons/rotate-cw';
 	import SkipBack from '@lucide/svelte/icons/skip-back';
@@ -137,11 +138,15 @@
 				<button class="icon" onclick={() => (player.expanded = false)} aria-label={t.close}>
 					<ChevronDown size={26} />
 				</button>
-				<span class="label"
-					>{player.chapter
-						? t.chapterOf(player.chapterIndex + 1, player.chapters.length)
-						: ''}</span
-				>
+				<span class="label chapter-label">
+					{#key player.chapterIndex}
+						<span in:fly={flyUp(8)}
+							>{player.chapter
+								? t.chapterOf(player.chapterIndex + 1, player.chapters.length)
+								: ''}</span
+						>
+					{/key}
+				</span>
 				<span class="icon-spacer"></span>
 			</header>
 
@@ -730,6 +735,14 @@
 		text-align: center;
 		color: var(--c-accent);
 		font-weight: var(--fw-bold);
+	}
+
+	.chapter-label {
+		display: grid;
+	}
+
+	.chapter-label > span {
+		grid-area: 1 / 1;
 	}
 
 	.keys {

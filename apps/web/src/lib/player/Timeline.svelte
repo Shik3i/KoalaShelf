@@ -5,12 +5,26 @@
 
 	/** Local value while dragging, so we seek once on release instead of on every pixel. */
 	let scrub = $state<number | null>(null);
+	/** Mouse hover position (0..1) for a time preview; touch uses the drag bubble instead. */
+	let hover = $state<number | null>(null);
+
+	function onHover(e: PointerEvent) {
+		if (e.pointerType !== 'mouse') return;
+		const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		hover = Math.min(1, Math.max(0, (e.clientX - box.left - 7) / (box.width - 14)));
+	}
 	const value = $derived(scrub ?? player.currentTime);
 	/** Fraction of the book; positions map onto the thumb's travel (see --x in CSS). */
 	const frac = (t: number) => (player.duration ? Math.min(1, Math.max(0, t / player.duration)) : 0);
 </script>
 
-<div class="timeline" style:--f={frac(value)}>
+<div
+	class="timeline"
+	style:--f={frac(value)}
+	role="presentation"
+	onpointermove={onHover}
+	onpointerleave={() => (hover = null)}
+>
 	<div class="track" aria-hidden="true">
 		<div class="fill"></div>
 		{#each player.chapters.slice(1) as c (c.id)}
@@ -40,7 +54,11 @@
 			onclick={() => player.seek(b.time)}
 		></button>
 	{/each}
-	{#if scrub !== null}<output class="bubble tabular">{clock(scrub)}</output>{/if}
+	{#if scrub !== null}
+		<output class="bubble tabular">{clock(scrub)}</output>
+	{:else if hover !== null}
+		<output class="bubble tabular hover" style:--f={hover}>{clock(hover * player.duration)}</output>
+	{/if}
 </div>
 
 <style>
@@ -74,6 +92,10 @@
 		width: var(--x);
 		border-radius: inherit;
 		background: var(--c-accent);
+	}
+
+	.bubble.hover {
+		--x: calc(7px + var(--f) * (100% - 14px));
 	}
 
 	.tick {
@@ -157,6 +179,14 @@
 		clip-path: path('M6 18 L0 8 A6 6 0 1 1 12 8 Z');
 		transition: scale var(--motion-fast) var(--motion-ease);
 		transform-origin: 50% 100%;
+		animation: pin-drop 420ms var(--motion-spring);
+	}
+
+	@keyframes pin-drop {
+		from {
+			scale: 0;
+			translate: 0 -8px;
+		}
 	}
 
 	.pin:hover::before {
@@ -167,7 +197,7 @@
 		position: absolute;
 		bottom: 100%;
 		left: var(--x);
-		translate: -50% -4px;
+		translate: -50% 4px;
 		padding: 2px 8px;
 		border-radius: var(--r-pill);
 		background: var(--c-ctrl);

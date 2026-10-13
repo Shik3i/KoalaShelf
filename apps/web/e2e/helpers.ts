@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const envFile = fileURLToPath(new URL('../../../dev/.env', import.meta.url));
 export const env = Object.fromEntries(
@@ -53,8 +53,13 @@ export async function itemId(title: string) {
 	return results.find((r) => r.media.metadata.title === title)!.id;
 }
 
+/** Player internals come from dev source modules; a production build (E2E_BASE_URL) has none. */
+export const needsDevServer = () =>
+	test.skip(!!process.env.E2E_BASE_URL, 'reads player internals (dev server only)');
+
 /** Reads a (nested) property of the app's player instance, e.g. "sleep.kind". */
 export async function player<T>(page: Page, path: string): Promise<T> {
+	needsDevServer();
 	return page.evaluate(async (path) => {
 		const mod = '/src/lib/player/player.svelte.ts';
 		const { player } = await import(/* @vite-ignore */ mod);
@@ -69,6 +74,7 @@ export async function player<T>(page: Page, path: string): Promise<T> {
 
 /** Calls a player method with JSON-serialisable arguments (no eval: the app's CSP forbids it). */
 export async function playerCall(page: Page, method: string, ...args: unknown[]) {
+	needsDevServer();
 	await page.evaluate(
 		async ([method, args]) => {
 			const mod = '/src/lib/player/player.svelte.ts';
@@ -88,4 +94,10 @@ export async function resetListening() {
 	for (const p of me.mediaProgress) await api(`/api/me/progress/${p.id}`, { method: 'DELETE' });
 	for (const b of me.bookmarks)
 		await api(`/api/me/item/${b.libraryItemId}/bookmark/${b.time}`, { method: 'DELETE' });
+}
+
+/** Stops playback between tests (no-op against a production build, see needsDevServer). */
+export async function stopPlayer(page: Page) {
+	if (process.env.E2E_BASE_URL) return;
+	await playerCall(page, 'stop').catch(() => undefined);
 }

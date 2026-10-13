@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, itemId, player, playerCall, resetListening } from './helpers.ts';
+import {
+	api,
+	itemId,
+	player,
+	playerCall,
+	needsDevServer,
+	resetListening,
+	stopPlayer
+} from './helpers.ts';
 
 async function openBook(page: Page, title: string) {
 	await page.goto(`/book/${await itemId(title)}`);
@@ -20,7 +28,7 @@ test.describe('player', () => {
 	test.beforeAll(resetListening);
 
 	test.afterEach(async ({ page }) => {
-		await playerCall(page, 'stop').catch(() => undefined);
+		await stopPlayer(page);
 	});
 
 	test('plays, shows the mini player, pauses and syncs progress', async ({ page }) => {
@@ -152,6 +160,7 @@ test.describe('player', () => {
 	});
 
 	test('switching books quickly keeps only the last one', async ({ page }) => {
+		needsDevServer();
 		await openBook(page, 'Der lange Weg');
 		const a = await itemId('Salzwasser');
 		const b = await itemId('Wintergrün');

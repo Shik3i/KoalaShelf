@@ -163,6 +163,7 @@ export const en = {
 		timerEndOfChapter: 'End of chapter',
 		timerMinutes: (n: number) => `${n} min`,
 		timerLeft: (t: string) => `Stops in ${t}`,
+		timerActive: (t: string) => `Sleep timer: ${t}`,
 		timerAtChapterEnd: 'Stops at chapter end',
 		chapters: 'Chapters',
 		bookmarks: 'Bookmarks',
@@ -262,7 +263,9 @@ export const en = {
 		unfinished: 'Marked as not finished',
 		downloaded: (title: string) => `Downloaded: ${title}`,
 		downloadFailed: (title: string) => `Download failed: ${title}`,
-		synced: 'Offline listening synced'
+		synced: 'Offline listening synced',
+		nextInSeries: (title: string) => `Next in the series: ${title}`,
+		playNext: 'Play'
 	},
 	shortcuts: {
 		title: 'Keyboard shortcuts',

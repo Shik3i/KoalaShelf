@@ -43,11 +43,23 @@ for (const scheme of ['light', 'dark'] as const) {
 			await page.goto(`/book/${await itemId('Salzwasser')}`);
 			await page.locator('.cta .btn.primary').click();
 			const scan = async (label: string) => {
+				// Fly-ins and fades must settle first. The spinning record is infinite; CSS
+				// transitions (progress line) restart with every time update.
+				await page.waitForFunction(() =>
+					document
+						.getAnimations()
+						.every(
+							(x) =>
+								x instanceof CSSTransition ||
+								x.playState !== 'running' ||
+								x.effect?.getTiming().iterations === Infinity
+						)
+				);
 				const r = await new AxeBuilder({ page })
 					.withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
 					.analyze();
 				expect(
-					r.violations.map((v) => `${v.id}: ${v.nodes[0]?.target.join(' ')}`),
+					r.violations.map((v) => `${v.id}: ${v.nodes[0]?.html}`),
 					label
 				).toEqual([]);
 			};

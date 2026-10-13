@@ -20,6 +20,7 @@ Design language: **KoalaShelf Vinyl** – covers first, the record as a motif, c
 - **Library**: shelf or list, filters (status, genre, narrator, series, author, combinable), sorting, group series; everything in the URL
 - **Book page**: spinning record, chapters, bookmarks, more by the author, file details, description, download
 - **Player**: multi-file books, chapters, configurable skip (10–60 s), speed 0.8–2.0×, sleep timer (minutes with fade-out or end of chapter), smart rewind after pauses, bookmarks as pins with editable notes, lock-screen/media-key controls, keyboard shortcuts, HLS fallback for formats the browser cannot play
+- **Little things**: share a link to a moment, undo for deletions, speed remembered per book, elapsed/remaining clock, next book in the series offered when one ends, time preview when hovering the timeline, sleep timer badge, `?` shortcut overview, gentle motion everywhere (respects reduced motion)
 - **Downloads & offline**: books stored in the browser (OPFS) and played from local files; offline listening is synced when the connection is back; installable PWA with offline app shell
 - **Live progress** from other devices (socket.io)
 - **Series, authors, collections, statistics** (heatmap, streak, weekdays, most listened), **search**, **settings**

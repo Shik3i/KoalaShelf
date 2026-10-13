@@ -7,6 +7,7 @@
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { duration } from '#lib/format.ts';
 	import Cover from '#lib/components/Cover.svelte';
+	import CountUp from '#lib/components/CountUp.svelte';
 
 	const t = $derived(i18n.m.stats);
 	let stats = $state.raw<ListeningStats | null>(null);
@@ -105,17 +106,23 @@
 	<div class="tiles">
 		<div class="tile card">
 			<span class="label">{t.total}</span><strong class="display"
-				>{duration(stats.totalTime)}</strong
+				><CountUp value={stats.totalTime} format={duration} /></strong
 			>
 		</div>
 		<div class="tile card">
-			<span class="label">{t.today}</span><strong class="display">{duration(stats.today)}</strong>
+			<span class="label">{t.today}</span><strong class="display"
+				><CountUp value={stats.today} format={duration} /></strong
+			>
 		</div>
 		<div class="tile card">
-			<span class="label">{t.days}</span><strong class="display tabular">{activeDays}</strong>
+			<span class="label">{t.days}</span><strong class="display tabular"
+				><CountUp value={activeDays} /></strong
+			>
 		</div>
 		<div class="tile card">
-			<span class="label">{t.streak}</span><strong class="display">{t.streakDays(streak)}</strong>
+			<span class="label">{t.streak}</span><strong class="display"
+				><CountUp value={streak} format={(n) => t.streakDays(Math.round(n))} /></strong
+			>
 		</div>
 	</div>
 

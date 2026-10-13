@@ -44,8 +44,19 @@ test.describe('screens', () => {
 				await page.getByRole('button', { name: 'Open player' }).click();
 				await expect(page.getByRole('dialog', { name: 'Player' })).toBeVisible();
 				await shot('player');
-				await page.getByRole('dialog').getByRole('button', { name: 'Chapters' }).click();
+				const dialog = page.getByRole('dialog');
+				await dialog.getByRole('button', { name: 'Chapters' }).click();
 				await shot('player-chapters');
+				await playerCall(page, 'addBookmark', 'Leuchtturm', 40);
+				const box = (await dialog.locator('.timeline').boundingBox())!;
+				await page.mouse.move(box.x + box.width * 0.7, box.y + box.height / 2);
+				await shot('player-hover');
+				await playerCall(page, 'deleteBookmark', 40);
+				await playerCall(page, 'setSleep', {
+					kind: 'minutes',
+					minutes: 15,
+					endsAt: Date.now() + 9e5
+				});
 				await page.keyboard.press('Escape');
 				await shot('mini');
 				await playerCall(page, 'stop');

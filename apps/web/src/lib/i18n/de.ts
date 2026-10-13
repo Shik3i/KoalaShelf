@@ -162,6 +162,7 @@ export const de: Messages = {
 		timerEndOfChapter: 'Kapitelende',
 		timerMinutes: (n) => `${n} Min.`,
 		timerLeft: (t) => `Stoppt in ${t}`,
+		timerActive: (t) => `Sleep-Timer: ${t}`,
 		timerAtChapterEnd: 'Stoppt am Kapitelende',
 		chapters: 'Kapitel',
 		bookmarks: 'Marken',
@@ -261,7 +262,9 @@ export const de: Messages = {
 		unfinished: 'Als ungehört markiert',
 		downloaded: (title) => `Heruntergeladen: ${title}`,
 		downloadFailed: (title) => `Download fehlgeschlagen: ${title}`,
-		synced: 'Offline Gehörtes synchronisiert'
+		synced: 'Offline Gehörtes synchronisiert',
+		nextInSeries: (title) => `Weiter in der Serie: ${title}`,
+		playNext: 'Abspielen'
 	},
 	shortcuts: {
 		title: 'Tastenkürzel',
