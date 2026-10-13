@@ -340,6 +340,14 @@ export class AbsClient {
 		});
 	}
 
+	/** Several expanded items in one request. */
+	items(ids: string[]) {
+		return this.request<{ libraryItems: LibraryItem[] }>('/api/items/batch/get', {
+			method: 'POST',
+			body: { libraryItemIds: ids }
+		}).then((r) => r.libraryItems);
+	}
+
 	play(itemId: string, deviceInfo: DeviceInfo, supportedMimeTypes: string[]) {
 		return this.request<PlaybackSession>(`/api/items/${itemId}/play`, {
 			method: 'POST',

@@ -94,7 +94,7 @@
 	<div class="shell">
 		<AppNav />
 		<main class:has-player={player.item}>
-			{#if !session.libraries.length && !page.url.pathname.startsWith('/settings')}
+			{#if session.librariesLoaded && !session.libraries.length && !/^\/(settings|downloads)/.test(page.url.pathname)}
 				<p class="no-lib">{i18n.m.common.noLibrary}</p>
 			{:else}
 				{@render children()}

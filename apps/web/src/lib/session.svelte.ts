@@ -22,6 +22,8 @@ interface Stored {
 	tokens: Tokens;
 	user: { id: string; username: string };
 	libraryId: string | null;
+	/** Last known libraries, so the app works offline. */
+	libraries?: Library[];
 }
 
 const KEY = 'ks.session';
@@ -75,6 +77,8 @@ class Session {
 	libraries = $state.raw<Library[]>([]);
 	libraryId = $state<string | null>(null);
 	ready = $state(false);
+	/** True once the server answered the library list (not just the offline copy). */
+	librariesLoaded = $state(false);
 	/** Set when the server rejected the refresh token (shown on the sign-in page). */
 	expired = $state(false);
 	/** Server permission to download files (false hides download buttons). */
@@ -108,7 +112,8 @@ class Session {
 			baseUrl: this.client.baseUrl,
 			tokens: { accessToken: this.client.accessToken, refreshToken: this.#refreshToken },
 			user: this.user,
-			libraryId: this.libraryId
+			libraryId: this.libraryId,
+			libraries: this.libraries
 		});
 	}
 
@@ -148,6 +153,7 @@ class Session {
 			this.client = this.#makeClient(stored.baseUrl, stored.tokens);
 			this.user = stored.user;
 			this.libraryId = stored.libraryId;
+			this.libraries = stored.libraries ?? [];
 			try {
 				await this.#loadLibraries();
 			} catch {
@@ -191,7 +197,9 @@ class Session {
 	async #loadLibraries() {
 		const libs = (await this.api.libraries()).filter((l) => l.mediaType === 'book');
 		this.libraries = libs.sort((a, b) => a.displayOrder - b.displayOrder);
+		this.librariesLoaded = true;
 		if (!libs.some((l) => l.id === this.libraryId)) this.libraryId = libs[0]?.id ?? null;
+		this.#persist();
 	}
 
 	#signOutHooks = new Set<() => void>();

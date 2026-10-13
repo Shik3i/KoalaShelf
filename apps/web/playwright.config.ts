@@ -2,8 +2,12 @@ import { defineConfig } from '@playwright/test';
 
 // End-to-end tests against the local Audiobookshelf from dev/ (see dev/README.md).
 // Edge is used because it plays AAC/m4b (the bundled Chromium lacks proprietary codecs).
+// E2E_BASE_URL runs the suite against a production build (e.g. the Docker image) instead
+// of the dev server; specs that inspect dev modules skip themselves there.
+const external = process.env.E2E_BASE_URL;
+
 const use = {
-	baseURL: 'http://localhost:5174',
+	baseURL: external ?? 'http://localhost:5174',
 	channel: 'msedge',
 	locale: 'en-US',
 	viewport: { width: 1280, height: 800 },
@@ -30,10 +34,12 @@ export default defineConfig({
 			use: { ...use, storageState: 'e2e/.auth/user.json' }
 		}
 	],
-	webServer: {
-		command: 'pnpm exec vite dev --port 5174 --strictPort',
-		port: 5174,
-		reuseExistingServer: true,
-		env: { ABS_URL: 'http://localhost:13378' }
-	}
+	webServer: external
+		? undefined
+		: {
+				command: 'pnpm exec vite dev --port 5174 --strictPort',
+				port: 5174,
+				reuseExistingServer: true,
+				env: { ABS_URL: 'http://localhost:13378' }
+			}
 });

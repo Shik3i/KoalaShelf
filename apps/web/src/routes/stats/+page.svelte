@@ -1,7 +1,8 @@
 <script lang="ts">
 	/* eslint-disable svelte/prefer-svelte-reactivity -- local date math inside $derived, not state */
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import type { ListeningStats } from '@koalashelf/abs-client';
+	import type { LibraryItem, ListeningStats } from '@koalashelf/abs-client';
+	import { coverSrc } from '#lib/items.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { duration } from '#lib/format.ts';
@@ -10,12 +11,24 @@
 	const t = $derived(i18n.m.stats);
 	let stats = $state.raw<ListeningStats | null>(null);
 	let error = $state<string | null>(null);
+	/** Items of the top list (stats carry no cover info; avoids requests for missing covers). */
+	let topItems = $state.raw<Map<string, LibraryItem>>(new Map());
 
 	$effect(() => {
 		if (!session.client) return;
 		session.api
 			.listeningStats()
-			.then((s) => (stats = s))
+			.then(async (s) => {
+				stats = s;
+				const ids = Object.values(s.items)
+					.sort((a, b) => b.timeListening - a.timeListening)
+					.slice(0, 8)
+					.map((i) => i.id);
+				if (ids.length) {
+					const items = await session.api.items(ids).catch(() => []);
+					topItems = new Map(items.map((i) => [i.id, i]));
+				}
+			})
 			.catch((e) => (error = (e as Error).message));
 	});
 
@@ -154,7 +167,7 @@
 									<Cover
 										title={it.mediaMetadata.title}
 										author={it.mediaMetadata.authors?.map((a) => a.name).join(', ') ?? ''}
-										src={(w) => session.api.coverUrl(it.id, { width: w })}
+										src={topItems.has(it.id) ? coverSrc(topItems.get(it.id)!) : null}
 										sizes="48px"
 									/>
 								</div>
