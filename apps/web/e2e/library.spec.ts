@@ -170,10 +170,13 @@ test.describe('library', () => {
 		await expect.poll(() => titles(page)).toEqual(['Der lange Weg', 'Salzwasser']);
 	});
 
-	test('author link from a book filters the library', async ({ page }) => {
+	test('author link from a book opens the author, then the filtered library', async ({ page }) => {
 		await page.locator('.tile', { hasText: 'Nachtzug' }).click();
 		await expect(page).toHaveURL(/\/book\//);
 		await page.getByRole('link', { name: 'Jonas Falk', exact: true }).click();
+		await expect(page).toHaveURL(/\/author\//);
+		await expect(page.getByRole('heading', { level: 1, name: 'Jonas Falk' })).toBeVisible();
+		await page.getByRole('link', { name: 'Show in library' }).click();
 		await expect(page).toHaveURL(/author=/);
 		await expect(page.getByRole('button', { name: /Jonas Falk ✕/ })).toBeVisible();
 		await expect.poll(() => titles(page)).toEqual(['Nachtzug']);

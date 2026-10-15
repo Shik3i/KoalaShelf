@@ -29,6 +29,8 @@ async function pages() {
 		'/authors',
 		'/collections',
 		'/history',
+		'/playlists',
+		'/bookmarks',
 		'/stats',
 		'/search?q=a',
 		'/settings',

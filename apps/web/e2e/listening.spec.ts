@@ -213,6 +213,8 @@ test.describe('listening', () => {
 			'Series',
 			'Authors',
 			'Collections',
+			'Playlists',
+			'Bookmarks',
 			'History',
 			'Statistics',
 			'Settings'

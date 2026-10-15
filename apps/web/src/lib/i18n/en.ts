@@ -5,6 +5,8 @@ const plural = (n: number, one: string, other: string) => `${n} ${n === 1 ? one 
 export const en = {
 	appName: 'KoalaShelf',
 	nav: {
+		playlists: 'Playlists',
+		bookmarks: 'Bookmarks',
 		main: 'Main navigation',
 		home: 'Home',
 		library: 'Library',
@@ -153,6 +155,7 @@ export const en = {
 		done: 'Finished'
 	},
 	book: {
+		playlist: 'Playlist',
 		by: 'by',
 		readBy: 'Narrated by',
 		play: 'Play',
@@ -280,11 +283,21 @@ export const en = {
 		empty: 'No series in this library.'
 	},
 	authors: {
+		narrators: 'Narrators',
+		show: 'Show',
+		noNarrators: 'No narrators yet.',
 		title: 'Authors',
 		books: (n: number) => plural(n, 'book', 'books'),
 		empty: 'No authors in this library.'
 	},
 	search: {
+		genres: 'Genres',
+		tags: 'Tags',
+		scope: 'Search in',
+		thisLibrary: 'This library',
+		allLibraries: 'All libraries',
+		recent: 'Recent searches',
+		clearRecent: 'Clear',
 		title: 'Search',
 		placeholder: 'Titles, authors, narrators, series …',
 		books: 'Books',
@@ -420,6 +433,7 @@ export const en = {
 		removed: 'No longer in the library'
 	},
 	shortcuts: {
+		palette: 'Quick search',
 		title: 'Keyboard shortcuts',
 		playPause: 'Play / pause',
 		skip: 'Skip back / forward',
@@ -435,6 +449,111 @@ export const en = {
 		loading: 'Loading …',
 		noLibrary: 'There is no audiobook library on this server for your account.',
 		offline: 'You are offline. Playback and updates resume once the connection is back.'
+	},
+	author: {
+		label: 'Author',
+		books: 'Books',
+		otherBooks: 'More books',
+		inLibrary: 'Show in library',
+		notFound: 'Author not found.'
+	},
+	seriesPage: {
+		label: 'Series',
+		finishedOf: (done: number, all: number) => `${done} of ${all} finished`,
+		continue: (title: string) => `Continue: ${title}`,
+		start: (title: string) => `Start: ${title}`,
+		again: 'Listen again from the start',
+		queueAll: 'Add the rest to the queue',
+		queued: (n: number) =>
+			n === 1 ? '1 book added to the queue' : `${n} books added to the queue`,
+		hide: 'Remove from "Continue series"',
+		hidden: 'Removed from "Continue series"',
+		notFound: 'Series not found.'
+	},
+	playlists: {
+		title: 'Playlists',
+		label: 'Playlist',
+		empty: 'No playlists yet. Create one here or add a book from its page.',
+		emptyList: 'This playlist is empty. Add books from their page.',
+		newName: 'New playlist',
+		create: 'Create',
+		play: 'Play all',
+		queueAll: 'Add to queue',
+		rename: 'Rename',
+		save: 'Save',
+		cancel: 'Cancel',
+		delete: 'Delete playlist',
+		deleteConfirm: (name: string) => `Delete “${name}”? The books stay in your library.`,
+		deleted: 'Playlist deleted',
+		moveUp: (title: string) => `Move ${title} up`,
+		moveDown: (title: string) => `Move ${title} down`,
+		removeItem: (title: string) => `Remove ${title} from the playlist`,
+		addTitle: 'Add to playlist',
+		none: 'No playlists yet.',
+		addedTo: (name: string) => `Added to “${name}”`,
+		removedFrom: (name: string) => `Removed from “${name}”`,
+		done: 'Done',
+		notFound: 'Playlist not found.'
+	},
+	bookmarksPage: {
+		title: 'Bookmarks',
+		empty: 'No bookmarks yet. Press B while listening to set one.',
+		playAt: (t: string) => `Play from ${t}`
+	},
+	yearReview: {
+		title: (y: number) => `Your ${y}`,
+		year: 'Year',
+		nothing: (y: number) => `No listening in ${y} yet.`,
+		listened: 'listened',
+		finished: 'books finished',
+		books: 'books listened to',
+		sessions: 'listening sessions',
+		topAuthors: 'Top authors',
+		topGenres: 'Top genres',
+		bestMonth: 'Best month',
+		narrator: 'Voice of the year',
+		longest: 'Longest book finished'
+	},
+	libraryFacts: {
+		title: (name: string) => `Library ${name}`,
+		titles: 'Titles',
+		duration: 'Total length',
+		authors: 'Authors',
+		size: 'On disk',
+		genres: 'Genres',
+		longest: 'Longest books'
+	},
+	security: {
+		showAll: (n: number) => `Show all ${n} devices`,
+		devices: 'Signed-in devices',
+		devicesHint: 'Every place your account is signed in. Sign out what you do not recognize.',
+		thisDevice: 'This device',
+		unknown: 'Unknown device',
+		lastUsed: (when: string) => `Last used ${when}`,
+		signOut: 'Sign out',
+		signOutOthers: 'Sign out all others',
+		othersSignedOut: 'All other devices are signed out',
+		password: 'Password',
+		currentPassword: 'Current password',
+		newPassword: 'New password',
+		repeatPassword: 'Repeat new password',
+		changePassword: 'Change password',
+		mismatch: 'The new passwords do not match.',
+		wrong: 'The current password is not right.',
+		failed: 'The password could not be changed. Try again later.',
+		changed: 'Password changed'
+	},
+	palette: {
+		label: 'Quick search',
+		placeholder: 'Books, authors, series, pages or actions …',
+		pages: 'Go to',
+		actions: 'Actions',
+		more: 'More',
+		openPlayer: 'Open the player',
+		sleep30: 'Sleep timer: 30 minutes',
+		theme: 'Switch theme',
+		searchAll: (q: string) => `Search everything for “${q}”`,
+		foot: '↑ ↓ to move · Enter to open · Esc to close'
 	},
 	format: {
 		hours: 'h',

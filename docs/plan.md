@@ -26,10 +26,11 @@ Later (native): Android Auto, driving mode.
 
 ## Routes (web)
 
-`/signin`, `/` (home), `/library`, `/series`, `/authors`, `/collections`, `/collections/:id`, `/history`, `/stats`, `/downloads`, `/search`, `/settings`, `/book/:id`.
+`/signin`, `/` (home), `/library`, `/book/:id`, `/author/:id`, `/series`, `/series/:id`, `/authors` (`?tab=narrators`), `/playlists`, `/playlists/:id`, `/bookmarks`, `/collections`, `/collections/:id`, `/history`, `/stats`, `/downloads`, `/search`, `/settings`.
 Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin proxy forwards.
 
-- Library: `view=list`, `status=in-progress|not-started|finished`, `genre`, `narrator`, `series`, `author`, `group=1`, `sort=title|author|added|played|duration|published`, `desc=0|1`. View, sort and grouping are remembered; filters are not.
+- Library: `view=list`, `status=in-progress|not-started|finished`, `genre`, `tag`, `narrator`, `language` (each repeatable: any of the values), `author`, `series`, `publisher`, `decade`, `length=lt2|2-6|6-12|12-24|gt24`, `q` (text), `group=1`, `sort=title|author|added|played|started|finished|duration|published|random`, `desc=0|1`, `shuffle`. View, sort and grouping are remembered; filters are not (saved views keep them on purpose).
+- Search: `?q=`, `in=all` for every library.
 - Book: `?t=754` or `?t=12:34` opens the book at that moment (shared links).
 - Search: `?q=`.
 
@@ -43,7 +44,9 @@ Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin pro
 - **Device name.** Sessions send no `model`, so the server names the device from the browser ("Windows 10 Edge").
 
 ### Data
-- **Filters.** The server accepts one filter per request. The most selective filter goes to the server, the rest is applied client-side.
+- **Filters.** The server accepts one filter per request. One filter (or none) pages through the server. Anything combined becomes an exact set: one cached server request per value, values of a kind OR'ed, kinds AND'ed, status and length checked locally against current progress. The text filter unions the server search's books with the books of matching authors, series, narrators, genres and tags. Grouping series works only with at most one filter (the server groups, not the client).
+- **Search** runs in the current library or all of them in parallel; highlights are visual only, so screen readers read whole words. The quick search (Ctrl/⌘ K) is a combobox over search results, pages and actions.
+- **Playlists live on the server** (shared across the listener's devices); the queue stays on the device. "Play all" puts the rest of a playlist in front of the queue.
 - **Progress.** The latest load wins over an older, slower one; when the server lists a book twice, the entry with the newest `lastUpdate` counts; live events only apply when they are newer than what is known (server timestamps only, device clocks can be off).
 - **Sync.** Every 15 s while playing, on pause, on hide/unload. Listening time is counted from wall-clock while playing, robust against seeks. If the server forgot the session (404), a new one is opened at the same spot.
 - **Bookmark "note"** = the bookmark title (the server has no separate note field).

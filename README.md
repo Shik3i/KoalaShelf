@@ -32,16 +32,24 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 - **Listening history**: every session on every device by day, with jumps to where it started or ended; per book on its page
 - **Live progress** from other devices; **downloads** for offline listening (synced when back online); **save a book's files as a ZIP**
 
+**Finding**
+- **Library**: shelf or list; filters for status, author, series, narrator, genre, tag, language, publisher, decade and length, freely combined (several values per kind, exact results); a text filter that also finds the books of matching authors, series and narrators; sorting by title, author, added, played, started, finished, length, year or random; grouped series; saved views; everything in the URL
+- **Search**: books, series, authors, narrators, genres and tags, in one library or all of them, with highlighted matches and recent searches
+- **Quick search** from anywhere (Ctrl/⌘ K or `/`): books, people, pages and actions by keyboard
+
 **Browsing**
 - **Home**: "continue listening" turntable and crates from your personalized shelves
-- **Library**: shelf or list, filters (status, genre, narrator, series, author, combinable), sorting, grouped series; all in the URL
 - **Book page**: spinning record, chapters, bookmarks, history, more by the author, file details, description
-- **Series, authors, collections, statistics** (heatmap, streak, weekdays, most listened), **search**
+- **Author pages** (photo, bio, books by series), **series pages** (progress, the next book, add the rest to the queue), **narrators**
+- **Playlists**: your own lists, synced through the server: create, add from any book, reorder, play all
+- **Bookmarks** of every book in one place; **collections**
+- **Statistics**: your year in review (time, books finished, top authors and genres, best month, voice of the year), heatmap, streak, weekdays, most listened, the library in numbers
 
 **Yours to tailor** (stored on the device only)
 - Theme, six accent colors (all contrast-checked), text size on top of the system size, animations, record spin, cover size
 - Skip steps, chapter or book timeline, clock, speed for new books and per book, headset/lock-screen buttons as chapter or skip, smart rewind, leveling, queue and series behavior, keyboard shortcuts
 - Sleep timer fade-out and rewind; start page; home shelves (show, hide, reorder); downloads; reset
+- Account: signed-in devices with remote sign-out, password change
 
 **Everywhere**
 - Responsive from 320 px phones (portrait and landscape) through tablets to 2560 px screens; a "More" sheet on phones

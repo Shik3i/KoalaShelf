@@ -14,6 +14,7 @@
 	import LocaleSwitch from '#lib/components/LocaleSwitch.svelte';
 	import Segmented from '#lib/components/Segmented.svelte';
 	import Toggle from '#lib/components/Toggle.svelte';
+	import AccountSecurity from '#lib/components/AccountSecurity.svelte';
 	import ChevronUp from '@lucide/svelte/icons/chevron-up';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Check from '@lucide/svelte/icons/check';
@@ -401,6 +402,7 @@
 		<dd>{serverVersion ? `Audiobookshelf ${serverVersion}` : '…'}</dd>
 	</dl>
 	<button class="btn ghost" onclick={() => session.signOut()}>{t.signOut}</button>
+	<AccountSecurity />
 </section>
 
 <section class="card" aria-labelledby="h-about">

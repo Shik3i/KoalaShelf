@@ -90,7 +90,7 @@ test.describe('guest without download permission', () => {
 		await signIn(page, env.ABS_GUEST_USER, env.ABS_GUEST_PASSWORD);
 		await page.goto(`/book/${await itemId('Nachtzug')}`);
 		await expect(page.getByRole('heading', { level: 1, name: 'Nachtzug' })).toBeVisible();
-		await expect(page.getByRole('button', { name: /^Play/ })).toBeVisible();
+		await expect(page.locator('.cta .btn.primary')).toBeVisible();
 		await expect(page.getByRole('button', { name: 'Download' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Save files (ZIP)' })).toHaveCount(0);
 	});
@@ -136,6 +136,9 @@ test.describe('mobile', () => {
 			'/authors',
 			'/collections',
 			'/history',
+			'/playlists',
+			'/bookmarks',
+			'/authors?tab=narrators',
 			'/stats',
 			'/search',
 			'/settings',

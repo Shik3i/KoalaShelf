@@ -12,6 +12,7 @@
 	import { startLive } from '#lib/live.ts';
 	import Toaster from '#lib/components/Toaster.svelte';
 	import Shortcuts from '#lib/components/Shortcuts.svelte';
+	import CommandPalette from '#lib/components/CommandPalette.svelte';
 	import { RATES } from '#lib/player/player.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { dev } from '$app/env';
@@ -25,6 +26,7 @@
 
 	let full = $state<FullPlayer>();
 	let shortcuts = $state(false);
+	let palette = $state(false);
 
 	// Live progress from other devices while signed in.
 	$effect(() => {
@@ -62,10 +64,21 @@
 
 	/** Global player shortcuts, ignored while typing or on focused controls. */
 	function onKey(e: KeyboardEvent) {
+		// Quick search: Ctrl/⌘ K anywhere (also while typing), "/" elsewhere.
+		if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k' && session.client) {
+			e.preventDefault();
+			palette = !palette;
+			return;
+		}
 		if (e.ctrlKey || e.metaKey || e.altKey || !prefs.shortcuts) return;
 		const el = e.target as HTMLElement;
 		if (el.closest('input, textarea, select, [contenteditable]')) return;
 		const key = e.key;
+		if (key === '/' && session.client) {
+			e.preventDefault();
+			palette = true;
+			return;
+		}
 		if (key === '?') {
 			shortcuts = !shortcuts;
 			return;
@@ -147,6 +160,7 @@
 	<FullPlayer bind:this={full} />
 	<Toaster hidden={player.expanded} />
 	<Shortcuts bind:open={shortcuts} />
+	<CommandPalette bind:open={palette} />
 {/if}
 
 <style>

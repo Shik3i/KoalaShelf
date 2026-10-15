@@ -93,7 +93,23 @@ Bookmarks only have `time` + `title`. Progress entries carry `lastUpdate` (serve
 
 - The auth rate limiter (`RATE_LIMIT_AUTH_MAX`, default 10 per 10 min) also covers `/auth/refresh`.
 - Unauthenticated `/status` also returns `authMethods` (e.g. `["local", "openid"]`).
-- `DELETE /api/me/sessions/:id` deletes a *login* session, not a listening session; single listening sessions cannot be deleted by users.
+- `GET /api/me/sessions` lists the user's *login* sessions (signed-in devices: `userAgent`, `ipAddress`, `createdAt`, `updatedAt`, `current`); `current` is only set when the request carries the refresh token (header or cookie). `DELETE /api/me/sessions/:id` signs that device out. Single listening sessions cannot be deleted by users.
+
+## Browse, playlists, account
+
+| Purpose | Call |
+|---|---|
+| Author with books and series | `GET /api/authors/:id?include=items,series&library=:libraryId` → books in the compact format; in `series[].items` the volume is `media.metadata.series` (one object, not a list) |
+| Series with progress | `GET /api/libraries/:id/series/:seriesId?include=progress` → `progress { libraryItemIds, libraryItemIdsFinished, isFinished }`; books via the series filter, sorted by `sequence` |
+| "Continue series" shelf | `GET /api/me/series/:id/remove-from-continue-listening`, `…/readd-to-continue-listening` |
+| Narrators | `GET /api/libraries/:id/narrators` → `{ narrators: [{ id, name, numBooks }] }` |
+| All bookmarks | `GET /api/me/bookmarks` → `{ bookmarks }` |
+| Year in review | `GET /api/me/stats/year/:year` → totals, `topAuthors`, `topGenres`, `mostListenedNarrator`, `mostListenedMonth` (0-11), `numBooksFinished`, `longestAudiobookFinished`, `booksWithCovers` (item ids) |
+| Library statistics | `GET /api/libraries/:id/stats` → totals, `longestItems`, `largestItems`, `genresWithCount`, `authorsWithCount` |
+| Playlists | `GET /api/libraries/:id/playlists`, `GET/PATCH/DELETE /api/playlists/:id` (PATCH `items` replaces the list, so it also reorders), `POST /api/playlists` `{ libraryId, name, items: [{ libraryItemId }] }`, `POST /api/playlists/:id/item`, `DELETE /api/playlists/:id/item/:libraryItemId` |
+| Password | `PATCH /api/me/password` `{ password, newPassword }` (not for guests) |
+| More filters | `publishers`, `publishedDecades`, `tags`, `languages`, also `abridged`, `explicit`, `missing`, `tracks`, `ebooks`; sorts also `progress.createdAt`, `progress.finishedAt`, `random`, `size` |
+| Search | also returns `genres` and `tags` as `{ name, numItems }`; matches titles, not author names (those come as `authors`) |
 
 ## Quirks seen on 2.37.1
 

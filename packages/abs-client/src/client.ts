@@ -80,6 +80,10 @@ interface RequestOptions {
 	query?: Query;
 	body?: unknown;
 	signal?: AbortSignal;
+	/** Extra headers, e.g. the refresh token for calls that identify the current device. */
+	headers?: Record<string, string>;
+	/** Send cookies (same-origin cookie mode); off by default. */
+	withCookies?: boolean;
 }
 
 export const normalizeBaseUrl = (url: string) => url.trim().replace(/\/+$/, '');
@@ -202,17 +206,18 @@ export class AbsClient {
 
 	async request<T>(
 		path: string,
-		{ method = 'GET', query, body, signal, keepalive, fetch: fetchFn }: RequestOptions = {}
+		{ method = 'GET', query, body, signal, keepalive, fetch: fetchFn, headers, withCookies }: RequestOptions = {}
 	): Promise<T> {
 		const send = () =>
 			(fetchFn ?? this.fetchFn)(`${this.baseUrl}${withQuery(path, query)}`, {
 				method,
 				signal,
 				keepalive,
-				credentials: 'omit',
+				credentials: withCookies ? 'same-origin' : 'omit',
 				headers: {
 					Authorization: `Bearer ${this.tokens.accessToken}`,
-					...(body !== undefined ? { 'Content-Type': 'application/json' } : {})
+					...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+					...headers
 				},
 				body: body !== undefined ? JSON.stringify(body) : undefined
 			});
@@ -330,10 +335,12 @@ export class AbsClient {
 	libraryItems(
 		libraryId: string,
 		q: { page?: number; limit?: number; sort?: string; desc?: boolean; filter?: string; collapseSeries?: boolean } = {},
-		signal?: AbortSignal
+		signal?: AbortSignal,
+		fetchFn?: FetchFn
 	) {
 		return this.request<Paged<LibraryItemMinified>>(`/api/libraries/${libraryId}/items`, {
 			signal,
+			fetch: fetchFn,
 			query: {
 				limit: q.limit ?? 60,
 				page: q.page ?? 0,
@@ -371,15 +378,17 @@ export class AbsClient {
 
 	// --- Browse -------------------------------------------------------------
 
-	author(authorId: string, libraryId: string) {
+	author(authorId: string, libraryId: string, fetchFn?: FetchFn) {
 		return this.request<AuthorDetail>(`/api/authors/${authorId}`, {
-			query: { include: 'items,series', library: libraryId }
+			query: { include: 'items,series', library: libraryId },
+			fetch: fetchFn
 		});
 	}
 
-	seriesDetail(libraryId: string, seriesId: string) {
+	seriesDetail(libraryId: string, seriesId: string, fetchFn?: FetchFn) {
 		return this.request<SeriesDetail>(`/api/libraries/${libraryId}/series/${seriesId}`, {
-			query: { include: 'progress' }
+			query: { include: 'progress' },
+			fetch: fetchFn
 		});
 	}
 
@@ -415,8 +424,8 @@ export class AbsClient {
 		);
 	}
 
-	playlist(id: string) {
-		return this.request<Playlist>(`/api/playlists/${id}`);
+	playlist(id: string, fetchFn?: FetchFn) {
+		return this.request<Playlist>(`/api/playlists/${id}`, { fetch: fetchFn });
 	}
 
 	createPlaylist(libraryId: string, name: string, itemIds: string[] = []) {
@@ -455,9 +464,13 @@ export class AbsClient {
 
 	/** Signed-in devices of this user, most recently used first. */
 	authSessions() {
-		return this.request<{ sessions: AuthSession[] }>('/api/me/sessions', { query: { itemsPerPage: 50 } }).then(
-			(r) => r.sessions
-		);
+		// The refresh token lets the server mark which session is this device's.
+		const refresh = this.tokens.refreshToken;
+		return this.request<{ sessions: AuthSession[] }>('/api/me/sessions', {
+			query: { itemsPerPage: 50 },
+			headers: refresh ? { 'x-refresh-token': refresh } : undefined,
+			withCookies: !refresh
+		}).then((r) => r.sessions);
 	}
 
 	signOutDevice(sessionId: string) {

@@ -18,6 +18,7 @@
 		[['Shift', '←', '→'], t.chapter],
 		[['[', ']'], t.speed],
 		[['B'], t.bookmark],
+		[['Ctrl', 'K'], t.palette],
 		[['?'], t.help]
 	] as const);
 </script>

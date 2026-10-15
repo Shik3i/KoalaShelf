@@ -757,7 +757,7 @@
 	.add input {
 		min-height: var(--layout-touch);
 		padding: 0 var(--sp-16);
-		border: 1.5px solid var(--c-line);
+		border: 1.5px solid var(--c-field);
 		border-radius: var(--r-card);
 		background: var(--c-bg);
 	}

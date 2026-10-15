@@ -54,7 +54,7 @@
 		untrack(() => load(0));
 	});
 
-	/** YYYY-MM-DD in local time, like the server's session dates. */
+	/** YYYY-MM-DD in the listener's local time. */
 	const day = (d: Date) =>
 		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -68,15 +68,14 @@
 		});
 		const groups: { date: string; label: string; total: number; list: ListeningSession[] }[] = [];
 		for (const s of sessions) {
+			// The listener's own day: the server's `date` is in the server's time zone.
+			const when = new Date(s.startedAt);
+			const date = day(when);
 			let g = groups.at(-1);
-			if (g?.date !== s.date) {
+			if (g?.date !== date) {
 				const label =
-					s.date === day(today)
-						? t.today
-						: s.date === day(yesterday)
-							? t.yesterday
-							: fmt.format(new Date(`${s.date}T12:00:00`));
-				g = { date: s.date, label, total: 0, list: [] };
+					date === day(today) ? t.today : date === day(yesterday) ? t.yesterday : fmt.format(when);
+				g = { date, label, total: 0, list: [] };
 				groups.push(g);
 			}
 			g.total += s.timeListening;

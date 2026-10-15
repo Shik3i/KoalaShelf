@@ -8,6 +8,8 @@
 	import { duration } from '#lib/format.ts';
 	import Cover from '#lib/components/Cover.svelte';
 	import CountUp from '#lib/components/CountUp.svelte';
+	import YearReview from '#lib/components/YearReview.svelte';
+	import LibraryFacts from '#lib/components/LibraryFacts.svelte';
 
 	const t = $derived(i18n.m.stats);
 	let stats = $state.raw<ListeningStats | null>(null);
@@ -86,6 +88,10 @@
 			.sort((a, b) => b.timeListening - a.timeListening)
 			.slice(0, 8)
 	);
+	/** Years with listening, newest first. */
+	const years = $derived(
+		[...new Set(Object.keys(stats?.days ?? {}).map((d) => +d.slice(0, 4)))].sort((a, b) => b - a)
+	);
 	const dateFmt = $derived(new Intl.DateTimeFormat(i18n.tag, { dateStyle: 'medium' }));
 </script>
 
@@ -129,6 +135,8 @@
 	{#if stats.totalTime === 0}
 		<EmptyState text={t.empty} />
 	{:else}
+		<YearReview {years} />
+
 		<section class="card block">
 			<h2 class="label">{t.year}</h2>
 			<div class="heat" role="img" aria-label={t.year}>
@@ -188,6 +196,8 @@
 		</div>
 	{/if}
 {/if}
+
+<LibraryFacts />
 
 <style>
 	h1 {

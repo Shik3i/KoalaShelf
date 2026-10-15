@@ -101,7 +101,7 @@
 	.find {
 		min-height: 40px;
 		padding: 0 var(--sp-12);
-		border: 1.5px solid var(--c-line);
+		border: 1.5px solid var(--c-field);
 		border-radius: var(--r-pill);
 		background: var(--c-bg);
 		color: var(--c-ink);

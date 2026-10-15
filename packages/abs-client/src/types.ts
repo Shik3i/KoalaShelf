@@ -219,10 +219,12 @@ export interface SearchResult {
 	genres: { name: string; numItems: number }[];
 }
 
-/** An author with their books and series in one library. */
+/** An author with their books (compact format) and series in one library. */
 export interface AuthorDetail extends Author {
-	libraryItems: LibraryItem[];
-	series: { id: string; name: string; items: LibraryItem[] }[];
+	libraryId: string;
+	libraryItems: LibraryItemMinified[];
+	/** Series items carry their own volume as `media.metadata.series` (one object, not a list). */
+	series: { id: string; name: string; items: (LibraryItemMinified & { media: { metadata: { series?: { sequence: string | null } } } })[] }[];
 }
 
 export interface SeriesDetail {

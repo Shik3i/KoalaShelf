@@ -68,7 +68,7 @@
 	{/if}
 	{#each list as s (s.id)}
 		{@const books = s.books.slice(0, 3)}
-		<a class="series" href="/library?series={s.id}">
+		<a class="series" href="/series/{s.id}">
 			<div class="stack" style:--n={books.length}>
 				{#each books.toReversed() as b, i (b.id)}
 					{@const v = view(b)}

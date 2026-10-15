@@ -10,6 +10,8 @@
 	import ListPlus from '@lucide/svelte/icons/list-plus';
 	import ListChecks from '@lucide/svelte/icons/list-checks';
 	import FileArchive from '@lucide/svelte/icons/file-archive';
+	import ListMusic from '@lucide/svelte/icons/list-music';
+	import PlaylistPicker from '#lib/components/PlaylistPicker.svelte';
 	import { isTauri } from '#lib/platform.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
@@ -113,6 +115,8 @@
 			.catch(() => (history = []));
 	});
 
+	let playlistOpen = $state(false);
+
 	function toggleQueue() {
 		if (!item) return;
 		if (queue.has(item.id)) return queue.remove(item.id);
@@ -213,15 +217,14 @@
 
 			<div class="info">
 				{#if meta.series[0]}
-					<a class="label series" href="/library?series={meta.series[0].id}"
+					<a class="label series" href="/series/{meta.series[0].id}"
 						>{t.seriesBook(meta.series[0].name, meta.series[0].sequence)}</a
 					>
 				{/if}
 				<h1>{v.title}</h1>
 				{#if meta.subtitle}<p class="subtitle">{meta.subtitle}</p>{/if}
 				<p class="people">
-					{#each meta.authors as a, i (a.id)}{i ? ', ' : ''}<a href="/library?author={a.id}"
-							>{a.name}</a
+					{#each meta.authors as a, i (a.id)}{i ? ', ' : ''}<a href="/author/{a.id}">{a.name}</a
 						>{/each}
 				</p>
 				{#if meta.narrators.length}
@@ -288,6 +291,12 @@
 								</span>
 							{/key}
 							{queued ? t.inQueue : t.addToQueue}
+						</button>
+					{/if}
+					{#if item.media.audioFiles.length && !data.offline}
+						<button class="btn ghost" onclick={() => (playlistOpen = true)}>
+							<ListMusic size={16} aria-hidden="true" />
+							{t.playlist}
 						</button>
 					{/if}
 				</div>
@@ -418,6 +427,9 @@
 				{/if}
 			</aside>
 		</div>
+		{#if item.media.audioFiles.length && !data.offline}
+			<PlaylistPicker {item} bind:open={playlistOpen} />
+		{/if}
 	</article>
 {/if}
 

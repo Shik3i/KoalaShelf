@@ -15,6 +15,8 @@
 	import Moon from '@lucide/svelte/icons/moon';
 	import LogOut from '@lucide/svelte/icons/log-out';
 	import History from '@lucide/svelte/icons/history';
+	import ListMusic from '@lucide/svelte/icons/list-music';
+	import BookmarkIcon from '@lucide/svelte/icons/bookmark';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import Settings from '@lucide/svelte/icons/settings';
 	import { afterNavigate } from '$app/navigation';
@@ -29,11 +31,16 @@
 		{ href: '/series', label: t.series, icon: Layers, tab: false },
 		{ href: '/authors', label: t.authors, icon: Users, tab: false },
 		{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
+		{ href: '/playlists', label: t.playlists, icon: ListMusic, tab: false },
+		{ href: '/bookmarks', label: t.bookmarks, icon: BookmarkIcon, tab: false },
 		{ href: '/history', label: t.history, icon: History, tab: false },
 		{ href: '/stats', label: t.stats, icon: ChartColumn, tab: false },
 		{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
 		{ href: '/search', label: t.search, icon: Search, tab: true }
 	]);
+
+	/** Shortcut hint for the quick search (⌘ on Apple devices). */
+	const modKey = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
 
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
@@ -74,6 +81,7 @@
 			<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
 				<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
 				{item.label}
+				{#if item.href === '/search'}<kbd class="hint" aria-hidden="true">{modKey} K</kbd>{/if}
 			</a>
 		{/each}
 	</nav>
@@ -221,6 +229,21 @@
 
 	.side nav a:hover {
 		background: color-mix(in oklab, var(--c-ctrl) 8%, transparent);
+	}
+
+	.hint {
+		margin-left: auto;
+		padding: 1px 6px;
+		border-radius: 5px;
+		box-shadow: inset 0 0 0 1px var(--c-line);
+		color: var(--c-muted);
+		font: inherit;
+		font-size: var(--fs-12);
+	}
+
+	.side nav a[aria-current='page'] .hint {
+		color: inherit;
+		box-shadow: inset 0 0 0 1px currentColor;
 	}
 
 	.side nav a[aria-current='page'] {

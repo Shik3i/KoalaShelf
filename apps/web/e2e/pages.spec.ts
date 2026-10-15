@@ -45,16 +45,16 @@ test.describe('pages', () => {
 		await expect(page.getByText('This title does not exist (anymore).')).toBeVisible();
 	});
 
-	test('series page lists the series as a stack', async ({ page }) => {
+	test('series overview lists the series as a stack and opens its page', async ({ page }) => {
 		await page.goto('/series');
 		await expect(page.getByText('1 series')).toBeVisible();
 		await page.getByRole('link', { name: /Küstenlichter/ }).click();
-		await expect(page).toHaveURL(/library\?series=/);
+		await expect(page).toHaveURL(/\/series\/[\w-]+$/);
 	});
 
-	test('authors page links to the filtered library', async ({ page }) => {
+	test('authors overview opens the author page with their books', async ({ page }) => {
 		await page.goto('/authors');
-		await expect(page.locator('.author')).toHaveCount(6);
+		await expect(page.locator('.person')).toHaveCount(6);
 		await page.getByRole('link', { name: /Mara Lindqvist/ }).click();
 		await expect(page.locator('.tile')).toHaveCount(2);
 	});

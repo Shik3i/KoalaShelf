@@ -644,7 +644,7 @@
 		min-height: var(--layout-touch);
 		margin: calc(-1 * var(--sp-16)) 0 var(--sp-20);
 		padding: 0 var(--sp-16);
-		border: 1.5px solid var(--c-line);
+		border: 1.5px solid var(--c-field);
 		border-radius: var(--r-pill);
 		background: var(--c-card);
 		color: var(--c-muted);
