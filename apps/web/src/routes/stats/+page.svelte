@@ -10,6 +10,9 @@
 	import CountUp from '#lib/components/CountUp.svelte';
 	import YearReview from '#lib/components/YearReview.svelte';
 	import LibraryFacts from '#lib/components/LibraryFacts.svelte';
+	import GoalRing from '#lib/components/GoalRing.svelte';
+	import { prefs } from '#lib/prefs.svelte.ts';
+	import { streak as streakOf } from '#lib/export.ts';
 
 	const t = $derived(i18n.m.stats);
 	let stats = $state.raw<ListeningStats | null>(null);
@@ -62,16 +65,20 @@
 
 	const activeDays = $derived(Object.values(stats?.days ?? {}).filter((s) => s > 0).length);
 
-	const streak = $derived.by(() => {
+	const streak = $derived(streakOf(stats?.days ?? {}));
+	const GOALS = [0, 15, 30, 45, 60, 90, 120];
+	/** Days of the last week that reached the goal. */
+	const goalWeek = $derived.by(() => {
 		const days = stats?.days ?? {};
-		const d = new Date();
-		if (!days[key(d)]) d.setDate(d.getDate() - 1);
-		let n = 0;
-		while (days[key(d)] > 0) {
-			n++;
-			d.setDate(d.getDate() - 1);
+		const out: { label: string; reached: boolean; secs: number }[] = [];
+		const fmt = new Intl.DateTimeFormat(i18n.tag, { weekday: 'narrow' });
+		for (let i = 6; i >= 0; i--) {
+			const d = new Date();
+			d.setDate(d.getDate() - i);
+			const secs = days[key(d)] ?? 0;
+			out.push({ label: fmt.format(d), secs, reached: secs >= prefs.dailyGoal * 60 });
 		}
-		return n;
+		return out;
 	});
 
 	const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -131,6 +138,37 @@
 			>
 		</div>
 	</div>
+
+	<section class="card goal" aria-labelledby="goal-title">
+		{#if prefs.dailyGoal}
+			<GoalRing seconds={stats.today} goal={prefs.dailyGoal} {streak} size={88} />
+		{/if}
+		<div class="goal-text">
+			<h2 class="label" id="goal-title">{i18n.m.goal.title}</h2>
+			<p class="muted">{prefs.dailyGoal ? i18n.m.goal.hint : i18n.m.goal.off}</p>
+			<div class="choices" role="group" aria-label={i18n.m.goal.title}>
+				{#each GOALS as m (m)}
+					<button
+						class="chip"
+						aria-pressed={prefs.dailyGoal === m}
+						onclick={() => prefs.set('dailyGoal', m)}
+						>{m ? i18n.m.player.timerMinutes(m) : i18n.m.settings.off}</button
+					>
+				{/each}
+			</div>
+			{#if prefs.dailyGoal}
+				<ol class="week" aria-label={i18n.m.goal.week}>
+					{#each goalWeek as d, i (i)}
+						<li class:reached={d.reached} title={duration(d.secs)}>
+							<span class="dot" aria-hidden="true"></span>
+							<span class="sr-only">{d.reached ? i18n.m.goal.reachedDay : ''}</span>
+							<span class="muted">{d.label}</span>
+						</li>
+					{/each}
+				</ol>
+			{/if}
+		</div>
+	</section>
 
 	{#if stats.totalTime === 0}
 		<EmptyState text={t.empty} />
@@ -221,6 +259,85 @@
 	.tile strong {
 		font-size: var(--fs-24);
 		font-weight: var(--fw-regular);
+	}
+
+	.goal {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-24);
+		padding: var(--sp-24);
+		margin-bottom: var(--sp-16);
+		border-radius: var(--r-card-lg);
+	}
+
+	.goal-text {
+		display: grid;
+		gap: var(--sp-8);
+		min-width: 0;
+		justify-items: start;
+	}
+
+	.goal-text p {
+		margin: 0;
+		font-size: var(--fs-14);
+	}
+
+	.choices {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-8);
+	}
+
+	.choices .chip {
+		background: var(--c-bg);
+	}
+
+	.choices .chip[aria-pressed='true'] {
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+	}
+
+	.week {
+		list-style: none;
+		display: flex;
+		gap: var(--sp-12);
+		margin: var(--sp-4) 0 0;
+		padding: 0;
+	}
+
+	.week li {
+		display: grid;
+		justify-items: center;
+		gap: 4px;
+		font-size: var(--fs-12);
+	}
+
+	.week .dot {
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: color-mix(in oklab, var(--c-ink) 12%, transparent);
+	}
+
+	.week .reached .dot {
+		background: var(--c-accent);
+	}
+
+	@media (forced-colors: active) {
+		.week .dot {
+			border: 1px solid CanvasText;
+		}
+
+		.week .reached .dot {
+			background: Highlight;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.goal {
+			flex-direction: column;
+			align-items: flex-start;
+		}
 	}
 
 	.block {

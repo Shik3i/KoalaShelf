@@ -1,6 +1,20 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { itemId } from './helpers.ts';
+
+/** Fly-ins and fades finished (infinite ones like the spinning record excepted). */
+const settle = (page: Page) =>
+	page.waitForFunction(() =>
+		document
+			.getAnimations()
+			.every(
+				(x) =>
+					x instanceof CSSTransition ||
+					x.playState !== 'running' ||
+					x.effect?.getTiming().iterations === Infinity
+			)
+	);
 
 // Automated accessibility scan (WCAG 2.2 AA plus axe best practices) of every page,
 // in both themes, on a laptop and on a phone.
@@ -35,6 +49,7 @@ for (const scheme of ['light', 'dark'] as const) {
 				for (const path of pages) {
 					await page.goto(path);
 					await page.waitForTimeout(600);
+					await settle(page);
 					const result = await new AxeBuilder({ page })
 						.withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa', 'best-practice'])
 						.analyze();
@@ -60,6 +75,56 @@ for (const scheme of ['light', 'dark'] as const) {
 					).toEqual([]);
 				}
 			});
+
+		test('selection, book actions, collections and the daily goal pass axe', async ({ page }) => {
+			const scan = async (label: string) => {
+				await page.waitForTimeout(500);
+				await settle(page);
+				const result = await new AxeBuilder({ page })
+					.withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa', 'best-practice'])
+					.analyze();
+				expect(
+					result.violations.map(
+						(v) =>
+							`${v.id}: ${v.nodes
+								.map((n) => n.target.join(' '))
+								.slice(0, 3)
+								.join(' | ')}`
+					),
+					`${label} (${scheme})`
+				).toEqual([]);
+			};
+			for (const path of ['/library', '/library?view=list']) {
+				await page.goto(path);
+				await page.getByRole('button', { name: 'Select', exact: true }).click();
+				await page.getByRole('button', { name: /^Glasfluss/ }).click();
+				await scan(`selection ${path}`);
+			}
+			await page.goto(`/book/${await itemId('Salzwasser')}`);
+			await page.getByRole('button', { name: 'More actions' }).click();
+			await scan('book: more actions');
+			await page.getByRole('button', { name: 'Add to collection' }).click();
+			await expect(page.getByRole('dialog', { name: 'Add to collection' })).toBeVisible();
+			await scan('add to collection');
+			await page.keyboard.press('Escape');
+			await page.getByRole('tab', { name: 'Files' }).click();
+			await scan('book: files');
+			await page.goto('/collections');
+			await page.getByRole('link', { name: 'Lieblinge' }).first().click();
+			await expect(page.getByRole('heading', { name: 'Lieblinge' })).toBeVisible();
+			await scan('collection');
+			await page.getByRole('button', { name: 'Arrange' }).click();
+			await scan('collection: arrange');
+			await page.goto('/stats');
+			await page
+				.getByRole('group', { name: 'Daily goal' })
+				.getByRole('button', { name: '30 min' })
+				.click();
+			await scan('daily goal');
+			await page.goto('/');
+			await scan('home with goal ring');
+			await page.evaluate(() => localStorage.removeItem('ks.prefs'));
+		});
 
 		test('mini player and full player with every panel pass axe', async ({ page }) => {
 			await page.goto(`/book/${await itemId('Salzwasser')}`);

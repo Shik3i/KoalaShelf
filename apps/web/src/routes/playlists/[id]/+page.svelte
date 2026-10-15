@@ -22,6 +22,9 @@
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import X from '@lucide/svelte/icons/x';
 	import Check from '@lucide/svelte/icons/check';
+	import Download from '@lucide/svelte/icons/download';
+	import { downloads, supported as downloadsSupported } from '#lib/downloads.svelte.ts';
+	import { isTauri } from '#lib/platform.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -94,6 +97,17 @@
 		toasts.show(i18n.m.seriesPage.queued(add.length));
 	}
 
+	/** Every book of the playlist offline, one after another. */
+	const missing = $derived(items.filter((i) => !downloads.has(i.id)));
+	const canDownload = $derived(!isTauri && session.canDownload && downloadsSupported());
+	function downloadAll() {
+		const ids = missing.map((i) => i.id);
+		void (async () => {
+			for (const id of ids) await downloads.download(id).catch(() => undefined);
+		})();
+		toasts.show(i18n.m.select.downloading(ids.length));
+	}
+
 	async function rename(e: SubmitEvent) {
 		e.preventDefault();
 		if (!list || !draft.trim()) return;
@@ -145,6 +159,12 @@
 					<ListPlus size={16} aria-hidden="true" />
 					{t.queueAll}
 				</button>
+				{#if canDownload && missing.length}
+					<button class="btn ghost" onclick={downloadAll}>
+						<Download size={16} aria-hidden="true" />
+						{t.downloadAll}
+					</button>
+				{/if}
 				<button class="btn ghost" onclick={() => ((renaming = true), (draft = list!.name))}>
 					<Pencil size={16} aria-hidden="true" />
 					{t.rename}

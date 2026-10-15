@@ -5,7 +5,10 @@
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { span } from '#lib/format.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import SessionRow, { meaningful } from '#lib/components/SessionRow.svelte';
+	import SessionRow, { deviceLabel, meaningful } from '#lib/components/SessionRow.svelte';
+	import { saveFile, toCsv, today } from '#lib/export.ts';
+	import { clock } from '#lib/format.ts';
+	import Sheet from '@lucide/svelte/icons/sheet';
 
 	const PAGE_SIZE = 50;
 	const t = $derived(i18n.m.history);
@@ -54,6 +57,39 @@
 		untrack(() => load(0));
 	});
 
+	/** Every listening session (all pages) as a spreadsheet. */
+	let exporting = $state(false);
+	async function exportCsv() {
+		exporting = true;
+		try {
+			const all: ListeningSession[] = [];
+			for (let p = 0, n = 1; p < n && p < 200; p++) {
+				const r = await session.api.listeningSessions(p, 200);
+				all.push(...r.sessions);
+				n = r.numPages;
+			}
+			const rows: (string | number)[][] = [
+				['date', 'started', 'book', 'author', 'from', 'to', 'listened_seconds', 'device']
+			];
+			for (const s of all) {
+				const d = new Date(s.startedAt);
+				rows.push([
+					day(d),
+					d.toTimeString().slice(0, 5),
+					s.displayTitle,
+					s.displayAuthor,
+					clock(s.startTime),
+					clock(s.currentTime),
+					Math.round(s.timeListening),
+					deviceLabel(s.deviceInfo) ?? ''
+				]);
+			}
+			saveFile(`koalashelf-history-${today()}.csv`, toCsv(rows), 'text/csv');
+		} finally {
+			exporting = false;
+		}
+	}
+
 	/** YYYY-MM-DD in the listener's local time. */
 	const day = (d: Date) =>
 		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -87,8 +123,17 @@
 
 <svelte:head><title>{t.title} · KoalaShelf</title></svelte:head>
 
-<h1>{t.title}</h1>
-<p class="muted intro">{t.intro}</p>
+<div class="top">
+	<div>
+		<h1>{t.title}</h1>
+		<p class="muted intro">{t.intro}</p>
+	</div>
+	{#if sessions.length}
+		<button class="chip outline" class:is-loading={exporting} onclick={exportCsv}>
+			<Sheet size={14} aria-hidden="true" />{i18n.m.exports.csv}
+		</button>
+	{/if}
+</div>
 
 {#if loading && !sessions.length}
 	<div class="days" aria-busy="true">
@@ -139,6 +184,15 @@
 	.intro {
 		max-width: 60ch;
 		margin: 0 0 var(--sp-24);
+	}
+
+	.top {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: start;
+		justify-content: space-between;
+		gap: var(--sp-12) var(--sp-24);
+		max-width: 760px;
 	}
 
 	.days {

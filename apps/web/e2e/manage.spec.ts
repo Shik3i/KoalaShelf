@@ -97,7 +97,7 @@ test.describe('manage', () => {
 			body: JSON.stringify({ currentTime: 50, progress: 0.25, duration: 180 })
 		});
 		await page.goto(`/book/${id}`);
-		await page.getByRole('button', { name: 'More', exact: true }).click();
+		await page.getByRole('button', { name: 'More actions' }).click();
 		if (dir) await page.screenshot({ path: `${dir}/book-more.png` });
 		await page.getByRole('button', { name: 'Reset progress' }).click();
 		const toast = page.getByRole('status').filter({ hasText: 'Progress reset' });
@@ -148,7 +148,7 @@ test.describe('manage', () => {
 		// A new collection starts from a book; the second one joins it.
 		for (const [i, title] of ['Glasfluss', 'Nachtzug'].entries()) {
 			await page.goto(`/book/${await itemId(title)}`);
-			await page.getByRole('button', { name: 'More', exact: true }).click();
+			await page.getByRole('button', { name: 'More actions' }).click();
 			await page.getByRole('button', { name: 'Add to collection' }).click();
 			const dialog = page.getByRole('dialog', { name: 'Add to collection' });
 			if (i === 0) {

@@ -218,7 +218,7 @@ export const en = {
 		showLess: 'Show less',
 		notFound: 'This title does not exist (anymore).',
 		seriesBook: (name: string, seq: string | null) => (seq ? `${name} · Book ${seq}` : name),
-		moreActions: 'More',
+		moreActions: 'More actions',
 		addToCollection: 'Add to collection',
 		resetProgress: 'Reset progress',
 		progressReset: 'Progress reset',
@@ -442,6 +442,13 @@ export const en = {
 		autoSleepMinutes: 'Minutes',
 		autoSleepSmart: (a: number, b: number) =>
 			`First chapter end between ${a} and ${b} minutes (as last set in the player).`,
+		backup: 'Backup',
+		backupHint:
+			'Save these settings as a file to bring them to another browser or device. Your sign-in is never part of it.',
+		exportSettings: 'Export settings',
+		importSettings: 'Import settings',
+		importDone: 'Settings imported',
+		importFailed: 'This file is not a KoalaShelf settings backup.',
 		removeFinished: 'Remove finished books',
 		removeFinishedHint: 'Deletes a download from this device once its book is finished.',
 		sleep: 'Sleep timer',
@@ -560,6 +567,7 @@ export const en = {
 		deleteConfirm: (name: string) => `Delete “${name}”? The books stay in your library.`,
 		deleted: 'Playlist deleted',
 		deletedEmpty: 'Playlist deleted: its last book was removed',
+		downloadAll: 'Download all',
 		moveUp: (title: string) => `Move ${title} up`,
 		moveDown: (title: string) => `Move ${title} down`,
 		removeItem: (title: string) => `Remove ${title} from the playlist`,
@@ -587,7 +595,11 @@ export const en = {
 		topGenres: 'Top genres',
 		bestMonth: 'Best month',
 		narrator: 'Voice of the year',
-		longest: 'Longest book finished'
+		longest: 'Longest book finished',
+		share: 'Share as image',
+		cardTitle: (y: number) => `My ${y} in audiobooks`,
+		cardFooter: 'Listened with KoalaShelf',
+		cardFailed: 'The picture could not be made.'
 	},
 	libraryFacts: {
 		title: (name: string) => `Library ${name}`,
@@ -629,6 +641,20 @@ export const en = {
 		theme: 'Switch theme',
 		searchAll: (q: string) => `Search everything for “${q}”`,
 		foot: '↑ ↓ to move · Enter to open · Esc to close'
+	},
+	goal: {
+		title: 'Daily goal',
+		hint: 'Listening time per day. The ring on the home page fills up as you listen.',
+		off: 'Set a daily listening goal: a ring on the home page shows how far you are today.',
+		today: (m: number, g: number) => `Today: ${m} of ${g} minutes`,
+		reached: 'Daily goal reached',
+		streak: (n: number) => (n === 1 ? '1 day in a row' : `${n} days in a row`),
+		week: 'Last 7 days',
+		reachedDay: 'goal reached'
+	},
+	exports: {
+		label: 'Export',
+		csv: 'Export CSV'
 	},
 	select: {
 		region: 'Selection',

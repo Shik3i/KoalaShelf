@@ -12,6 +12,9 @@
 	import Play from '@lucide/svelte/icons/play';
 	import Link from '@lucide/svelte/icons/link';
 	import Trash2 from '@lucide/svelte/icons/trash-2';
+	import FileText from '@lucide/svelte/icons/file-text';
+	import Sheet from '@lucide/svelte/icons/sheet';
+	import { saveFile, toCsv, today } from '#lib/export.ts';
 
 	const t = $derived(i18n.m.bookmarksPage);
 	let marks = $state.raw<Bookmark[] | null>(null);
@@ -46,6 +49,41 @@
 			.sort((a, b) => b.latest - a.latest);
 	});
 
+	const link = (m: Bookmark) =>
+		`${location.origin}/book/${m.libraryItemId}?t=${Math.floor(m.time)}`;
+
+	/** All bookmarks as a readable Markdown list, by book. */
+	function exportMarkdown() {
+		const lines = [`# ${t.title} · KoalaShelf · ${today()}`, ''];
+		for (const g of groups) {
+			const v = g.item ? view(g.item) : null;
+			lines.push(`## ${v ? `${v.title} — ${v.author}` : g.id}`, '');
+			for (const m of g.list) lines.push(`- [${clock(m.time)}](${link(m)}) ${m.title}`);
+			lines.push('');
+		}
+		saveFile(`koalashelf-bookmarks-${today()}.md`, lines.join('\n'), 'text/markdown');
+	}
+
+	function exportCsv() {
+		const rows: (string | number)[][] = [
+			['book', 'author', 'time', 'seconds', 'note', 'created', 'link']
+		];
+		for (const g of groups) {
+			const v = g.item ? view(g.item) : null;
+			for (const m of g.list)
+				rows.push([
+					v?.title ?? g.id,
+					v?.author ?? '',
+					clock(m.time),
+					Math.floor(m.time),
+					m.title,
+					new Date(m.createdAt).toISOString(),
+					link(m)
+				]);
+		}
+		saveFile(`koalashelf-bookmarks-${today()}.csv`, toCsv(rows), 'text/csv');
+	}
+
 	async function remove(m: Bookmark) {
 		await session.api.deleteBookmark(m.libraryItemId, m.time);
 		marks = (marks ?? []).filter((x) => x !== m);
@@ -61,7 +99,20 @@
 
 <svelte:head><title>{t.title} · KoalaShelf</title></svelte:head>
 
-<h1>{t.title}</h1>
+<div class="top">
+	<h1>{t.title}</h1>
+	{#if marks?.length}
+		<div class="export" role="group" aria-label={i18n.m.exports.label}>
+			<span class="muted">{i18n.m.exports.label}</span>
+			<button class="chip outline" onclick={exportMarkdown}
+				><FileText size={14} aria-hidden="true" />Markdown</button
+			>
+			<button class="chip outline" onclick={exportCsv}
+				><Sheet size={14} aria-hidden="true" />CSV</button
+			>
+		</div>
+	{/if}
+</div>
 
 {#if error}<p class="muted">{i18n.m.common.error(error)}</p>{/if}
 {#if marks && !marks.length}<EmptyState text={t.empty} />{/if}
@@ -119,8 +170,22 @@
 </div>
 
 <style>
-	h1 {
+	.top {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		justify-content: space-between;
+		gap: var(--sp-12) var(--sp-24);
+		max-width: 760px;
 		margin-bottom: var(--sp-24);
+	}
+
+	.export {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--sp-8);
+		font-size: var(--fs-13);
 	}
 
 	.groups {

@@ -15,6 +15,8 @@
 	import { shelfOrder } from '#lib/shelves.ts';
 	import X from '@lucide/svelte/icons/x';
 	import Settings from '@lucide/svelte/icons/settings';
+	import GoalRing from '#lib/components/GoalRing.svelte';
+	import { streak } from '#lib/export.ts';
 
 	const t = $derived(i18n.m.home);
 	const WEEK = 7 * 24 * 3600 * 1000;
@@ -30,6 +32,22 @@
 			.personalized(lib, 16)
 			.then((s) => (shelves = s))
 			.catch((e) => (error = (e as Error).message));
+	});
+
+	// Daily goal: today's listening and the streak, refreshed while playing.
+	let today = $state<{ secs: number; streak: number } | null>(null);
+	$effect(() => {
+		if (!prefs.dailyGoal || !session.client) return;
+		const playing = player.playing;
+		const load = () =>
+			session.api
+				.listeningStats()
+				.then((s) => (today = { secs: s.today, streak: streak(s.days) }))
+				.catch(() => undefined);
+		void load();
+		if (!playing) return;
+		const id = setInterval(load, 60_000);
+		return () => clearInterval(id);
 	});
 
 	const greeting = $derived.by(() => {
@@ -132,10 +150,15 @@
 		<span class="label">{session.library?.name}</span>
 		<h1>{greeting}{session.user ? `, ${session.user.username}` : ''}</h1>
 	</div>
-	<div class="tools">
-		<a class="round" href="/settings" aria-label={i18n.m.nav.settings}>
-			<Settings size={20} />
-		</a>
+	<div class="right">
+		{#if prefs.dailyGoal && today}
+			<GoalRing seconds={today.secs} goal={prefs.dailyGoal} streak={today.streak} href="/stats" />
+		{/if}
+		<div class="tools">
+			<a class="round" href="/settings" aria-label={i18n.m.nav.settings}>
+				<Settings size={20} />
+			</a>
+		</div>
 	</div>
 </header>
 
@@ -205,6 +228,12 @@
 		align-items: end;
 		gap: var(--sp-16);
 		margin-bottom: var(--sp-24);
+	}
+
+	.right {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-16);
 	}
 
 	.tools {

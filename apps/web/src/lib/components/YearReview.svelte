@@ -6,6 +6,10 @@
 	import { duration } from '#lib/format.ts';
 	import Cover from './Cover.svelte';
 	import CountUp from './CountUp.svelte';
+	import { renderYearCard } from '#lib/year-card.ts';
+	import { saveFile } from '#lib/export.ts';
+	import { toasts } from '#lib/toast.svelte.ts';
+	import ImageDown from '@lucide/svelte/icons/image-down';
 
 	/** Years with listening, newest first (from the day statistics). */
 	let { years }: { years: number[] } = $props();
@@ -32,6 +36,24 @@
 	});
 
 	const options = $derived(years.length ? years : [new Date().getFullYear()]);
+
+	/** The year as a picture: shared on phones, saved elsewhere. */
+	let drawing = $state(false);
+	async function shareCard() {
+		if (!data) return;
+		drawing = true;
+		try {
+			const blob = await renderYearCard(year, data, covers);
+			const file = new File([blob], `koalashelf-${year}.png`, { type: 'image/png' });
+			if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] }))
+				await navigator.share({ files: [file], title: t.cardTitle(year) }).catch(() => undefined);
+			else saveFile(file.name, blob);
+		} catch {
+			toasts.show(t.cardFailed);
+		} finally {
+			drawing = false;
+		}
+	}
 	const monthName = $derived((m: number) =>
 		new Intl.DateTimeFormat(i18n.tag, { month: 'long' }).format(new Date(2024, m, 1))
 	);
@@ -42,6 +64,12 @@
 <section class="card review" aria-labelledby="yr-title">
 	<div class="head">
 		<h2 id="yr-title">{t.title(year)}</h2>
+		{#if data?.totalListeningTime}
+			<button class="btn ghost sm" class:is-loading={drawing} onclick={shareCard}>
+				<ImageDown size={16} aria-hidden="true" />
+				{t.share}
+			</button>
+		{/if}
 		{#if options.length > 1}
 			<label class="pick">
 				<span class="sr-only">{t.year}</span>
@@ -161,9 +189,18 @@
 
 	.head {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		justify-content: space-between;
-		gap: var(--sp-16);
+		gap: var(--sp-8) var(--sp-16);
+	}
+
+	.head h2 {
+		flex: 1 1 auto;
+	}
+
+	.btn.sm {
+		min-height: 40px;
+		font-size: var(--fs-13);
 	}
 
 	h2 {

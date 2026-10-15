@@ -7,6 +7,9 @@
 	import { prefs, SKIP_STEPS, TEXT_SIZES, type Prefs } from '#lib/prefs.svelte.ts';
 	import { player, RATES } from '#lib/player/player.svelte.ts';
 	import SoundPanel from '#lib/player/SoundPanel.svelte';
+	import { exportSettings, importSettings, justImported } from '#lib/backup.ts';
+	import Upload from '@lucide/svelte/icons/upload';
+	import Download from '@lucide/svelte/icons/download';
 	import { downloads, supported as downloadsSupported } from '#lib/downloads.svelte.ts';
 	import { CUSTOM_SHELVES, moveShelf, setShelfVisible, shelfOrder } from '#lib/shelves.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
@@ -82,6 +85,20 @@
 		const [h, m] = v.split(':').map(Number);
 		return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
 	};
+
+	// Settings backup: a file to move them to another browser or device.
+	let importInput = $state<HTMLInputElement>();
+	let importFailed = $state(false);
+	$effect(() => {
+		if (justImported()) toasts.show(t.importDone);
+	});
+	async function onImport(e: Event & { currentTarget: HTMLInputElement }) {
+		const file = e.currentTarget.files?.[0];
+		e.currentTarget.value = '';
+		if (!file) return;
+		importFailed = !(await importSettings(file));
+		if (!importFailed) location.reload();
+	}
 
 	/** Destructive actions ask once more, inline (no modal). */
 	let confirming = $state<'downloads' | 'reset' | null>(null);
@@ -445,6 +462,30 @@
 			{/if}
 		</div>
 	{/if}
+	<div class="stack">
+		<span class="strong">{t.backup}</span>
+		<small class="muted">{t.backupHint}</small>
+	</div>
+	<div class="actions">
+		<button class="btn ghost" onclick={exportSettings}>
+			<Download size={16} aria-hidden="true" />
+			{t.exportSettings}
+		</button>
+		<button class="btn ghost" onclick={() => importInput?.click()}>
+			<Upload size={16} aria-hidden="true" />
+			{t.importSettings}
+		</button>
+		<input
+			bind:this={importInput}
+			class="sr-only"
+			type="file"
+			accept="application/json,.json"
+			tabindex="-1"
+			aria-hidden="true"
+			onchange={onImport}
+		/>
+	</div>
+	{#if importFailed}<p class="confirm" role="alert">{t.importFailed}</p>{/if}
 	<div class="stack">
 		<span class="strong">{t.reset}</span>
 		<small class="muted">{t.resetHint}</small>

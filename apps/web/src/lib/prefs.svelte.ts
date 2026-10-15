@@ -113,19 +113,22 @@ export const DEFAULTS: Prefs = {
 	removeFinished: false
 };
 
+/** Only known keys with a plausible type survive (older versions, hand edits, imports). */
+export function sanitize(saved: Record<string, unknown>): Prefs {
+	const valid = (k: string, v: unknown, fallback: unknown) =>
+		k === 'defaultRate'
+			? v === 'last' || (typeof v === 'number' && v > 0)
+			: Array.isArray(fallback)
+				? Array.isArray(v)
+				: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
+	return Object.fromEntries(
+		Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
+	) as unknown as Prefs;
+}
+
 function load(): Prefs {
 	try {
-		const saved = JSON.parse(localStorage.getItem(KEY) ?? '{}');
-		// Only known keys with a plausible type survive (older versions, hand edits).
-		const valid = (k: string, v: unknown, fallback: unknown) =>
-			k === 'defaultRate'
-				? v === 'last' || (typeof v === 'number' && v > 0)
-				: Array.isArray(fallback)
-					? Array.isArray(v)
-					: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
-		return Object.fromEntries(
-			Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
-		) as unknown as Prefs;
+		return sanitize(JSON.parse(localStorage.getItem(KEY) ?? '{}'));
 	} catch {
 		return { ...DEFAULTS };
 	}

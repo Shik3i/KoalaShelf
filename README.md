@@ -25,30 +25,32 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 ## Features (web)
 
 **Listening**
-- **Player**: multi-file books, chapters, configurable skip steps (10–60 s), speed 0.8–2.0× (per book or one default), timeline and clock for the whole book or the current chapter, smart rewind after pauses, bookmarks as pins with editable notes and shareable links, lock screen and media keys, keyboard shortcuts, HLS fallback for formats the browser cannot play
-- **Sleep timer**: exact minutes with fade-out, end of chapter, or **smart**: the first chapter end inside a window such as 20–40 min, with a forecast of where it will stop
+- **Player**: multi-file books, chapters (with a filter and "go to time"), configurable skip steps (10–60 s), speed 0.5–3.5× in 0.05 steps (per book or one default), timeline and clock for the whole book or the current chapter, "ends at" clock, smart rewind after pauses, **jump back** after an accidental jump, bookmarks as pins with editable notes and shareable links, lock screen and media keys, keyboard shortcuts, HLS fallback for formats the browser cannot play
+- **Sound**: volume, boost up to +100 %, clearer voices, mono, volume leveling and **skip silence** (with the time it saved)
+- **Sleep timer**: exact minutes with fade-out, end of chapter, or **smart**: the first chapter end inside a window such as 20–40 min, with a forecast of where it will stop; more time with one tap, a last-chance hint before it stops, and an automatic timer at night
 - **Up next**: a queue that continues automatically when a book ends; otherwise the next book of the series is offered
-- **Volume leveling** for whispered and loud passages (Web Audio)
+- **Cast / AirPlay** through the browser, and a **pop-out player** that stays on top of other windows (Chrome, Edge)
 - **Listening history**: every session on every device by day, with jumps to where it started or ended; per book on its page
-- **Live progress** from other devices; **downloads** for offline listening (synced when back online); **save a book's files as a ZIP**
+- **Live progress** from other devices; **downloads** for offline listening (per book, series or playlist; synced when back online; finished books can remove themselves); **save a book's files as a ZIP**
 
 **Finding**
-- **Library**: shelf or list; filters for status, author, series, narrator, genre, tag, language, publisher, decade and length, freely combined (several values per kind, exact results); a text filter that also finds the books of matching authors, series and narrators; sorting by title, author, added, played, started, finished, length, year or random; grouped series; saved views; everything in the URL
+- **Library**: shelf or list; **multi-select** to mark books finished or not, queue, add to a playlist or collection, or download them at once; filters for status, author, series, narrator, genre, tag, language, publisher, decade and length, freely combined (several values per kind, exact results); a text filter that also finds the books of matching authors, series and narrators; sorting by title, author, added, played, started, finished, length, year or random; grouped series; saved views; everything in the URL
 - **Search**: books, series, authors, narrators, genres and tags, in one library or all of them, with highlighted matches and recent searches
 - **Quick search** from anywhere (Ctrl/⌘ K or `/`): books, people, pages and actions by keyboard
 
 **Browsing**
 - **Home**: "continue listening" turntable and crates from your personalized shelves
-- **Book page**: spinning record, chapters, bookmarks, history, more by the author, file details, description
-- **Author pages** (photo, bio, books by series), **series pages** (progress, the next book, add the rest to the queue), **narrators**
+- **Book page**: spinning record, chapters, bookmarks, history, files, more by the author, details (ISBN, ASIN, tags, edition) with links into the library, description; reset progress (with undo), mark the earlier volumes of a series finished, share
+- **Author pages** (photo, bio, books by series), **series pages** (progress, the next book, add the rest to the queue, mark all finished, download all), **narrators**
 - **Playlists**: your own lists, synced through the server: create, add from any book, reorder, play all
-- **Bookmarks** of every book in one place; **collections**
-- **Statistics**: your year in review (time, books finished, top authors and genres, best month, voice of the year), heatmap, streak, weekdays, most listened, the library in numbers
+- **Bookmarks** of every book in one place, exportable as Markdown or CSV
+- **Collections**: play or queue all, save as playlist; accounts with edit rights create, arrange, rename and delete them
+- **Statistics**: a **daily goal** (ring on the home page) and streak, your year in review (time, books finished, top authors and genres, best month, voice of the year) also as a **picture to share**, heatmap, weekdays, most listened, the library in numbers; listening history as CSV
 
 **Yours to tailor** (stored on the device only)
 - Theme, six accent colors (all contrast-checked), text size on top of the system size, animations, record spin, cover size
-- Skip steps, chapter or book timeline, clock, speed for new books and per book, headset/lock-screen buttons as chapter or skip, smart rewind, leveling, queue and series behavior, keyboard shortcuts
-- Sleep timer fade-out and rewind; start page; home shelves (show, hide, reorder); downloads; reset
+- Skip steps, chapter or book timeline, clock, speed for new books and per book, headset/lock-screen buttons as chapter or skip, smart rewind, sound (volume, boost, voices, mono, leveling, skip silence), queue and series behavior, keyboard shortcuts
+- Sleep timer fade-out, rewind and night start; start page; home shelves (show, hide, reorder); daily goal; downloads; **settings backup** (export and import as a file); reset
 - Account: signed-in devices with remote sign-out, password change
 
 **Everywhere**
@@ -106,6 +108,8 @@ pnpm test:e2e     # end-to-end against the local test server (Playwright, Edge)
 E2E_BASE_URL=http://localhost:8088 pnpm test:e2e   # against a production container
 SCREENS_DIR=/tmp/shots pnpm test:e2e screens responsive   # screenshots for visual review
 ```
+
+How KoalaShelf compares with the Audiobookshelf web app, Audible and other players: [docs/feature-parity.md](docs/feature-parity.md).
 
 More in [docs/plan.md](docs/plan.md), [docs/tech-stack.md](docs/tech-stack.md), [docs/audit.md](docs/audit.md) and [docs/api/audiobookshelf.md](docs/api/audiobookshelf.md).
 

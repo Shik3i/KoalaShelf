@@ -40,6 +40,23 @@ test.describe('screens', () => {
 					await page.goto(path);
 					await shot(name);
 				}
+				// Managing: selection bar, book actions, daily goal.
+				await page.goto('/library');
+				await page.getByRole('button', { name: 'Select', exact: true }).click();
+				await page.getByRole('button', { name: /^Glasfluss/ }).click();
+				await shot('library-select');
+				await page.keyboard.press('Escape');
+				await page.goto(`/book/${await itemId('Salzwasser')}`);
+				await page.getByRole('button', { name: 'More actions' }).click();
+				await shot('book-more');
+				await page.evaluate(() =>
+					localStorage.setItem('ks.prefs', JSON.stringify({ dailyGoal: 30 }))
+				);
+				await page.goto('/stats');
+				await shot('stats-goal');
+				await page.goto('/');
+				await shot('home-goal');
+				await page.evaluate(() => localStorage.removeItem('ks.prefs'));
 				// Two books queued (as added from their pages).
 				for (const title of ['Salzwasser', 'Wintergrün']) {
 					await page.goto(`/book/${await itemId(title)}`);
@@ -67,6 +84,12 @@ test.describe('screens', () => {
 				await shot('player-smart-running');
 				await dialog.getByRole('button', { name: /^Up next/ }).click();
 				await shot('player-queue');
+				await dialog.getByRole('button', { name: /^Speed:/ }).click();
+				await shot('player-speed');
+				await dialog.getByRole('button', { name: 'Sound' }).click();
+				await shot('player-sound');
+				await dialog.getByRole('button', { name: 'Sound' }).click();
+				await shot('player-plain');
 				await page.evaluate(() => localStorage.removeItem('ks.queue'));
 				await playerCall(page, 'setSleep', {
 					kind: 'minutes',

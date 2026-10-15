@@ -5,6 +5,7 @@
 - API notes: [api/audiobookshelf.md](api/audiobookshelf.md)
 - Versions and rationale: [tech-stack.md](tech-stack.md)
 - Verification: [audit.md](audit.md)
+- Feature parity with the Audiobookshelf web app, Audible and other players: [feature-parity.md](feature-parity.md)
 
 ## Guiding principles
 
@@ -19,6 +20,7 @@ Every decision is checked against: **performance, quality-of-life features, self
 | 3 | Web: player (multi-track, sync, chapters, speed, sleep timer, bookmarks, Media Session, shortcuts), mini player | done |
 | 4 | Web: home with crates, series, authors, search, theme, i18n, PWA, Docker image | done |
 | 4b | Web extras: downloads and offline listening, statistics, collections, live progress, queue, smart sleep timer, volume leveling, listening history, ZIP download, chapter timeline, settings for nearly everything, responsive and accessibility audits | done |
+| 4c | Web parity: combined filters, search, quick search, author/series/narrator pages, playlists, bookmarks, year in review, devices; fine speed, sound tools (boost, voices, mono, skip silence), jump back, sleep timer extras, Cast, pop-out player; multi-select, collections management, book actions; daily goal, year picture, exports and settings backup | done |
 | 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | scaffolded, paused until the web app is signed off |
 | 6 | Android: Compose with tokens, Media3 service, background playback, downloads, offline sessions | skeleton parked on branch `wip/android`, paused |
 
@@ -46,7 +48,10 @@ Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin pro
 ### Data
 - **Filters.** The server accepts one filter per request. One filter (or none) pages through the server. Anything combined becomes an exact set: one cached server request per value, values of a kind OR'ed, kinds AND'ed, status and length checked locally against current progress. The text filter unions the server search's books with the books of matching authors, series, narrators, genres and tags. Grouping series works only with at most one filter (the server groups, not the client).
 - **Search** runs in the current library or all of them in parallel; highlights are visual only, so screen readers read whole words. The quick search (Ctrl/⌘ K) is a combobox over search results, pages and actions.
-- **Playlists live on the server** (shared across the listener's devices); the queue stays on the device. "Play all" puts the rest of a playlist in front of the queue.
+- **Playlists live on the server** (shared across the listener's devices); the queue stays on the device. "Play all" puts the rest of a playlist in front of the queue. The server deletes a playlist when its last book is removed; KoalaShelf says so and offers undo (creates it again).
+- **Collections** are shared by everyone on the server. Creating and editing needs the account's "update" permission, deleting needs "delete"; the server refuses empty new collections, so a collection starts from a book (book page or multi-select).
+- **Bulk changes** (multi-select, a whole series) go through `PATCH /api/me/progress/batch/update` in one request; "reset progress" deletes the progress entry, its undo writes the old state back.
+- **Exports** (bookmarks as Markdown/CSV, history as CSV, the year picture, the settings backup) are built on the device and saved as files; nothing is uploaded. CSV cells that a spreadsheet would run as formulas are defused. The settings backup never contains sessions, tokens, device ids or servers.
 - **Progress.** The latest load wins over an older, slower one; when the server lists a book twice, the entry with the newest `lastUpdate` counts; live events only apply when they are newer than what is known (server timestamps only, device clocks can be off).
 - **Sync.** Every 15 s while playing, on pause, on hide/unload. Listening time is counted from wall-clock while playing, robust against seeks. If the server forgot the session (404), a new one is opened at the same spot.
 - **Bookmark "note"** = the bookmark title (the server has no separate note field).
@@ -58,6 +63,12 @@ Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin pro
 - **Smart sleep timer.** A window (earliest, latest): it stops at the first chapter end after the earliest time, at the latest time otherwise (with fade-out and rewind, both configurable). Timers only count while playing.
 - **Volume leveling** routes the audio element through a Web Audio compressor. Opt-in, because on iOS/iPadOS Web Audio can pause in the background; remote audio then needs CORS, which the app sets up itself. Not offered in the desktop shell.
 - **Chapter timeline.** The timeline, clock, mini-player line and lock-screen position can cover the current chapter instead of the whole book.
+- **Speed** 0.5–3.5× in 0.05 steps (keys `[` `]` move by 0.1); browsers keep the pitch.
+- **Sound chain** (Web Audio, opt-in, not in the desktop shell): mono downmix → clearer voices (high-pass 90 Hz, +5 dB presence at 2.8 kHz) → leveling compressor → gain (boost up to 2×). The element joins the graph only once something is switched on; everything off is a plain pass-through.
+- **Skip silence**: an audio worklet measures the level on the audio thread and reports silent stretches (below −44 dBFS for 0.4 s); the player then plays at 2.5× (or 2.5 × the speed, at most 4×) until sound returns, and counts the time saved. Worklets need https, so the switch is hidden on plain http.
+- **Jump back.** Jumps of 30 s or more (chapters, bookmarks, timeline, typed time) can be undone from a toast or with `U`; skip buttons are not jumps.
+- **Sleep timer extras.** +5/+15/+30 min on a running timer (a chapter-end timer becomes a countdown past this chapter); a hint with "+10 min" while it fades out; an optional automatic timer when playback starts inside a night window (the listener's usual kind: smart, chapter end or minutes).
+- **Cast / AirPlay** use the browser's Remote Playback API (or Safari's AirPlay picker); the button only appears when a receiver is around. The **pop-out player** uses Document Picture-in-Picture (Chromium desktop) and renders the same Svelte component in the small window.
 - **End of book.** Next from the queue (if enabled), otherwise the next book of the series is offered (if enabled). A chapter-end sleep timer treats the book end as a chapter end.
 - **"Share clip"** is not supported by the server; left out.
 

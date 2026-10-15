@@ -217,7 +217,7 @@ export const de: Messages = {
 		showLess: 'Weniger anzeigen',
 		notFound: 'Diesen Titel gibt es nicht (mehr).',
 		seriesBook: (name, seq) => (seq ? `${name} · Band ${seq}` : name),
-		moreActions: 'Mehr',
+		moreActions: 'Weitere Aktionen',
 		addToCollection: 'Zur Sammlung',
 		resetProgress: 'Fortschritt zurücksetzen',
 		progressReset: 'Fortschritt zurückgesetzt',
@@ -442,6 +442,13 @@ export const de: Messages = {
 		autoSleepMinutes: 'Minuten',
 		autoSleepSmart: (a, b) =>
 			`Erstes Kapitelende zwischen ${a} und ${b} Minuten (wie zuletzt im Player eingestellt).`,
+		backup: 'Sicherung',
+		backupHint:
+			'Speichere diese Einstellungen als Datei, um sie in einen anderen Browser oder auf ein anderes Gerät mitzunehmen. Deine Anmeldung ist nie dabei.',
+		exportSettings: 'Einstellungen exportieren',
+		importSettings: 'Einstellungen importieren',
+		importDone: 'Einstellungen importiert',
+		importFailed: 'Diese Datei ist keine KoalaShelf-Einstellungssicherung.',
 		removeFinished: 'Fertige Bücher entfernen',
 		removeFinishedHint: 'Löscht einen Download von diesem Gerät, sobald das Buch fertig ist.',
 		sleep: 'Sleep-Timer',
@@ -562,6 +569,7 @@ export const de: Messages = {
 		deleteConfirm: (name) => `„${name}“ löschen? Die Bücher bleiben in deiner Bibliothek.`,
 		deleted: 'Playlist gelöscht',
 		deletedEmpty: 'Playlist gelöscht: Das letzte Buch wurde entfernt',
+		downloadAll: 'Alle herunterladen',
 		moveUp: (title) => `${title} nach oben`,
 		moveDown: (title) => `${title} nach unten`,
 		removeItem: (title) => `${title} aus der Playlist entfernen`,
@@ -589,7 +597,11 @@ export const de: Messages = {
 		topGenres: 'Top-Genres',
 		bestMonth: 'Stärkster Monat',
 		narrator: 'Stimme des Jahres',
-		longest: 'Längstes beendetes Buch'
+		longest: 'Längstes beendetes Buch',
+		share: 'Als Bild teilen',
+		cardTitle: (y) => `Mein Hörbuchjahr ${y}`,
+		cardFooter: 'Gehört mit KoalaShelf',
+		cardFailed: 'Das Bild konnte nicht erstellt werden.'
 	},
 	libraryFacts: {
 		title: (name) => `Bibliothek ${name}`,
@@ -631,6 +643,20 @@ export const de: Messages = {
 		theme: 'Theme wechseln',
 		searchAll: (q) => `Überall nach „${q}“ suchen`,
 		foot: '↑ ↓ zum Wählen · Enter zum Öffnen · Esc zum Schließen'
+	},
+	goal: {
+		title: 'Tagesziel',
+		hint: 'Hörzeit pro Tag. Der Ring auf der Startseite füllt sich beim Hören.',
+		off: 'Setz dir ein tägliches Hörziel: Ein Ring auf der Startseite zeigt, wie weit du heute bist.',
+		today: (m, g) => `Heute: ${m} von ${g} Minuten`,
+		reached: 'Tagesziel erreicht',
+		streak: (n) => (n === 1 ? '1 Tag in Folge' : `${n} Tage in Folge`),
+		week: 'Letzte 7 Tage',
+		reachedDay: 'Ziel erreicht'
+	},
+	exports: {
+		label: 'Export',
+		csv: 'Als CSV exportieren'
 	},
 	select: {
 		region: 'Auswahl',

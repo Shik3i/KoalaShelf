@@ -108,8 +108,22 @@ Bookmarks only have `time` + `title`. Progress entries carry `lastUpdate` (serve
 | Library statistics | `GET /api/libraries/:id/stats` → totals, `longestItems`, `largestItems`, `genresWithCount`, `authorsWithCount` |
 | Playlists | `GET /api/libraries/:id/playlists`, `GET/PATCH/DELETE /api/playlists/:id` (PATCH `items` replaces the list, so it also reorders), `POST /api/playlists` `{ libraryId, name, items: [{ libraryItemId }] }`, `POST /api/playlists/:id/item`, `DELETE /api/playlists/:id/item/:libraryItemId` |
 | Password | `PATCH /api/me/password` `{ password, newPassword }` (not for guests) |
-| More filters | `publishers`, `publishedDecades`, `tags`, `languages`, also `abridged`, `explicit`, `missing`, `tracks`, `ebooks`; sorts also `progress.createdAt`, `progress.finishedAt`, `random`, `size` |
+| More filters | `publishers`, `publishedDecades`, `tags`, `languages`, `missing`, `tracks`, `ebooks`; sorts also `progress.createdAt`, `progress.finishedAt`, `random`, `size`. `explicit.<base64("true")>` and `abridged.…` returned every book on 2.37.1 (no filtering), so KoalaShelf shows these as details on the book page instead |
 | Search | also returns `genres` and `tags` as `{ name, numItems }`; matches titles, not author names (those come as `authors`) |
+
+## Managing books and lists
+
+| Purpose | Call |
+|---|---|
+| Progress of several books | `PATCH /api/me/progress/batch/update` with an array `[{ libraryItemId, isFinished, currentTime?, progress? }]` |
+| Forget a book's progress | `DELETE /api/me/progress/:progressId` (the progress entry's id) |
+| Playlist: several books | `POST /api/playlists/:id/batch/add` and `…/batch/remove` with `{ items: [{ libraryItemId }] }` |
+| Playlist from a collection | `POST /api/playlists/collection/:collectionId` → a new playlist with the collection's name and books |
+| Collections | `POST /api/collections` `{ libraryId, name, description?, books: [itemId] }`, `PATCH /api/collections/:id` `{ name?, description?, books? }` (`books` reorders), `DELETE /api/collections/:id`, `POST /api/collections/:id/book` `{ id }`, `DELETE /api/collections/:id/book/:itemId`, `POST /api/collections/:id/batch/add` and `…/batch/remove` `{ books: [itemId] }` |
+
+- Collections belong to the library (everyone sees them). `POST`/`PATCH` need the user's `update` permission, `DELETE` needs `delete`.
+- A new collection must have at least one book ("Invalid collection data. No books").
+- A playlist whose last book is removed is deleted by the server.
 
 ## Quirks seen on 2.37.1
 
