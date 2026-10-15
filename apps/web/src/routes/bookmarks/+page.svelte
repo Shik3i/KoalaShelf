@@ -20,10 +20,12 @@
 	let marks = $state.raw<Bookmark[] | null>(null);
 	let books = $state.raw(new Map<string, LibraryItem>());
 	let error = $state<string | null>(null);
+	/** Settles once the books (titles, authors) are known: exports wait for it. */
+	let loaded: Promise<unknown> = Promise.resolve();
 
 	$effect(() => {
 		if (!session.client) return;
-		session.api
+		loaded = session.api
 			.allBookmarks()
 			.then(async (b) => {
 				marks = b;
@@ -53,18 +55,20 @@
 		`${location.origin}/book/${m.libraryItemId}?t=${Math.floor(m.time)}`;
 
 	/** All bookmarks as a readable Markdown list, by book. */
-	function exportMarkdown() {
+	async function exportMarkdown() {
+		await loaded;
 		const lines = [`# ${t.title} · KoalaShelf · ${today()}`, ''];
 		for (const g of groups) {
 			const v = g.item ? view(g.item) : null;
-			lines.push(`## ${v ? `${v.title} — ${v.author}` : g.id}`, '');
+			lines.push(`## ${v ? `${v.title} — ${v.author}` : i18n.m.history.removed}`, '');
 			for (const m of g.list) lines.push(`- [${clock(m.time)}](${link(m)}) ${m.title}`);
 			lines.push('');
 		}
 		saveFile(`koalashelf-bookmarks-${today()}.md`, lines.join('\n'), 'text/markdown');
 	}
 
-	function exportCsv() {
+	async function exportCsv() {
+		await loaded;
 		const rows: (string | number)[][] = [
 			['book', 'author', 'time', 'seconds', 'note', 'created', 'link']
 		];
@@ -72,7 +76,7 @@
 			const v = g.item ? view(g.item) : null;
 			for (const m of g.list)
 				rows.push([
-					v?.title ?? g.id,
+					v?.title ?? i18n.m.history.removed,
 					v?.author ?? '',
 					clock(m.time),
 					Math.floor(m.time),

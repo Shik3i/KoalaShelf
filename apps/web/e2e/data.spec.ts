@@ -67,7 +67,9 @@ test.describe('your data', () => {
 		]);
 		const text = readFileSync(await md.path(), 'utf8');
 		expect(text).toContain('## Glasfluss — Levin Aral');
-		expect(text).toContain(`- [1:15](http://localhost:5174/book/${id}?t=75) Der Fluss, "gläsern"`);
+		expect(text).toContain(
+			`- [1:15](${new URL(page.url()).origin}/book/${id}?t=75) Der Fluss, "gläsern"`
+		);
 		const [csv] = await Promise.all([
 			page.waitForEvent('download'),
 			group.getByRole('button', { name: 'CSV' }).click()
