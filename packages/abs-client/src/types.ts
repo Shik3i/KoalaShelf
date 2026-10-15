@@ -60,6 +60,7 @@ export interface BookMetadata {
 	asin: string | null;
 	language: string | null;
 	explicit: boolean;
+	abridged?: boolean;
 }
 
 /** Minified items carry flattened name strings instead of arrays. */

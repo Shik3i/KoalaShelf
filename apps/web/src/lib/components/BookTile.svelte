@@ -4,12 +4,24 @@
 	import { progress } from '#lib/progress.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from './Cover.svelte';
+	import Check from '@lucide/svelte/icons/check';
 
 	let {
 		item,
 		eager = false,
-		index = 0
-	}: { item: LibraryItem | LibraryItemMinified; eager?: boolean; index?: number } = $props();
+		index = 0,
+		selecting = false,
+		selected = false,
+		onselect
+	}: {
+		item: LibraryItem | LibraryItemMinified;
+		eager?: boolean;
+		index?: number;
+		/** Multi-select: the tile toggles its selection instead of opening the book. */
+		selecting?: boolean;
+		selected?: boolean;
+		onselect?: (id: string) => void;
+	} = $props();
 
 	const v = $derived(view(item));
 	const p = $derived(progress.get(item.id));
@@ -21,13 +33,11 @@
 	);
 </script>
 
-<a
-	class="tile rise"
-	style:--i={index % 60}
-	class:group
-	href={group ? `/library?series=${group.id}` : `/book/${item.id}`}
->
-	<div class="cover" style:view-transition-name={group ? undefined : `cover-${item.id}`}>
+{#snippet body()}
+	<div
+		class="cover"
+		style:view-transition-name={group || selecting ? undefined : `cover-${item.id}`}
+	>
 		<Cover
 			title={v.title}
 			author={v.author}
@@ -50,7 +60,31 @@
 	<div class="ledge" aria-hidden="true"></div>
 	<span class="title">{group ? group.name : v.title}</span>
 	<span class="author muted">{v.author}</span>
-</a>
+{/snippet}
+
+{#if selecting && !group}
+	<button
+		class="tile pick rise"
+		style:--i={index % 60}
+		aria-pressed={selected}
+		onclick={() => onselect?.(item.id)}
+	>
+		<span class="check" aria-hidden="true"
+			>{#if selected}<Check size={16} strokeWidth={3} />{/if}</span
+		>
+		{@render body()}
+	</button>
+{:else}
+	<a
+		class="tile rise"
+		style:--i={index % 60}
+		class:group
+		class:muted-group={selecting}
+		href={group ? `/library?series=${group.id}` : `/book/${item.id}`}
+	>
+		{@render body()}
+	</a>
+{/if}
 
 <style>
 	.tile {
@@ -61,6 +95,52 @@
 		align-content: start;
 		padding: 0 var(--sp-12);
 		min-width: 0;
+	}
+
+	/* Selection mode: the whole tile is a toggle button. */
+	.pick {
+		position: relative;
+		border: 0;
+		background: none;
+		color: inherit;
+		text-align: left;
+		font: inherit;
+		cursor: pointer;
+	}
+
+	.check {
+		position: absolute;
+		z-index: 1;
+		top: 8px;
+		left: calc(var(--sp-12) + 8px);
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		border: 2px solid #fff;
+		border-radius: 50%;
+		background: rgb(0 0 0 / 0.35);
+		color: var(--c-on-accent);
+		box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
+	}
+
+	.pick[aria-pressed='true'] .check {
+		border-color: var(--c-accent);
+		background: var(--c-accent);
+	}
+
+	.pick[aria-pressed='true'] .cover {
+		outline: 3px solid var(--c-accent);
+		outline-offset: 3px;
+		border-radius: var(--r-cover);
+	}
+
+	.pick[aria-pressed='false'] .cover {
+		opacity: 0.85;
+	}
+
+	.muted-group {
+		opacity: 0.5;
 	}
 
 	.cover {

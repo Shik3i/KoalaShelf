@@ -14,11 +14,19 @@ import { i18n } from '../i18n/index.svelte.ts';
 import { session } from '../session.svelte.ts';
 import { progress } from '../progress.svelte.ts';
 import { view } from '../items.ts';
-import { bookRate, prefs, setBookRate, smartRewindSeconds } from '../prefs.svelte.ts';
+import {
+	bookRate,
+	inNightWindow,
+	prefs,
+	setBookRate,
+	smartRewindSeconds,
+	type Prefs
+} from '../prefs.svelte.ts';
+import { clock } from '../format.ts';
 import { downloads, type LocalSession } from '../downloads.svelte.ts';
 import { queue } from '../queue.svelte.ts';
 import { isTauri } from '../platform.ts';
-import { Leveler } from './leveler.ts';
+import { needsGraph, SoundChain, type SoundSettings } from './sound.ts';
 import { forecast, type SleepForecast, type SleepTimer } from './sleep.ts';
 
 export type { SleepTimer } from './sleep.ts';
@@ -28,8 +36,28 @@ const RATE_KEY = 'ks.rate';
 const LAST_KEY = 'ks.lastItem';
 const DEVICE_KEY = 'ks.deviceId';
 const FADE_SECONDS = 10;
+const SILENCE_SAVED_KEY = 'ks.silenceSaved';
+/** Jumps at least this long (seconds) can be undone. */
+const JUMP_UNDO_MIN = 30;
 
+/** Quick choices; any speed between MIN_RATE and MAX_RATE works. */
 export const RATES = [0.8, 1, 1.2, 1.5, 2] as const;
+export const MIN_RATE = 0.5;
+export const MAX_RATE = 3.5;
+export const RATE_STEP = 0.05;
+
+/** In range and on the 0.05 grid (no 1.2500000001 from repeated steps). */
+export function clampRate(r: number) {
+	return Math.round(Math.min(MAX_RATE, Math.max(MIN_RATE, r)) * 100) / 100;
+}
+
+/** Some browsers (iOS) ignore the element volume: the hardware buttons rule there. */
+export const volumeAvailable = (() => {
+	if (typeof Audio === 'undefined') return false;
+	const a = new Audio();
+	a.volume = 0.5;
+	return a.volume === 0.5;
+})();
 
 function storage<T>(key: string, fallback: T): T {
 	try {
@@ -96,6 +124,16 @@ class Player {
 	error = $state<'retrying' | 'fatal' | null>(null);
 	/** Full-screen player visible. */
 	expanded = $state(false);
+	/** Position before the last long jump (chapter, bookmark, timeline), for "jump back". */
+	lastJump = $state<number | null>(null);
+	/** Speeding through a silent stretch right now. */
+	inSilence = $state(false);
+	/** Listening time saved by skipping silence: in this book, and ever. */
+	silenceSavedBook = $state(0);
+	silenceSavedTotal = $state<number>(storage(SILENCE_SAVED_KEY, 0));
+	/** Cast / AirPlay: a receiver is around, and whether we are playing on it. */
+	castAvailable = $state(false);
+	castState = $state<'disconnected' | 'connecting' | 'connected'>('disconnected');
 
 	#audio: HTMLAudioElement | null = null;
 	#hls: { destroy(): void } | null = null;
@@ -112,7 +150,10 @@ class Player {
 	sleepRemaining = $state(0);
 	/** When playback paused with a running timer (timers only count while playing). */
 	#sleepPausedAt = $state<number | null>(null);
-	#leveler = new Leveler();
+	#sound = new SoundChain();
+	#silenceSince = 0;
+	/** The "stopping soon" hint was shown for the running timer. */
+	#sleepWarned = false;
 	#session: PlaybackSession | null = null;
 	#tracks: AudioTrack[] = [];
 	#track = 0;
@@ -167,6 +208,7 @@ class Player {
 
 	constructor() {
 		if (typeof window === 'undefined') return;
+		this.#sound.onSilence = (silent) => this.#onSilence(silent);
 		addEventListener('pagehide', () => this.#sync(true));
 		session.onSignOut(() => void this.stop().catch(() => undefined));
 		document.addEventListener('visibilitychange', () => document.hidden && this.#sync(true));
@@ -203,10 +245,11 @@ class Player {
 				if (this.#sleepPausedAt !== null) this.#shiftSleep(Date.now() - this.#sleepPausedAt);
 				this.#sleepPausedAt = null;
 				this.sleepPausedLeft = null;
-				void this.#leveler.resume();
+				void this.#sound.resume();
 				this.#positionState();
 			});
 			a.addEventListener('pause', () => {
+				this.#onSilence(false);
 				this.playing = false;
 				this.loadingId = null;
 				this.#lastTick = 0;
@@ -223,8 +266,11 @@ class Player {
 					a.currentTime = this.#pendingSeek;
 					this.#pendingSeek = null;
 				}
+				this.inSilence = false;
 				a.playbackRate = this.rate;
 			});
+			a.volume = prefs.volume;
+			this.#watchCast(a);
 			this.#audio = a;
 		}
 		return this.#audio;
@@ -291,6 +337,8 @@ class Player {
 		if (start >= s.duration - 2) start = 0;
 		this.currentTime = start;
 		this.#listened = 0;
+		this.silenceSavedBook = 0;
+		this.lastJump = null;
 		store(LAST_KEY, id);
 		this.#applyBookRate(id);
 		this.#updateMediaSession();
@@ -359,8 +407,9 @@ class Player {
 
 	/** audio.play() can be refused (autoplay policy); never leave a spinner behind. */
 	async #start() {
+		this.#autoSleep();
 		try {
-			await this.#leveler.resume();
+			await this.#sound.resume();
 			await this.audio.play();
 		} catch {
 			this.loadingId = null;
@@ -400,6 +449,29 @@ class Player {
 		this.#positionState();
 	}
 
+	/**
+	 * A deliberate jump (chapter, bookmark, timeline, typed time). Long ones can be undone:
+	 * a mis-tap on the timeline should never lose the listener's place.
+	 */
+	jump(time: number) {
+		const from = this.currentTime;
+		this.seek(time);
+		if (Math.abs(this.currentTime - from) < JUMP_UNDO_MIN) return;
+		this.lastJump = from;
+		toasts.show(i18n.m.player.jumped(clock(from)), {
+			label: i18n.m.player.jumpBack,
+			run: () => this.undoJump()
+		});
+	}
+
+	/** Back to where the last long jump started (and the jump target becomes the undo). */
+	undoJump() {
+		if (this.lastJump === null) return;
+		const to = this.lastJump;
+		this.lastJump = this.currentTime;
+		this.seek(to);
+	}
+
 	skip(seconds: number) {
 		this.seek(this.currentTime + seconds);
 	}
@@ -426,10 +498,11 @@ class Player {
 		if (i >= 0 && i < this.chapters.length - 1) this.seek(this.chapters[i + 1].start);
 	}
 
-	setRate(r: number) {
+	setRate(rate: number) {
+		const r = clampRate(rate);
 		this.rate = r;
 		if (this.item && prefs.rememberRate) setBookRate(this.item.id, r);
-		if (this.#audio) this.#audio.playbackRate = r;
+		if (this.#audio) this.#audio.playbackRate = this.inSilence ? this.#silenceRate() : r;
 		store(RATE_KEY, r);
 		this.#positionState();
 	}
@@ -444,8 +517,46 @@ class Player {
 		this.sleep = t;
 		this.#sleepPausedAt = null;
 		this.sleepPausedLeft = null;
+		this.#sleepWarned = false;
 		if (!this.playing) this.#holdSleep();
-		if (this.#audio) this.#audio.volume = 1;
+		if (this.#audio) this.#audio.volume = prefs.volume;
+	}
+
+	/** More time on a running timer ("still awake"); a chapter-end timer becomes a countdown. */
+	extendSleep(minutes: number) {
+		const s = this.sleep;
+		const ms = minutes * 60_000;
+		if (s.kind === 'off') return;
+		this.#sleepWarned = false;
+		if (this.#audio) this.#audio.volume = prefs.volume;
+		if (s.kind === 'minutes') {
+			this.sleep = { ...s, minutes: s.minutes + minutes, endsAt: s.endsAt + ms };
+			if (this.sleepPausedLeft !== null) this.sleepPausedLeft += ms;
+		} else if (s.kind === 'window') {
+			this.sleep = { ...s, minAt: s.minAt + ms, maxAt: s.maxAt + ms };
+			if (this.sleepPausedLeft !== null) this.sleepPausedLeft += ms;
+		} else {
+			const left = Math.max(0, (this.chapter?.end ?? this.currentTime) - this.currentTime);
+			const endsAt = Date.now() + (left / this.rate) * 1000 + ms;
+			this.setSleep({ kind: 'minutes', minutes, endsAt });
+		}
+	}
+
+	/** Night time: playback starting without a timer gets the listener's usual one. */
+	#autoSleep() {
+		if (!prefs.autoSleep || this.sleep.kind !== 'off' || this.playing) return;
+		if (!inNightWindow(new Date(), prefs.autoSleepFrom, prefs.autoSleepTo)) return;
+		const kind = prefs.autoSleepKind;
+		if (kind === 'chapter') this.setSleep({ kind: 'chapter' });
+		else if (kind === 'smart') this.setSleepWindow(prefs.sleepMin, prefs.sleepMax);
+		else {
+			const m = prefs.autoSleepMinutes;
+			this.setSleep({ kind: 'minutes', minutes: m, endsAt: Date.now() + m * 60_000 });
+		}
+		toasts.show(i18n.m.player.autoSleepStarted, {
+			label: i18n.m.player.timerStop,
+			run: () => this.setSleep({ kind: 'off' })
+		});
 	}
 
 	/** Starts a smart timer: the first chapter end between `min` and `max` minutes. */
@@ -476,37 +587,122 @@ class Player {
 		if (s.kind === 'window') this.sleep = { ...s, minAt: s.minAt + ms, maxAt: s.maxAt + ms };
 	}
 
-	// --- Volume leveling --------------------------------------------------------
+	// --- Sound: volume, boost, leveling, voice, mono, silence ---------------------
 
 	/** Web Audio needs CORS for remote audio; the desktop shell cannot provide it. */
 	get levelingAvailable() {
 		return !isTauri && typeof AudioContext !== 'undefined';
 	}
 
+	/** Skipping silence also needs an audio worklet (https only). */
+	get silenceAvailable() {
+		return this.levelingAvailable && SoundChain.silenceAvailable;
+	}
+
 	/** For tests and meters. */
 	get leveler() {
-		return this.#leveler;
+		return this.#sound;
+	}
+
+	get #soundSettings(): SoundSettings {
+		return {
+			leveling: prefs.leveling,
+			boost: prefs.boost,
+			voice: prefs.voiceBoost,
+			mono: prefs.mono,
+			silence: prefs.skipSilence && this.silenceAvailable
+		};
 	}
 
 	setLeveling(on: boolean) {
-		prefs.set('leveling', on);
+		this.setSound('leveling', on);
+	}
+
+	/** Changes one sound setting and applies it to what is playing. */
+	setSound<K extends 'leveling' | 'boost' | 'voiceBoost' | 'mono' | 'skipSilence'>(
+		key: K,
+		value: Prefs[K]
+	) {
+		prefs.set(key, value);
 		const a = this.#audio;
 		// A remote stream loaded without CORS would play silently through Web Audio: reload it.
 		const reload =
-			on &&
+			needsGraph(this.#soundSettings) &&
 			!!a?.currentSrc &&
 			a.crossOrigin !== 'anonymous' &&
 			new URL(a.currentSrc).origin !== location.origin;
-		this.#prepareLeveling();
+		this.#prepareSound();
 		if (reload && (this.#session || this.#local)) this.#loadTrackAt(this.currentTime, this.playing);
 	}
 
-	#prepareLeveling() {
-		if (!this.levelingAvailable || (!prefs.leveling && !this.#leveler.attached)) return;
+	setVolume(v: number) {
+		const volume = Math.round(Math.min(1, Math.max(0, v)) * 100) / 100;
+		prefs.set('volume', volume);
+		if (this.#audio) this.#audio.volume = volume;
+	}
+
+	#prepareSound() {
+		const settings = this.#soundSettings;
+		if (!this.levelingAvailable || (!needsGraph(settings) && !this.#sound.attached)) return;
 		const a = this.audio;
 		a.crossOrigin = 'anonymous';
-		this.#leveler.attach(a);
-		this.#leveler.set(prefs.leveling);
+		this.#sound.attach(a);
+		this.#sound.set(settings);
+	}
+
+	/** Silence plays faster (the pitch is kept). */
+	#silenceRate() {
+		return Math.min(4, Math.max(2.5, this.rate * 2.5));
+	}
+
+	#onSilence(silent: boolean) {
+		const a = this.#audio;
+		if (!a || silent === this.inSilence) return;
+		if (silent) {
+			if (!this.playing || !prefs.skipSilence) return;
+			this.inSilence = true;
+			this.#silenceSince = performance.now();
+			a.playbackRate = this.#silenceRate();
+			return;
+		}
+		this.inSilence = false;
+		const fast = a.playbackRate;
+		a.playbackRate = this.rate;
+		// Real time saved: the stretch would have taken fast/rate times as long.
+		const real = (performance.now() - this.#silenceSince) / 1000;
+		const saved = Math.max(0, real * (fast / this.rate - 1));
+		if (saved > 0 && saved < 600) {
+			this.silenceSavedBook += saved;
+			this.silenceSavedTotal += saved;
+			store(SILENCE_SAVED_KEY, Math.round(this.silenceSavedTotal));
+		}
+	}
+
+	// --- Cast / AirPlay -----------------------------------------------------------
+
+	#watchCast(a: HTMLAudioElement) {
+		const remote = a.remote;
+		if (remote?.watchAvailability) {
+			remote
+				.watchAvailability((available) => (this.castAvailable = available))
+				.catch(() => undefined);
+			const update = () => (this.castState = remote.state);
+			remote.addEventListener('connecting', update);
+			remote.addEventListener('connect', update);
+			remote.addEventListener('disconnect', update);
+			return;
+		}
+		// Safari: AirPlay.
+		a.addEventListener('webkitplaybacktargetavailabilitychanged', (e) => {
+			this.castAvailable = (e as Event & { availability?: string }).availability === 'available';
+		});
+	}
+
+	/** Opens the browser's device picker (Chromecast, AirPlay, …). */
+	cast() {
+		const a = this.audio as HTMLAudioElement & { webkitShowPlaybackTargetPicker?: () => void };
+		if (a.remote?.prompt) void a.remote.prompt().catch(() => undefined);
+		else a.webkitShowPlaybackTargetPicker?.();
 	}
 
 	// --- Bookmarks ------------------------------------------------------------
@@ -553,7 +749,7 @@ class Player {
 		if (!track) return;
 		this.#track = idx;
 		this.#pendingSeek = t - track.startOffset;
-		this.#prepareLeveling();
+		this.#prepareSound();
 		const local = this.#localUrls?.get(track.index);
 		if (local) {
 			this.#hls?.destroy();
@@ -627,7 +823,7 @@ class Player {
 			// Past the earliest time, the next chapter end is a natural place to stop.
 			if (Date.now() >= s.minAt && this.chapter && this.currentTime >= this.chapter.end - 0.4) {
 				this.pause();
-				a.volume = 1;
+				a.volume = prefs.volume;
 				this.sleep = { kind: 'off' };
 				return;
 			}
@@ -636,13 +832,25 @@ class Player {
 		this.sleepRemaining = Math.max(0, this.sleepForecast?.seconds ?? left);
 		if (left <= 0) {
 			this.pause();
-			a.volume = 1;
+			a.volume = prefs.volume;
 			// Rewind a little so the listener does not miss what they fell asleep to.
 			if (prefs.sleepRewind) this.skip(-prefs.sleepRewind);
 			this.sleep = { kind: 'off' };
-		} else if (prefs.sleepFade && left < FADE_SECONDS && this.sleepForecast?.chapter == null) {
-			a.volume = Math.max(0.05, left / FADE_SECONDS);
+		} else if (left < FADE_SECONDS && this.sleepForecast?.chapter == null) {
+			if (prefs.sleepFade) a.volume = prefs.volume * Math.max(0.05, left / FADE_SECONDS);
+			this.#warnSleep();
 		}
+	}
+
+	/** A last chance to keep listening, shortly before a timer stops playback. */
+	#warnSleep() {
+		if (this.#sleepWarned) return;
+		this.#sleepWarned = true;
+		toasts.show(
+			i18n.m.player.sleepSoon,
+			{ label: i18n.m.player.sleepExtend(10), run: () => this.extendSleep(10) },
+			FADE_SECONDS * 1000
+		);
 	}
 
 	#onEnded() {
@@ -660,6 +868,8 @@ class Player {
 				.catch(() => undefined);
 			const p = progress.get(id);
 			if (p) progress.set({ ...p, isFinished: true, progress: 1 });
+			// Finished books need no space on the device (if the listener wants it so).
+			if (prefs.removeFinished && downloads.has(id) && !this.#local) void downloads.remove(id);
 			// A timer that stops at a chapter end treats the end of the book as one.
 			const s = this.sleep;
 			if (s.kind === 'chapter' || (s.kind === 'window' && Date.now() >= s.minAt)) {

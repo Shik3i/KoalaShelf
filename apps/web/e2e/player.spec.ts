@@ -72,6 +72,7 @@ test.describe('player', () => {
 		await seek(page, 60);
 		await dialog.getByRole('button', { name: 'Previous chapter' }).click();
 		await expect.poll(() => time(page).then(Math.round)).toBe(45);
+		await dialog.getByRole('button', { name: /^Speed:/ }).click();
 		await dialog.getByRole('button', { name: '1.5×' }).click();
 		expect(await player<number>(page, 'audio.playbackRate')).toBe(1.5);
 		expect(await page.evaluate(() => localStorage.getItem('ks.rate'))).toBe('1.5');

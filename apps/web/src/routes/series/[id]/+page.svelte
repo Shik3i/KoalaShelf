@@ -13,6 +13,10 @@
 	import Check from '@lucide/svelte/icons/check';
 	import ListPlus from '@lucide/svelte/icons/list-plus';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import Download from '@lucide/svelte/icons/download';
+	import CheckCheck from '@lucide/svelte/icons/check-check';
+	import { downloads, supported as downloadsSupported } from '#lib/downloads.svelte.ts';
+	import { isTauri } from '#lib/platform.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -55,6 +59,32 @@
 		);
 		for (const i of rest) queue.add(i);
 		toasts.show(t.queued(rest.length));
+	}
+
+	/** The whole series offline, one book after another. */
+	const missing = $derived(items.filter((i) => !downloads.has(i.id)));
+	const canDownload = $derived(!isTauri && session.canDownload && downloadsSupported());
+	function downloadAll() {
+		const ids = missing.map((i) => i.id);
+		void (async () => {
+			for (const id of ids) await downloads.download(id).catch(() => undefined);
+		})();
+		toasts.show(i18n.m.select.downloading(ids.length));
+	}
+
+	async function finishAll() {
+		const open = items.filter((i) => progress.status(i.id) !== 'done');
+		await session.api.updateProgressMany(
+			open.map((i) => ({ libraryItemId: i.id, isFinished: true }))
+		);
+		await progress.load(true);
+		toasts.show(i18n.m.select.finished(open.length), {
+			label: i18n.m.toast.undo,
+			run: () =>
+				void session.api
+					.updateProgressMany(open.map((i) => ({ libraryItemId: i.id, isFinished: false })))
+					.then(() => progress.load(true))
+		});
 	}
 
 	async function hideFromContinue() {
@@ -106,6 +136,16 @@
 					<button class="btn ghost" onclick={hideFromContinue}>
 						<EyeOff size={16} aria-hidden="true" />
 						{t.hide}
+					</button>
+					<button class="btn ghost" onclick={finishAll}>
+						<CheckCheck size={16} aria-hidden="true" />
+						{t.finishAll}
+					</button>
+				{/if}
+				{#if canDownload && missing.length}
+					<button class="btn ghost" onclick={downloadAll}>
+						<Download size={16} aria-hidden="true" />
+						{t.downloadAll}
 					</button>
 				{/if}
 			</div>

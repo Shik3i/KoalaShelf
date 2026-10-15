@@ -118,7 +118,7 @@ test.describe('mobile', () => {
 		await mini.getByRole('button', { name: 'Open player' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Player' });
 		await page.waitForTimeout(600); // open animation
-		for (const name of ['Sleep timer', 'Chapters', 'Bookmarks']) {
+		for (const name of ['Speed:', 'Sleep timer', 'Chapters', 'Bookmarks']) {
 			const box = (await dialog.getByRole('button', { name }).boundingBox())!;
 			expect(box.y + box.height).toBeLessThanOrEqual(812);
 		}

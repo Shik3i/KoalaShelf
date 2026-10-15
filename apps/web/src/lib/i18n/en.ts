@@ -29,8 +29,30 @@ export const en = {
 	collections: {
 		title: 'Collections',
 		books: (n: number) => plural(n, 'book', 'books'),
-		empty: 'No collections in this library yet. Create them in Audiobookshelf.',
-		notFound: 'This collection does not exist (anymore).'
+		empty: 'No collections in this library yet.',
+		notFound: 'This collection does not exist (anymore).',
+		newName: 'New collection',
+		howToCreate:
+			'New collections start with books: choose “Add to collection” on a book page, or select several books in the library.',
+		create: 'Create',
+		addTitle: 'Add to collection',
+		none: 'No collections yet.',
+		addedTo: (name: string) => `Added to “${name}”`,
+		removedFrom: (name: string) => `Removed from “${name}”`,
+		done: 'Done',
+		name: 'Name',
+		description: 'Description',
+		save: 'Save',
+		cancel: 'Cancel',
+		rename: 'Edit',
+		arrange: 'Arrange',
+		delete: 'Delete collection',
+		deleteConfirm: (name: string) =>
+			`Delete “${name}” for everyone on this server? The books stay in the library.`,
+		deleted: 'Collection deleted',
+		removeItem: (title: string) => `Remove ${title} from the collection`,
+		asPlaylist: 'Save as playlist',
+		playlistCreated: 'Playlist created'
 	},
 	downloads: {
 		title: 'Downloads',
@@ -90,6 +112,7 @@ export const en = {
 		expired: 'Your session has expired. Please sign in again.'
 	},
 	library: {
+		select: 'Select',
 		filters: 'Filters',
 		filtersActive: (n: number) => `Filters (${n})`,
 		clearAll: 'Clear all',
@@ -194,7 +217,19 @@ export const en = {
 		noChapters: 'This title has no chapters.',
 		showLess: 'Show less',
 		notFound: 'This title does not exist (anymore).',
-		seriesBook: (name: string, seq: string | null) => (seq ? `${name} · Book ${seq}` : name)
+		seriesBook: (name: string, seq: string | null) => (seq ? `${name} · Book ${seq}` : name),
+		moreActions: 'More',
+		addToCollection: 'Add to collection',
+		resetProgress: 'Reset progress',
+		progressReset: 'Progress reset',
+		finishEarlier: 'Mark earlier books as finished',
+		copyLink: 'Share link',
+		filesTab: 'Files',
+		tags: 'Tags',
+		edition: 'Edition',
+		abridged: 'Abridged',
+		explicit: 'Explicit',
+		added: 'Added'
 	},
 	player: {
 		player: 'Player',
@@ -226,6 +261,29 @@ export const en = {
 		remainingBook: (t: string) => `${t} left in book`,
 		remainingChapter: (t: string) => `${t} left in chapter`,
 		seek: 'Position',
+		jumped: (t: string) => `Jumped from ${t}`,
+		jumpBack: 'Back',
+		autoSleepStarted: 'Night time: sleep timer started',
+		sleepSoon: 'Stopping in a few seconds',
+		sleepExtend: (m: number) => `+${m} min`,
+		sleepExtendLabel: 'More time',
+		autoSleepOn: 'Starts by itself at night · change',
+		autoSleepOff: 'Start a timer by itself at night',
+		slower: 'Slower',
+		faster: 'Faster',
+		speedChoices: 'Quick choices',
+		speedPerBook: 'Saved for this book',
+		speedEveryBook: 'Used for every book',
+		speedLeft: (d: string) => `${d} left at this speed`,
+		speedButton: (s: string) => `Speed: ${s}`,
+		cast: 'Play on another device',
+		popOut: 'Pop-out player',
+		endsAt: (t: string) => `ends ${t}`,
+		chapterFilter: 'Find chapter',
+		goToTime: 'Go to time (h:mm:ss)',
+		goTo: 'Go',
+		goToInvalid: 'Enter a time within the book, e.g. 1:23:45.',
+		chapterNone: 'No chapter matches.',
 		error: 'Playback failed. Retrying …',
 		errorFatal: 'Playback failed. Press play to try again.',
 		edit: 'Edit note',
@@ -258,7 +316,8 @@ export const en = {
 		timeMode: 'Switch between elapsed and remaining time',
 		bookmarkFailed: 'Bookmark could not be saved. Is there already one at this second?',
 		syncFailed: 'Progress could not be saved. Will retry.',
-		shortcuts: 'Space play/pause · ← → skip · Shift ← → chapter · B bookmark'
+		shortcuts:
+			'Space play/pause · ← → skip · Shift ← → chapter · [ ] speed · B bookmark · U jump back'
 	},
 	home: {
 		greetingMorning: 'Good morning',
@@ -373,7 +432,18 @@ export const en = {
 		autoQueueHint: 'When a book ends, the next queued one starts.',
 		seriesOffer: 'Offer the next book in a series',
 		shortcuts: 'Keyboard shortcuts',
-		shortcutsHint: 'Space, arrows, B, [ ] and ?. Press ? for all of them.',
+		shortcutsHint: 'Space, arrows, B, U, M, [ ] and ?. Press ? for all of them.',
+		autoSleep: 'Start automatically at night',
+		autoSleepHint: 'When playback starts in this window and no timer is running.',
+		autoSleepFrom: 'From',
+		autoSleepTo: 'Until',
+		autoSleepKind: 'Timer',
+		autoSleepKinds: { smart: 'Smart', chapter: 'End of chapter', minutes: 'Minutes' },
+		autoSleepMinutes: 'Minutes',
+		autoSleepSmart: (a: number, b: number) =>
+			`First chapter end between ${a} and ${b} minutes (as last set in the player).`,
+		removeFinished: 'Remove finished books',
+		removeFinishedHint: 'Deletes a download from this device once its book is finished.',
 		sleep: 'Sleep timer',
 		sleepFade: 'Fade out',
 		sleepFadeHint: 'The volume goes down over the last 10 seconds.',
@@ -441,6 +511,8 @@ export const en = {
 		speed: 'Slower / faster',
 		bookmark: 'Add bookmark',
 		help: 'Show shortcuts',
+		undoJump: 'Back to before the last jump',
+		mute: 'Mute / unmute',
 		close: 'Close'
 	},
 	common: {
@@ -467,6 +539,8 @@ export const en = {
 		queued: (n: number) =>
 			n === 1 ? '1 book added to the queue' : `${n} books added to the queue`,
 		hide: 'Remove from "Continue series"',
+		finishAll: 'Mark series as finished',
+		downloadAll: 'Download series',
 		hidden: 'Removed from "Continue series"',
 		notFound: 'Series not found.'
 	},
@@ -485,6 +559,7 @@ export const en = {
 		delete: 'Delete playlist',
 		deleteConfirm: (name: string) => `Delete “${name}”? The books stay in your library.`,
 		deleted: 'Playlist deleted',
+		deletedEmpty: 'Playlist deleted: its last book was removed',
 		moveUp: (title: string) => `Move ${title} up`,
 		moveDown: (title: string) => `Move ${title} down`,
 		removeItem: (title: string) => `Remove ${title} from the playlist`,
@@ -554,6 +629,41 @@ export const en = {
 		theme: 'Switch theme',
 		searchAll: (q: string) => `Search everything for “${q}”`,
 		foot: '↑ ↓ to move · Enter to open · Esc to close'
+	},
+	select: {
+		region: 'Selection',
+		count: (n: number) => `${n} selected`,
+		all: 'Select all',
+		none: 'Select none',
+		markFinished: 'Mark finished',
+		markUnfinished: 'Mark not finished',
+		queue: 'Add to queue',
+		playlist: 'Playlist',
+		collection: 'Collection',
+		download: 'Download',
+		done: 'Done selecting',
+		finished: (n: number) =>
+			n === 1 ? '1 book marked as finished' : `${n} books marked as finished`,
+		unfinished: (n: number) =>
+			n === 1 ? '1 book marked as not finished' : `${n} books marked as not finished`,
+		downloading: (n: number) => (n === 1 ? 'Downloading 1 book' : `Downloading ${n} books`)
+	},
+	sound: {
+		title: 'Sound',
+		volume: 'Volume',
+		mute: 'Mute',
+		unmute: 'Unmute',
+		boost: 'Volume boost',
+		boostHint: 'Louder than the device allows, for quiet recordings.',
+		off: 'Off',
+		voice: 'Clearer voices',
+		voiceHint: 'Lifts speech and cuts rumble.',
+		mono: 'Mono',
+		monoHint: 'Both channels in each ear, e.g. with one earbud.',
+		silence: 'Skip silence',
+		silenceHint: 'Speeds through pauses longer than half a second.',
+		saved: (book: string, total: string) => `Saved ${book} in this book · ${total} in total`,
+		unavailable: 'Sound effects are not available in this app version.'
 	},
 	format: {
 		hours: 'h',

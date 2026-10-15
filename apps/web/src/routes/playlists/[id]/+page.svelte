@@ -52,6 +52,20 @@
 	async function remove(index: number) {
 		if (!list) return;
 		const before = items.map((i) => i.id);
+		if (before.length === 1) {
+			// The server deletes a playlist with its last book; undo creates it again.
+			const { name, libraryId } = list;
+			await session.api.removeFromPlaylist(list.id, before[0]);
+			toasts.show(t.deletedEmpty, {
+				label: i18n.m.toast.undo,
+				run: () =>
+					void session.api
+						.createPlaylist(libraryId, name, before)
+						.then((p) => goto(`/playlists/${p.id}`))
+			});
+			goto('/playlists');
+			return;
+		}
 		list = await session.api.removeFromPlaylist(list.id, before[index]);
 		toasts.show(t.removedFrom(list.name), {
 			label: i18n.m.toast.undo,

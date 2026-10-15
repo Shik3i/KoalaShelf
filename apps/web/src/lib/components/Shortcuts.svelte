@@ -18,6 +18,8 @@
 		[['Shift', '←', '→'], t.chapter],
 		[['[', ']'], t.speed],
 		[['B'], t.bookmark],
+		[['U'], t.undoJump],
+		[['M'], t.mute],
 		[['Ctrl', 'K'], t.palette],
 		[['?'], t.help]
 	] as const);

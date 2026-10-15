@@ -92,7 +92,7 @@ for (const scheme of ['light', 'dark'] as const) {
 			const dialog = page.getByRole('dialog', { name: 'Player' });
 			await page.waitForTimeout(500); // let the open animation finish (opacity)
 			await scan('full player');
-			for (const panel of ['Sleep timer', 'Chapters', 'Bookmarks']) {
+			for (const panel of ['Sleep timer', 'Chapters', 'Bookmarks', 'Speed:', 'Sound']) {
 				await dialog.getByRole('button', { name: panel }).click();
 				await scan(`panel ${panel}`);
 			}

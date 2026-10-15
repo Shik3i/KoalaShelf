@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { untrack } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 	import type { FilterData, LibraryItemMinified } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
@@ -33,7 +34,10 @@
 	import Shuffle from '@lucide/svelte/icons/shuffle';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import X from '@lucide/svelte/icons/x';
+	import Check from '@lucide/svelte/icons/check';
 	import Bookmark from '@lucide/svelte/icons/bookmark-plus';
+	import SquareCheck from '@lucide/svelte/icons/square-check';
+	import SelectionBar from '#lib/components/SelectionBar.svelte';
 
 	const PAGE = 60;
 	const t = $derived(i18n.m.library);
@@ -141,6 +145,31 @@
 	let controller: AbortController | null = null;
 
 	const visible = $derived(how.mode === 'set' ? items.slice(0, shownCount) : items);
+
+	// Multi-select: pick books, then act on all of them (selection bar).
+	let selecting = $state(false);
+	const selected = new SvelteSet<string>();
+	const picked = $derived(items.filter((i) => selected.has(i.id)));
+	const selectable = $derived(
+		visible.filter(
+			(i) => ((i as { collapsedSeries?: { numBooks: number } }).collapsedSeries?.numBooks ?? 0) < 2
+		)
+	);
+	const allPicked = $derived(selectable.length > 0 && selectable.every((i) => selected.has(i.id)));
+
+	function pick(id: string) {
+		if (!selected.delete(id)) selected.add(id);
+	}
+
+	function pickAll() {
+		if (allPicked) selected.clear();
+		else for (const i of selectable) selected.add(i.id);
+	}
+
+	function endSelect() {
+		selecting = false;
+		selected.clear();
+	}
 
 	async function loadPage() {
 		const lib = session.libraryId;
@@ -378,6 +407,14 @@
 	</div>
 
 	<div class="chips end">
+		<button
+			class="chip outline"
+			aria-pressed={selecting}
+			onclick={() => (selecting ? endSelect() : (selecting = true))}
+		>
+			<SquareCheck size={14} aria-hidden="true" />
+			{t.select}
+		</button>
 		{#if !query.values.series}
 			<button
 				class="chip outline"
@@ -570,7 +607,14 @@
 {:else if layout === 'shelf'}
 	<div class="shelf">
 		{#each visible as item, i (item.id)}
-			<BookTile {item} eager={i < 12} index={i % PAGE} />
+			<BookTile
+				{item}
+				eager={i < 12}
+				index={i % PAGE}
+				{selecting}
+				selected={selected.has(item.id)}
+				onselect={pick}
+			/>
 		{/each}
 	</div>
 {:else}
@@ -578,19 +622,29 @@
 		{#each visible as item (item.id)}
 			{@const v = view(item)}
 			{@const p = progress.get(item.id)}
+			{#snippet row()}
+				<div class="mini">
+					<Cover title={v.title} author={v.author} src={v.cover} sizes="56px" />
+				</div>
+				<div class="meta">
+					<strong>{v.title}</strong>
+					<span class="muted">{v.author}{v.narrator ? ` · ${t.readBy(v.narrator)}` : ''}</span>
+				</div>
+				<span class="muted tabular dur">{duration(v.duration)}</span>
+				<span class="pbar" style:--p={p?.isFinished ? 1 : (p?.progress ?? 0)} aria-hidden="true"
+				></span>
+			{/snippet}
 			<li>
-				<a href="/book/{item.id}">
-					<div class="mini">
-						<Cover title={v.title} author={v.author} src={v.cover} sizes="56px" />
-					</div>
-					<div class="meta">
-						<strong>{v.title}</strong>
-						<span class="muted">{v.author}{v.narrator ? ` · ${t.readBy(v.narrator)}` : ''}</span>
-					</div>
-					<span class="muted tabular dur">{duration(v.duration)}</span>
-					<span class="pbar" style:--p={p?.isFinished ? 1 : (p?.progress ?? 0)} aria-hidden="true"
-					></span>
-				</a>
+				{#if selecting}
+					<button class="row" aria-pressed={selected.has(item.id)} onclick={() => pick(item.id)}>
+						<span class="tick" aria-hidden="true"
+							>{#if selected.has(item.id)}<Check size={14} strokeWidth={3} />{/if}</span
+						>
+						{@render row()}
+					</button>
+				{:else}
+					<a class="row" href="/book/{item.id}">{@render row()}</a>
+				{/if}
 			</li>
 		{/each}
 	</ul>
@@ -599,6 +653,12 @@
 {#if !done && !error && !firstLoad}
 	<div class="more" {@attach onVisible(more)}>{loading ? t.loading : ''}</div>
 {/if}
+
+{#if selecting}
+	<SelectionBar items={picked} allSelected={allPicked} onall={pickAll} onclear={endSelect} />
+{/if}
+
+<svelte:window onkeydown={(e) => selecting && e.key === 'Escape' && endSelect()} />
 
 <style>
 	/* Saved views: chip plus a small delete button. */
@@ -801,8 +861,9 @@
 		gap: var(--sp-4);
 	}
 
-	.list a {
+	.list .row {
 		position: relative;
+		width: 100%;
 		display: grid;
 		grid-template-columns: 56px 1fr auto;
 		align-items: center;
@@ -813,8 +874,37 @@
 		overflow: hidden;
 	}
 
-	.list a:hover {
+	.list .row:hover {
 		background: var(--c-card);
+	}
+
+	/* Selection mode: rows are toggle buttons with a check in front. */
+	button.row {
+		grid-template-columns: 28px 56px 1fr auto;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+	}
+
+	button.row[aria-pressed='true'] {
+		background: color-mix(in oklab, var(--c-accent) 14%, var(--c-card));
+	}
+
+	.tick {
+		display: grid;
+		place-items: center;
+		width: 24px;
+		height: 24px;
+		border: 2px solid var(--c-field);
+		border-radius: 50%;
+		color: var(--c-on-accent);
+	}
+
+	[aria-pressed='true'] .tick {
+		border-color: var(--c-accent);
+		background: var(--c-accent);
 	}
 
 	.meta {
@@ -893,8 +983,12 @@
 			display: none;
 		}
 
-		.list a {
+		.list .row {
 			grid-template-columns: 56px 1fr;
+		}
+
+		.list button.row {
+			grid-template-columns: 28px 56px 1fr;
 		}
 	}
 </style>

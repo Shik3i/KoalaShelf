@@ -13,7 +13,8 @@
 	import Toaster from '#lib/components/Toaster.svelte';
 	import Shortcuts from '#lib/components/Shortcuts.svelte';
 	import CommandPalette from '#lib/components/CommandPalette.svelte';
-	import { RATES } from '#lib/player/player.svelte.ts';
+	import { RATE_STEP } from '#lib/player/player.svelte.ts';
+	import { progress } from '#lib/progress.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { dev } from '$app/env';
 	import { prefs } from '#lib/prefs.svelte.ts';
@@ -34,6 +35,8 @@
 		startLive();
 		// The last book comes back paused, so the mini player is there after a reload.
 		untrack(() => void player.restoreLast());
+		// Progress and the account's permissions (downloads, collections) for every page.
+		untrack(() => void progress.load().catch(() => undefined));
 	});
 	let online = $state(navigator.onLine);
 
@@ -85,10 +88,15 @@
 		}
 		if (!player.item) return;
 		if (key === '[' || key === ']') {
-			const i = RATES.findIndex((r) => r === player.rate);
-			const next =
-				RATES[Math.min(RATES.length - 1, Math.max(0, (i < 0 ? 1 : i) + (key === ']' ? 1 : -1)))];
-			player.setRate(next);
+			player.setRate(player.rate + (key === ']' ? 2 : -2) * RATE_STEP);
+			return;
+		}
+		if (key === 'u' || key === 'U') {
+			player.undoJump();
+			return;
+		}
+		if (key === 'm' || key === 'M') {
+			player.setVolume(prefs.volume ? 0 : 1);
 			return;
 		}
 		if (key === ' ' && !el.closest('button, a')) {

@@ -283,6 +283,16 @@ export class AbsClient {
 		return this.request<void>(`/api/me/progress/${itemId}`, { method: 'PATCH', body: update });
 	}
 
+	/** Progress of several books in one request (e.g. mark a selection finished). */
+	updateProgressMany(updates: (ProgressUpdate & { libraryItemId: string })[]) {
+		return this.request<void>('/api/me/progress/batch/update', { method: 'PATCH', body: updates });
+	}
+
+	/** Forgets a book's progress entirely, as if never started (progress id, not item id). */
+	removeProgress(progressId: string) {
+		return this.request<void>(`/api/me/progress/${progressId}`, { method: 'DELETE' });
+	}
+
 	/** Hides an item from "continue listening" without touching its progress. */
 	hideFromContinueListening(progressId: string) {
 		return this.request<void>(`/api/me/progress/${progressId}/remove-from-continue-listening`);
@@ -454,6 +464,66 @@ export class AbsClient {
 
 	removeFromPlaylist(id: string, libraryItemId: string) {
 		return this.request<Playlist>(`/api/playlists/${id}/item/${libraryItemId}`, { method: 'DELETE' });
+	}
+
+	addManyToPlaylist(id: string, itemIds: string[]) {
+		return this.request<Playlist>(`/api/playlists/${id}/batch/add`, {
+			method: 'POST',
+			body: { items: itemIds.map((libraryItemId) => ({ libraryItemId })) }
+		});
+	}
+
+	removeManyFromPlaylist(id: string, itemIds: string[]) {
+		return this.request<Playlist>(`/api/playlists/${id}/batch/remove`, {
+			method: 'POST',
+			body: { items: itemIds.map((libraryItemId) => ({ libraryItemId })) }
+		});
+	}
+
+	/** A new playlist with a collection's books (in its order). */
+	playlistFromCollection(collectionId: string) {
+		return this.request<Playlist>(`/api/playlists/collection/${collectionId}`, { method: 'POST' });
+	}
+
+	// --- Collections (need the "update" permission; deleting needs "delete") -----
+
+	createCollection(libraryId: string, name: string, bookIds: string[] = [], description?: string) {
+		return this.request<Collection>('/api/collections', {
+			method: 'POST',
+			body: { libraryId, name, description, books: bookIds }
+		});
+	}
+
+	/** Rename, describe and/or reorder (the book list replaces the current order). */
+	updateCollection(id: string, changes: { name?: string; description?: string; bookIds?: string[] }) {
+		const { bookIds, ...rest } = changes;
+		return this.request<Collection>(`/api/collections/${id}`, {
+			method: 'PATCH',
+			body: { ...rest, ...(bookIds ? { books: bookIds } : {}) }
+		});
+	}
+
+	deleteCollection(id: string) {
+		return this.request<unknown>(`/api/collections/${id}`, { method: 'DELETE' });
+	}
+
+	addToCollection(id: string, libraryItemId: string) {
+		return this.request<Collection>(`/api/collections/${id}/book`, { method: 'POST', body: { id: libraryItemId } });
+	}
+
+	removeFromCollection(id: string, libraryItemId: string) {
+		return this.request<Collection>(`/api/collections/${id}/book/${libraryItemId}`, { method: 'DELETE' });
+	}
+
+	addManyToCollection(id: string, itemIds: string[]) {
+		return this.request<Collection>(`/api/collections/${id}/batch/add`, { method: 'POST', body: { books: itemIds } });
+	}
+
+	removeManyFromCollection(id: string, itemIds: string[]) {
+		return this.request<Collection>(`/api/collections/${id}/batch/remove`, {
+			method: 'POST',
+			body: { books: itemIds }
+		});
 	}
 
 	// --- Account ----------------------------------------------------------------

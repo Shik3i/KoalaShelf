@@ -27,8 +27,30 @@ export const de: Messages = {
 	collections: {
 		title: 'Sammlungen',
 		books: (n) => (n === 1 ? '1 Buch' : `${n} Bücher`),
-		empty: 'In dieser Bibliothek gibt es noch keine Sammlungen. Lege sie in Audiobookshelf an.',
-		notFound: 'Diese Sammlung gibt es nicht (mehr).'
+		empty: 'In dieser Bibliothek gibt es noch keine Sammlungen.',
+		notFound: 'Diese Sammlung gibt es nicht (mehr).',
+		newName: 'Neue Sammlung',
+		howToCreate:
+			'Neue Sammlungen beginnen mit Büchern: Wähle auf einer Buchseite „Zur Sammlung“ oder markiere mehrere Bücher in der Bibliothek.',
+		create: 'Anlegen',
+		addTitle: 'Zur Sammlung hinzufügen',
+		none: 'Noch keine Sammlungen.',
+		addedTo: (name) => `Zu „${name}“ hinzugefügt`,
+		removedFrom: (name) => `Aus „${name}“ entfernt`,
+		done: 'Fertig',
+		name: 'Name',
+		description: 'Beschreibung',
+		save: 'Speichern',
+		cancel: 'Abbrechen',
+		rename: 'Bearbeiten',
+		arrange: 'Anordnen',
+		delete: 'Sammlung löschen',
+		deleteConfirm: (name) =>
+			`„${name}“ für alle auf diesem Server löschen? Die Bücher bleiben in der Bibliothek.`,
+		deleted: 'Sammlung gelöscht',
+		removeItem: (title) => `${title} aus der Sammlung entfernen`,
+		asPlaylist: 'Als Playlist speichern',
+		playlistCreated: 'Playlist angelegt'
 	},
 	downloads: {
 		title: 'Downloads',
@@ -89,6 +111,7 @@ export const de: Messages = {
 		expired: 'Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.'
 	},
 	library: {
+		select: 'Auswählen',
 		filters: 'Filter',
 		filtersActive: (n) => `Filter (${n})`,
 		clearAll: 'Alle entfernen',
@@ -193,7 +216,19 @@ export const de: Messages = {
 		noChapters: 'Dieser Titel hat keine Kapitel.',
 		showLess: 'Weniger anzeigen',
 		notFound: 'Diesen Titel gibt es nicht (mehr).',
-		seriesBook: (name, seq) => (seq ? `${name} · Band ${seq}` : name)
+		seriesBook: (name, seq) => (seq ? `${name} · Band ${seq}` : name),
+		moreActions: 'Mehr',
+		addToCollection: 'Zur Sammlung',
+		resetProgress: 'Fortschritt zurücksetzen',
+		progressReset: 'Fortschritt zurückgesetzt',
+		finishEarlier: 'Frühere Bände als gehört markieren',
+		copyLink: 'Link teilen',
+		filesTab: 'Dateien',
+		tags: 'Tags',
+		edition: 'Ausgabe',
+		abridged: 'Gekürzt',
+		explicit: 'Explizit',
+		added: 'Hinzugefügt'
 	},
 	player: {
 		player: 'Player',
@@ -225,6 +260,29 @@ export const de: Messages = {
 		remainingBook: (t) => `noch ${t} im Buch`,
 		remainingChapter: (t) => `noch ${t} im Kapitel`,
 		seek: 'Position',
+		jumped: (t) => `Gesprungen von ${t}`,
+		jumpBack: 'Zurück',
+		autoSleepStarted: 'Nachtzeit: Sleep-Timer gestartet',
+		sleepSoon: 'Stoppt in wenigen Sekunden',
+		sleepExtend: (m) => `+${m} Min.`,
+		sleepExtendLabel: 'Mehr Zeit',
+		autoSleepOn: 'Startet nachts von selbst · ändern',
+		autoSleepOff: 'Nachts automatisch einen Timer starten',
+		slower: 'Langsamer',
+		faster: 'Schneller',
+		speedChoices: 'Schnellwahl',
+		speedPerBook: 'Für dieses Buch gespeichert',
+		speedEveryBook: 'Gilt für jedes Buch',
+		speedLeft: (d) => `${d} übrig bei diesem Tempo`,
+		speedButton: (s) => `Geschwindigkeit: ${s}`,
+		cast: 'Auf einem anderen Gerät abspielen',
+		popOut: 'Player als Mini-Fenster',
+		endsAt: (t) => `endet ${t}`,
+		chapterFilter: 'Kapitel suchen',
+		goToTime: 'Zu Zeit springen (h:mm:ss)',
+		goTo: 'Los',
+		goToInvalid: 'Gib eine Zeit innerhalb des Buchs ein, z. B. 1:23:45.',
+		chapterNone: 'Kein Kapitel passt.',
 		error: 'Wiedergabe fehlgeschlagen. Neuer Versuch …',
 		errorFatal: 'Wiedergabe fehlgeschlagen. Zum erneuten Versuch auf Play drücken.',
 		edit: 'Notiz bearbeiten',
@@ -258,7 +316,8 @@ export const de: Messages = {
 		timeMode: 'Zwischen vergangener und verbleibender Zeit wechseln',
 		bookmarkFailed: 'Marke konnte nicht gespeichert werden. Gibt es an dieser Sekunde schon eine?',
 		syncFailed: 'Fortschritt konnte nicht gespeichert werden. Neuer Versuch folgt.',
-		shortcuts: 'Leertaste Play/Pause · ← → springen · Shift ← → Kapitel · B Marke'
+		shortcuts:
+			'Leertaste Play/Pause · ← → springen · Shift ← → Kapitel · [ ] Tempo · B Marke · U zurück'
 	},
 	home: {
 		greetingMorning: 'Guten Morgen',
@@ -373,7 +432,18 @@ export const de: Messages = {
 		autoQueueHint: 'Endet ein Buch, startet das nächste aus der Warteschlange.',
 		seriesOffer: 'Nächstes Buch der Serie anbieten',
 		shortcuts: 'Tastenkürzel',
-		shortcutsHint: 'Leertaste, Pfeile, B, [ ] und ?. Mit ? siehst du alle.',
+		shortcutsHint: 'Leertaste, Pfeile, B, U, M, [ ] und ?. Mit ? siehst du alle.',
+		autoSleep: 'Nachts automatisch starten',
+		autoSleepHint: 'Wenn die Wiedergabe in diesem Zeitraum startet und kein Timer läuft.',
+		autoSleepFrom: 'Von',
+		autoSleepTo: 'Bis',
+		autoSleepKind: 'Timer',
+		autoSleepKinds: { smart: 'Smart', chapter: 'Kapitelende', minutes: 'Minuten' },
+		autoSleepMinutes: 'Minuten',
+		autoSleepSmart: (a, b) =>
+			`Erstes Kapitelende zwischen ${a} und ${b} Minuten (wie zuletzt im Player eingestellt).`,
+		removeFinished: 'Fertige Bücher entfernen',
+		removeFinishedHint: 'Löscht einen Download von diesem Gerät, sobald das Buch fertig ist.',
 		sleep: 'Sleep-Timer',
 		sleepFade: 'Ausblenden',
 		sleepFadeHint: 'Die Lautstärke sinkt in den letzten 10 Sekunden.',
@@ -440,6 +510,8 @@ export const de: Messages = {
 		speed: 'Langsamer / schneller',
 		bookmark: 'Marke setzen',
 		help: 'Kürzel anzeigen',
+		undoJump: 'Zurück vor den letzten Sprung',
+		mute: 'Stumm / laut',
 		close: 'Schließen'
 	},
 	common: {
@@ -469,6 +541,8 @@ export const de: Messages = {
 				? '1 Buch zur Warteschlange hinzugefügt'
 				: `${n} Bücher zur Warteschlange hinzugefügt`,
 		hide: 'Aus „Serie fortsetzen“ entfernen',
+		finishAll: 'Serie als gehört markieren',
+		downloadAll: 'Serie herunterladen',
 		hidden: 'Aus „Serie fortsetzen“ entfernt',
 		notFound: 'Serie nicht gefunden.'
 	},
@@ -487,6 +561,7 @@ export const de: Messages = {
 		delete: 'Playlist löschen',
 		deleteConfirm: (name) => `„${name}“ löschen? Die Bücher bleiben in deiner Bibliothek.`,
 		deleted: 'Playlist gelöscht',
+		deletedEmpty: 'Playlist gelöscht: Das letzte Buch wurde entfernt',
 		moveUp: (title) => `${title} nach oben`,
 		moveDown: (title) => `${title} nach unten`,
 		removeItem: (title) => `${title} aus der Playlist entfernen`,
@@ -556,6 +631,40 @@ export const de: Messages = {
 		theme: 'Theme wechseln',
 		searchAll: (q) => `Überall nach „${q}“ suchen`,
 		foot: '↑ ↓ zum Wählen · Enter zum Öffnen · Esc zum Schließen'
+	},
+	select: {
+		region: 'Auswahl',
+		count: (n) => `${n} ausgewählt`,
+		all: 'Alle auswählen',
+		none: 'Keine auswählen',
+		markFinished: 'Als gehört markieren',
+		markUnfinished: 'Als ungehört markieren',
+		queue: 'Zur Warteschlange',
+		playlist: 'Playlist',
+		collection: 'Sammlung',
+		download: 'Herunterladen',
+		done: 'Auswahl beenden',
+		finished: (n) => (n === 1 ? '1 Buch als gehört markiert' : `${n} Bücher als gehört markiert`),
+		unfinished: (n) =>
+			n === 1 ? '1 Buch als ungehört markiert' : `${n} Bücher als ungehört markiert`,
+		downloading: (n) => (n === 1 ? '1 Buch wird geladen' : `${n} Bücher werden geladen`)
+	},
+	sound: {
+		title: 'Klang',
+		volume: 'Lautstärke',
+		mute: 'Stumm schalten',
+		unmute: 'Ton an',
+		boost: 'Lautstärke-Boost',
+		boostHint: 'Lauter, als das Gerät erlaubt – für leise Aufnahmen.',
+		off: 'Aus',
+		voice: 'Klarere Stimmen',
+		voiceHint: 'Hebt Sprache hervor und nimmt Dröhnen weg.',
+		mono: 'Mono',
+		monoHint: 'Beide Kanäle in jedem Ohr, z. B. mit einem Ohrhörer.',
+		silence: 'Stille überspringen',
+		silenceHint: 'Läuft schneller durch Pausen, die länger als eine halbe Sekunde sind.',
+		saved: (book, total) => `${book} in diesem Buch gespart · ${total} insgesamt`,
+		unavailable: 'Klang-Effekte gibt es in dieser App-Version nicht.'
 	},
 	format: {
 		hours: 'Std.',

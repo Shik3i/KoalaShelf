@@ -33,6 +33,14 @@ export interface Prefs {
 	mediaKeys: 'chapter' | 'skip';
 	/** Even out loud and quiet passages (Web Audio compressor). */
 	leveling: boolean;
+	/** Player volume (0–1) and extra gain on top (1 = none, up to 2). */
+	volume: number;
+	boost: number;
+	/** Clearer voices (presence lift, rumble cut), both channels mixed into one. */
+	voiceBoost: boolean;
+	mono: boolean;
+	/** Speed through silent stretches. */
+	skipSilence: boolean;
 	autoQueue: boolean;
 	seriesOffer: boolean;
 	shortcuts: boolean;
@@ -43,6 +51,13 @@ export interface Prefs {
 	/** Last smart sleep timer window, in minutes. */
 	sleepMin: number;
 	sleepMax: number;
+	/** Start a timer by itself when playback starts at night. */
+	autoSleep: boolean;
+	/** Night window in minutes after midnight (may wrap past midnight). */
+	autoSleepFrom: number;
+	autoSleepTo: number;
+	autoSleepKind: 'minutes' | 'chapter' | 'smart';
+	autoSleepMinutes: number;
 	// Library & home
 	startPage: 'home' | 'library';
 	/** Home shelves (server ids) hidden by the listener, and their custom order. */
@@ -50,6 +65,11 @@ export interface Prefs {
 	shelfOrder: string[];
 	/** Library filter combinations saved under a name (URL query without view settings). */
 	savedViews: { id: string; name: string; query: string }[];
+	/** Daily listening goal in minutes (0 = none). */
+	dailyGoal: number;
+	// Downloads
+	/** Delete a downloaded book from this device once it is finished. */
+	removeFinished: boolean;
 }
 
 export const DEFAULTS: Prefs = {
@@ -68,6 +88,11 @@ export const DEFAULTS: Prefs = {
 	rememberRate: true,
 	mediaKeys: 'chapter',
 	leveling: false,
+	volume: 1,
+	boost: 1,
+	voiceBoost: false,
+	mono: false,
+	skipSilence: false,
 	autoQueue: true,
 	seriesOffer: true,
 	shortcuts: true,
@@ -75,10 +100,17 @@ export const DEFAULTS: Prefs = {
 	sleepRewind: 15,
 	sleepMin: 20,
 	sleepMax: 40,
+	autoSleep: false,
+	autoSleepFrom: 22 * 60,
+	autoSleepTo: 6 * 60,
+	autoSleepKind: 'smart',
+	autoSleepMinutes: 30,
 	startPage: 'home',
 	hiddenShelves: [],
 	shelfOrder: [],
-	savedViews: []
+	savedViews: [],
+	dailyGoal: 0,
+	removeFinished: false
 };
 
 function load(): Prefs {
@@ -90,7 +122,7 @@ function load(): Prefs {
 				? v === 'last' || (typeof v === 'number' && v > 0)
 				: Array.isArray(fallback)
 					? Array.isArray(v)
-					: typeof v === typeof fallback;
+					: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
 		return Object.fromEntries(
 			Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
 		) as unknown as Prefs;
@@ -152,4 +184,10 @@ export function smartRewindSeconds(pausedMs: number) {
 	if (pausedMs > 10 * 60_000) return 15;
 	if (pausedMs > 60_000) return 5;
 	return 0;
+}
+
+/** True when `now` lies in the night window (which may wrap past midnight). */
+export function inNightWindow(now: Date, from: number, to: number) {
+	const m = now.getHours() * 60 + now.getMinutes();
+	return from <= to ? m >= from && m < to : m >= from || m < to;
 }

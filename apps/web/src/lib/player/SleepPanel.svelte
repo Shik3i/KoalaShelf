@@ -163,7 +163,37 @@
 	</div>
 {/if}
 
+{#if player.sleep.kind !== 'off'}
+	<div class="extend" role="group" aria-label={t.sleepExtendLabel}>
+		<span class="muted">{t.sleepExtendLabel}</span>
+		{#each [5, 15, 30] as m (m)}
+			<button class="chip" onclick={() => player.extendSleep(m)}>{t.sleepExtend(m)}</button>
+		{/each}
+	</div>
+{/if}
+<a class="auto muted" href="/settings#sleep" onclick={() => (player.expanded = false)}
+	>{prefs.autoSleep ? t.autoSleepOn : t.autoSleepOff}</a
+>
+
 <style>
+	.extend {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--sp-8);
+		font-size: var(--fs-13);
+	}
+
+	.extend .chip {
+		background: var(--c-bg);
+	}
+
+	.auto {
+		font-size: var(--fs-13);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
 	.opts {
 		display: flex;
 		flex-wrap: wrap;

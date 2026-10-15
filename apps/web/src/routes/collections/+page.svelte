@@ -25,6 +25,7 @@
 <h1>{t.title}</h1>
 
 {#if error}<p class="muted">{i18n.m.common.error(error)}</p>{/if}
+{#if session.canUpdate}<p class="muted hint">{t.howToCreate}</p>{/if}
 {#if list && !list.length}<EmptyState text={t.empty} />{/if}
 
 <div class="crates">
@@ -50,6 +51,11 @@
 <style>
 	h1 {
 		margin-bottom: var(--sp-32);
+	}
+
+	.hint {
+		max-width: 60ch;
+		margin: calc(-1 * var(--sp-16)) 0 var(--sp-32);
 	}
 
 	.crates {

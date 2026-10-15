@@ -11,7 +11,11 @@
 	import ListChecks from '@lucide/svelte/icons/list-checks';
 	import FileArchive from '@lucide/svelte/icons/file-archive';
 	import ListMusic from '@lucide/svelte/icons/list-music';
-	import PlaylistPicker from '#lib/components/PlaylistPicker.svelte';
+	import ListPicker from '#lib/components/ListPicker.svelte';
+	import MoreHorizontal from '@lucide/svelte/icons/ellipsis';
+	import Library from '@lucide/svelte/icons/library';
+	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
+	import CheckCheck from '@lucide/svelte/icons/check-check';
 	import { isTauri } from '#lib/platform.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
@@ -20,7 +24,7 @@
 	import { bytes, clock, duration, htmlToText, parseClock } from '#lib/format.ts';
 	import { page } from '$app/state';
 	import { toasts } from '#lib/toast.svelte.ts';
-	import { copyMomentLink } from '#lib/share.ts';
+	import { copyMomentLink, shareBook } from '#lib/share.ts';
 	import Link from '@lucide/svelte/icons/link';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from '#lib/components/Cover.svelte';
@@ -63,7 +67,7 @@
 		item ? item.media.chapters.slice(1).map((c) => c.start / item.media.duration) : []
 	);
 
-	type Tab = 'chapters' | 'bookmarks' | 'history' | 'more';
+	type Tab = 'chapters' | 'bookmarks' | 'history' | 'files' | 'more';
 	let tab = $state<Tab>('chapters');
 	let tabsEl = $state<HTMLDivElement>();
 	let ink = $state({ x: 0, w: 0 });
@@ -115,7 +119,50 @@
 			.catch(() => (history = []));
 	});
 
-	let playlistOpen = $state(false);
+	let picker = $state<'playlist' | 'collection' | null>(null);
+	let moreOpen = $state(false);
+
+	/** Forget the progress (as if never started); undo writes the old state back. */
+	async function resetProgress() {
+		if (!item || !p) return;
+		const before = { currentTime: p.currentTime, progress: p.progress, isFinished: p.isFinished };
+		if (isCurrent) player.pause();
+		await session.api.removeProgress(p.id);
+		if (isCurrent) player.seek(0);
+		await progress.load(true);
+		toasts.show(t.progressReset, {
+			label: i18n.m.toast.undo,
+			run: () =>
+				void session.api
+					.updateProgress(item.id, before)
+					.then(() => progress.load(true))
+					.then(() => isCurrent && player.seek(before.currentTime))
+		});
+	}
+
+	/** Starting a series in the middle: the volumes before this one count as heard. */
+	async function finishEarlier() {
+		const s = meta?.series[0];
+		if (!item || !s) return;
+		const { results } = await session.api.libraryItems(item.libraryId, {
+			filter: encodeFilter('series', s.id),
+			sort: 'sequence',
+			limit: 0
+		});
+		const before = results.slice(
+			0,
+			results.findIndex((r) => r.id === item.id)
+		);
+		const open = before.filter((r) => !progress.get(r.id)?.isFinished);
+		if (open.length)
+			await session.api.updateProgressMany(
+				open.map((r) => ({ libraryItemId: r.id, isFinished: true }))
+			);
+		await progress.load(true);
+		toasts.show(i18n.m.select.finished(open.length));
+	}
+
+	const sequence = $derived(Number.parseFloat(meta?.series[0]?.sequence ?? ''));
 
 	function toggleQueue() {
 		if (!item) return;
@@ -294,12 +341,49 @@
 						</button>
 					{/if}
 					{#if item.media.audioFiles.length && !data.offline}
-						<button class="btn ghost" onclick={() => (playlistOpen = true)}>
+						<button class="btn ghost" onclick={() => (picker = 'playlist')}>
 							<ListMusic size={16} aria-hidden="true" />
 							{t.playlist}
 						</button>
 					{/if}
+					{#if !data.offline}
+						<button
+							class="btn ghost"
+							aria-expanded={moreOpen}
+							aria-controls="book-more"
+							onclick={() => (moreOpen = !moreOpen)}
+						>
+							<MoreHorizontal size={16} aria-hidden="true" />
+							{t.moreActions}
+						</button>
+					{/if}
 				</div>
+				{#if moreOpen && !data.offline}
+					<div class="more-actions" id="book-more">
+						{#if session.canUpdate}
+							<button class="btn ghost sm" onclick={() => (picker = 'collection')}>
+								<Library size={16} aria-hidden="true" />
+								{t.addToCollection}
+							</button>
+						{/if}
+						{#if p && (p.progress > 0 || p.isFinished)}
+							<button class="btn ghost sm" onclick={resetProgress}>
+								<RotateCcw size={16} aria-hidden="true" />
+								{t.resetProgress}
+							</button>
+						{/if}
+						{#if sequence > 1}
+							<button class="btn ghost sm" onclick={finishEarlier}>
+								<CheckCheck size={16} aria-hidden="true" />
+								{t.finishEarlier}
+							</button>
+						{/if}
+						<button class="btn ghost sm" onclick={() => shareBook(item.id, v.title)}>
+							<Link size={16} aria-hidden="true" />
+							{t.copyLink}
+						</button>
+					</div>
+				{/if}
 			</div>
 		</section>
 
@@ -326,6 +410,11 @@
 					{#if !data.offline}
 						<button role="tab" aria-selected={tab === 'history'} onclick={() => (tab = 'history')}
 							>{t.history}</button
+						>
+					{/if}
+					{#if item.media.audioFiles.length}
+						<button role="tab" aria-selected={tab === 'files'} onclick={() => (tab = 'files')}
+							>{t.filesTab}</button
 						>
 					{/if}
 					{#if more.length}
@@ -384,6 +473,16 @@
 								{/each}
 							</ul>
 						{/if}
+					{:else if tab === 'files'}
+						<ol class="rows files">
+							{#each [...item.media.audioFiles].sort((a, b) => a.index - b.index) as f, i (f.ino)}
+								<li>
+									<span class="num display">{i + 1}</span>
+									<span class="ttl">{f.metadata.filename}</span>
+									<span class="muted tabular">{clock(f.duration)} · {bytes(f.metadata.size)}</span>
+								</li>
+							{/each}
+						</ol>
 					{:else}
 						<div class="shelf">
 							{#each more as m (m.id)}<BookTile item={m} />{/each}
@@ -409,13 +508,39 @@
 					<dt>{t.size}</dt>
 					<dd>{bytes(item.media.size)}</dd>
 					{#if meta.genres.length}<dt>{t.genre}</dt>
-						<dd>{meta.genres.join(', ')}</dd>{/if}
+						<dd>
+							{#each meta.genres as g, i (g)}{i ? ', ' : ''}<a
+									href="/library?genre={encodeURIComponent(g)}">{g}</a
+								>{/each}
+						</dd>{/if}
+					{#if item.media.tags?.length}<dt>{t.tags}</dt>
+						<dd>
+							{#each item.media.tags as g, i (g)}{i ? ', ' : ''}<a
+									href="/library?tag={encodeURIComponent(g)}">{g}</a
+								>{/each}
+						</dd>{/if}
 					{#if meta.publishedYear}<dt>{t.published}</dt>
 						<dd>{meta.publishedYear}</dd>{/if}
 					{#if meta.publisher}<dt>{t.publisher}</dt>
-						<dd>{meta.publisher}</dd>{/if}
+						<dd>
+							<a href="/library?publisher={encodeURIComponent(meta.publisher)}">{meta.publisher}</a>
+						</dd>{/if}
 					{#if meta.language}<dt>{t.language}</dt>
-						<dd>{meta.language}</dd>{/if}
+						<dd>
+							<a href="/library?language={encodeURIComponent(meta.language)}">{meta.language}</a>
+						</dd>{/if}
+					{#if meta.explicit || meta.abridged}<dt>{t.edition}</dt>
+						<dd>
+							{[meta.abridged ? t.abridged : '', meta.explicit ? t.explicit : '']
+								.filter(Boolean)
+								.join(' · ')}
+						</dd>{/if}
+					{#if meta.isbn}<dt>ISBN</dt>
+						<dd class="tabular">{meta.isbn}</dd>{/if}
+					{#if meta.asin}<dt>ASIN</dt>
+						<dd class="tabular">{meta.asin}</dd>{/if}
+					{#if item.addedAt}<dt>{t.added}</dt>
+						<dd>{new Date(item.addedAt).toLocaleDateString(i18n.tag)}</dd>{/if}
 					{#if session.library}<dt>{t.library}</dt>
 						<dd>{session.library.name}</dd>{/if}
 				</dl>
@@ -427,8 +552,12 @@
 				{/if}
 			</aside>
 		</div>
-		{#if item.media.audioFiles.length && !data.offline}
-			<PlaylistPicker {item} bind:open={playlistOpen} />
+		{#if picker}
+			<ListPicker
+				kind={picker}
+				items={[item]}
+				bind:open={() => picker !== null, (o) => !o && (picker = null)}
+			/>
 		{/if}
 	</article>
 {/if}
@@ -744,6 +873,42 @@
 		color: var(--c-accent);
 		font-weight: var(--fw-bold);
 		font-size: var(--fs-13);
+	}
+
+	.more-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-8);
+		margin-top: var(--sp-12);
+		animation: drop var(--motion-base) var(--motion-out);
+	}
+
+	@keyframes drop {
+		from {
+			translate: 0 -6px;
+			opacity: 0;
+		}
+	}
+
+	.btn.sm {
+		min-height: 40px;
+		font-size: var(--fs-13);
+	}
+
+	.files li {
+		display: grid;
+		grid-template-columns: 2em 1fr auto;
+		align-items: center;
+		gap: var(--sp-12);
+		min-height: var(--layout-touch);
+		padding: 0 var(--sp-12);
+		font-size: var(--fs-14);
+	}
+
+	dd a {
+		text-decoration: underline;
+		text-decoration-color: color-mix(in oklab, currentColor 35%, transparent);
+		text-underline-offset: 3px;
 	}
 
 	dl {

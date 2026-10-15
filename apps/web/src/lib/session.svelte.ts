@@ -85,6 +85,8 @@ class Session {
 	expired = $state(false);
 	/** Server permission to download files (false hides download buttons). */
 	canDownload = $state(true);
+	canUpdate = $state(false);
+	canDelete = $state(false);
 
 	#readyPromise: Promise<void>;
 	#resolveReady!: () => void;

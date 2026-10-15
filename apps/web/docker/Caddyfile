@@ -38,7 +38,7 @@
 	@sw path /service-worker.js /index.html /
 	header @sw Cache-Control "no-cache"
 	# Small unhashed files: a day fresh, then revalidated in the background.
-	@static path /theme.js /favicon.svg /icons/* /manifest.webmanifest /robots.txt
+	@static path /theme.js /favicon.svg /icons/* /worklets/* /manifest.webmanifest /robots.txt
 	header @static Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
 
 	# Tells the app which Audiobookshelf server this proxy serves (prefilled in the sign-in form).

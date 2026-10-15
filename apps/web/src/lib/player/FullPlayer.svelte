@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { player, RATES } from './player.svelte.ts';
+	import { player } from './player.svelte.ts';
 	import { prefs } from '#lib/prefs.svelte.ts';
 	import { view } from '#lib/items.ts';
-	import { clock, speed } from '#lib/format.ts';
+	import { clock, parseClock, speed } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Turntable from '#lib/components/Turntable.svelte';
 	import Timeline from './Timeline.svelte';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
-	import Segmented from '#lib/components/Segmented.svelte';
 	import { dur, flyUp } from '#lib/motion.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { copyMomentLink } from '#lib/share.ts';
@@ -30,9 +29,17 @@
 	import { scale } from 'svelte/transition';
 	import SleepPanel from './SleepPanel.svelte';
 	import QueuePanel from './QueuePanel.svelte';
+	import SpeedPanel from './SpeedPanel.svelte';
+	import SoundPanel from './SoundPanel.svelte';
+	import { pipAvailable, togglePip } from './pip.ts';
+	import Gauge from '@lucide/svelte/icons/gauge';
+	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import Cast from '@lucide/svelte/icons/cast';
+	import PictureInPicture2 from '@lucide/svelte/icons/picture-in-picture-2';
+	import { tick } from 'svelte';
 	import { queue } from '#lib/queue.svelte.ts';
 
-	type Panel = 'chapters' | 'bookmarks' | 'timer' | 'queue' | null;
+	type Panel = 'chapters' | 'bookmarks' | 'timer' | 'queue' | 'speed' | 'sound' | null;
 
 	const t = $derived(i18n.m.player);
 	const v = $derived(player.item ? view(player.item) : null);
@@ -63,11 +70,15 @@
 		editing = null;
 	}
 
-	// Live clock for the sleep timer countdown.
+	// Live clock for the sleep timer countdown and "ends at" times.
 	let now = $state(Date.now());
 	$effect(() => {
-		if (player.sleep.kind !== 'minutes') return;
-		const id = setInterval(() => (now = Date.now()), 1000);
+		if (!player.expanded) return;
+		now = Date.now();
+		const id = setInterval(
+			() => (now = Date.now()),
+			player.sleep.kind === 'minutes' ? 1000 : 15_000
+		);
 		return () => clearInterval(id);
 	});
 
@@ -95,6 +106,40 @@
 	}
 
 	const toggle = (p: Panel) => (panel = panel === p ? null : p);
+
+	/** Chapter list: filter for long books, "go to time", current chapter scrolled into view. */
+	let chapterFilter = $state('');
+	let goto = $state('');
+	let gotoError = $state(false);
+	let chapterList = $state<HTMLOListElement>();
+	const shownChapters = $derived.by(() => {
+		const q = chapterFilter.trim().toLowerCase();
+		const all = player.chapters.map((c, i) => ({ c, i }));
+		return q
+			? all.filter(({ c, i }) => c.title.toLowerCase().includes(q) || String(i + 1) === q)
+			: all;
+	});
+	$effect(() => {
+		if (panel !== 'chapters') return;
+		void tick().then(() =>
+			chapterList?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'center' })
+		);
+	});
+
+	function goToTime(e: SubmitEvent) {
+		e.preventDefault();
+		const at = parseClock(goto.trim());
+		gotoError = at === null || at > player.duration;
+		if (gotoError || at === null) return;
+		player.jump(at);
+		goto = '';
+	}
+
+	/** Wall-clock time when the chapter or book ends at the current speed. */
+	const endsAt = (to: number) =>
+		new Intl.DateTimeFormat(i18n.locale, { hour: '2-digit', minute: '2-digit' }).format(
+			new Date(now + (Math.max(0, to - player.currentTime) / player.rate) * 1000)
+		);
 
 	// Clock and "time left" within the scope (chapter or book), at the displayed speed.
 	const scope = $derived(player.scope);
@@ -166,22 +211,54 @@
 						>
 					{/key}
 				</span>
-				<button
-					class="icon queue-btn"
-					aria-expanded={panel === 'queue'}
-					onclick={() => toggle('queue')}
-					aria-label={t.queueOpen(queue.items.length)}
-					title={t.queue}
-				>
-					<ListOrdered size={22} />
-					{#if queue.items.length}
-						{#key queue.items.length}
-							<span class="badge tabular" in:scale={{ start: 0.4, duration: dur(260) }}
-								>{queue.items.length}</span
-							>
-						{/key}
+				<span class="tools">
+					{#if player.castAvailable}
+						<button
+							class="icon"
+							class:on={player.castState !== 'disconnected'}
+							onclick={() => player.cast()}
+							aria-label={t.cast}
+							title={t.cast}
+						>
+							<Cast size={20} />
+						</button>
 					{/if}
-				</button>
+					{#if pipAvailable()}
+						<button
+							class="icon pip"
+							onclick={() => togglePip()}
+							aria-label={t.popOut}
+							title={t.popOut}
+						>
+							<PictureInPicture2 size={20} />
+						</button>
+					{/if}
+					<button
+						class="icon"
+						aria-expanded={panel === 'sound'}
+						onclick={() => toggle('sound')}
+						aria-label={i18n.m.sound.title}
+						title={i18n.m.sound.title}
+					>
+						<SlidersHorizontal size={20} />
+					</button>
+					<button
+						class="icon queue-btn"
+						aria-expanded={panel === 'queue'}
+						onclick={() => toggle('queue')}
+						aria-label={t.queueOpen(queue.items.length)}
+						title={t.queue}
+					>
+						<ListOrdered size={22} />
+						{#if queue.items.length}
+							{#key queue.items.length}
+								<span class="badge tabular" in:scale={{ start: 0.4, duration: dur(260) }}
+									>{queue.items.length}</span
+								>
+							{/key}
+						{/if}
+					</button>
+				</span>
 			</header>
 
 			<div class="body" class:with-panel={panel}>
@@ -228,6 +305,9 @@
 								</button>
 							{/if}
 							<span class="muted tabular">{other}</span>
+							<span class="muted tabular ends"
+								>{t.endsAt(endsAt(scope.chapter ? scope.end : player.duration))}</span
+							>
 						</span>
 					</div>
 
@@ -268,14 +348,16 @@
 						>
 					</div>
 
-					<Segmented
-						label={t.speed}
-						value={player.rate}
-						options={RATES.map((r) => ({ value: r, label: speed(r) }))}
-						onchange={(r) => player.setRate(r)}
-					/>
-
 					<div class="actions">
+						<button
+							class="action"
+							class:on={player.rate !== 1}
+							aria-expanded={panel === 'speed'}
+							onclick={() => toggle('speed')}
+							aria-label={t.speedButton(speed(player.rate))}
+						>
+							<Gauge size={20} /><span class="tabular">{speed(player.rate)}</span>
+						</button>
 						<button
 							class="action"
 							class:on={player.sleep.kind !== 'off'}
@@ -305,22 +387,57 @@
 					<aside class="panel">
 						{#if panel === 'timer'}
 							<SleepPanel />
+						{:else if panel === 'speed'}
+							<SpeedPanel />
+						{:else if panel === 'sound'}
+							<SoundPanel />
 						{:else if panel === 'queue'}
 							<QueuePanel />
 						{:else if panel === 'chapters'}
 							<h3 class="label">{t.chapters}</h3>
-							<ol class="list">
-								{#each player.chapters as c, i (c.id)}
+							<div class="tools-row">
+								{#if player.chapters.length > 12}
+									<input
+										class="field"
+										type="search"
+										bind:value={chapterFilter}
+										placeholder={t.chapterFilter}
+										aria-label={t.chapterFilter}
+									/>
+								{/if}
+								<form class="goto" onsubmit={goToTime}>
+									<input
+										class="field"
+										bind:value={goto}
+										inputmode="numeric"
+										placeholder="1:23:45"
+										aria-label={t.goToTime}
+										aria-invalid={gotoError}
+										oninput={() => (gotoError = false)}
+									/>
+									<button class="btn ghost sm" type="submit">{t.goTo}</button>
+								</form>
+							</div>
+							{#if gotoError}<p class="err small">{t.goToInvalid}</p>{/if}
+							<ol class="list" bind:this={chapterList}>
+								{#each shownChapters as { c, i } (c.id)}
+									{@const current = player.chapter === c}
 									<li>
 										<button
-											aria-current={player.chapter === c}
-											onclick={() => player.seek(c.start)}
+											aria-current={current}
+											class:done={c.end <= player.currentTime}
+											style:--cp={current
+												? (player.currentTime - c.start) / Math.max(1, c.end - c.start)
+												: 0}
+											onclick={() => player.jump(c.start)}
 										>
 											<span class="num display">{i + 1}</span>
 											<span class="ttl">{c.title}</span>
 											<span class="tabular muted">{clock(c.end - c.start)}</span>
 										</button>
 									</li>
+								{:else}
+									<li class="muted empty">{t.chapterNone}</li>
 								{/each}
 							</ol>
 						{:else}
@@ -356,7 +473,7 @@
 												<button class="btn primary sm" type="submit">{t.save}</button>
 											</form>
 										{:else}
-											<button onclick={() => player.seek(b.time)}>
+											<button onclick={() => player.jump(b.time)}>
 												<span class="tabular pin">{clock(b.time)}</span>
 												<span class="ttl">{b.title}</span>
 											</button>
@@ -458,6 +575,91 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: var(--sp-8);
+	}
+
+	.tools {
+		display: flex;
+		align-items: center;
+	}
+
+	.tools .icon[aria-expanded='true'] {
+		background: var(--c-card);
+	}
+
+	.tools .icon.on {
+		color: var(--c-accent);
+	}
+
+	.chapter-label {
+		min-width: 0;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	.tools-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-8);
+	}
+
+	.tools-row > .field {
+		flex: 1 1 140px;
+	}
+
+	.goto {
+		flex: 1 1 160px;
+		display: flex;
+		gap: var(--sp-8);
+	}
+
+	.goto .field {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.field {
+		min-height: 40px;
+		padding: 0 var(--sp-12);
+		border: 1.5px solid var(--c-field);
+		border-radius: var(--r-pill);
+		background: var(--c-bg);
+		color: var(--c-ink);
+		font: inherit;
+		font-size: var(--fs-14);
+	}
+
+	.field:focus-visible {
+		outline: none;
+		border-color: var(--c-accent);
+	}
+
+	.field[aria-invalid='true'] {
+		border-color: var(--c-accent);
+	}
+
+	.err.small {
+		margin: 0;
+		font-size: var(--fs-13);
+		text-align: left;
+	}
+
+	/* Played chapters step back; the current one shows how far into it we are. */
+	.list button.done:not([aria-current='true']) .ttl {
+		opacity: 0.7;
+	}
+
+	.list li > button[aria-current='true'] {
+		background-image: linear-gradient(
+			to right,
+			color-mix(in oklab, var(--c-cur-ink) 14%, transparent) calc(var(--cp) * 100%),
+			transparent 0
+		);
+	}
+
+	.ends {
+		font-size: var(--fs-12) !important;
 	}
 
 	.queue-btn {
@@ -653,7 +855,7 @@
 
 	.actions {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(4, 1fr);
 		gap: var(--sp-8);
 	}
 
@@ -723,8 +925,8 @@
 		font-size: var(--fs-14);
 	}
 
-	.list button[aria-current='true'] {
-		background: var(--c-cur-bg);
+	.list li > button[aria-current='true'] {
+		background-color: var(--c-cur-bg);
 		color: var(--c-cur-ink);
 	}
 
@@ -911,6 +1113,16 @@
 		}
 
 		.keys {
+			display: none;
+		}
+
+		.action {
+			font-size: 0.6875rem;
+		}
+	}
+
+	@media (max-width: 380px) {
+		.ends {
 			display: none;
 		}
 	}

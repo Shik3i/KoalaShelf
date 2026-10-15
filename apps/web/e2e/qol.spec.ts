@@ -68,8 +68,8 @@ test.describe('quality of life', () => {
 		await page.locator('.cta .btn.primary').click();
 		await expect.poll(() => playing(page)).toBe(true);
 		await page.locator('body').click({ position: { x: 5, y: 5 } });
-		await page.keyboard.press(']');
-		await page.keyboard.press(']');
+		// [ and ] change the speed in steps of 0.1.
+		for (let i = 0; i < 5; i++) await page.keyboard.press(']');
 		expect(await player<number>(page, 'rate')).toBe(1.5);
 		await page.goto(`/book/${await itemId('Wintergrün')}`);
 		await page.locator('.cta .btn.primary').click();
@@ -77,14 +77,12 @@ test.describe('quality of life', () => {
 		// A new book starts at the speed used last; then it keeps its own.
 		await expect.poll(() => player<number>(page, 'rate')).toBe(1.5);
 		await page.locator('body').click({ position: { x: 5, y: 5 } });
-		await page.keyboard.press('[');
-		await page.keyboard.press('[');
+		for (let i = 0; i < 5; i++) await page.keyboard.press('[');
 		await expect.poll(() => player<number>(page, 'rate')).toBe(1);
 		await page.goto(`/book/${await itemId('Glasfluss')}`);
 		await page.locator('.cta .btn.primary').click();
 		await expect.poll(() => player<number>(page, 'rate')).toBe(1.5);
-		await page.keyboard.press('[');
-		await page.keyboard.press('[');
+		await playerCall(page, 'setRate', 1);
 	});
 
 	test('clock toggles between elapsed and remaining time', async ({ page }) => {

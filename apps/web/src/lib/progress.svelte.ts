@@ -26,6 +26,9 @@ class ProgressStore {
 			this.#loaded = session.api.me().then((me) => {
 				if (generation !== this.#generation) return;
 				session.canDownload = me.permissions?.download !== false;
+				// Collections: creating and editing needs "update", deleting needs "delete".
+				session.canUpdate = me.type !== 'guest' && me.permissions?.update === true;
+				session.canDelete = me.type !== 'guest' && me.permissions?.delete === true;
 				this.byItem.clear();
 				for (const p of me.mediaProgress) {
 					if (p.episodeId) continue;

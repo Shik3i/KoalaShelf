@@ -6,6 +6,7 @@
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { prefs, SKIP_STEPS, TEXT_SIZES, type Prefs } from '#lib/prefs.svelte.ts';
 	import { player, RATES } from '#lib/player/player.svelte.ts';
+	import SoundPanel from '#lib/player/SoundPanel.svelte';
 	import { downloads, supported as downloadsSupported } from '#lib/downloads.svelte.ts';
 	import { CUSTOM_SHELVES, moveShelf, setShelfVisible, shelfOrder } from '#lib/shelves.ts';
 	import { toasts } from '#lib/toast.svelte.ts';
@@ -73,6 +74,14 @@
 	void downloads.init();
 	const downloaded = $derived([...downloads.books.values()]);
 	const downloadedSize = $derived(downloaded.reduce((s, b) => s + b.size, 0));
+
+	/** "22:00" <-> minutes after midnight. */
+	const hhmm = (m: number) =>
+		`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+	const minutesOf = (v: string) => {
+		const [h, m] = v.split(':').map(Number);
+		return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null;
+	};
 
 	/** Destructive actions ask once more, inline (no modal). */
 	let confirming = $state<'downloads' | 'reset' | null>(null);
@@ -267,14 +276,9 @@
 		checked={prefs.smartRewind}
 		onchange={choose('smartRewind')}
 	/>
-	{#if player.levelingAvailable}
-		<Toggle
-			label={t.leveling}
-			hint={t.levelingHint}
-			checked={prefs.leveling}
-			onchange={(on) => player.setLeveling(on)}
-		/>
-	{/if}
+	<div class="sub">
+		<SoundPanel />
+	</div>
 	<Toggle
 		label={t.autoQueue}
 		hint={t.autoQueueHint}
@@ -311,6 +315,65 @@
 			onchange={choose('sleepRewind')}
 		/>
 	</div>
+	<Toggle
+		label={t.autoSleep}
+		hint={t.autoSleepHint}
+		checked={prefs.autoSleep}
+		onchange={choose('autoSleep')}
+	/>
+	{#if prefs.autoSleep}
+		<div class="row times">
+			<label>
+				<span>{t.autoSleepFrom}</span>
+				<input
+					type="time"
+					value={hhmm(prefs.autoSleepFrom)}
+					onchange={(e) => {
+						const m = minutesOf(e.currentTarget.value);
+						if (m !== null) prefs.set('autoSleepFrom', m);
+					}}
+				/>
+			</label>
+			<label>
+				<span>{t.autoSleepTo}</span>
+				<input
+					type="time"
+					value={hhmm(prefs.autoSleepTo)}
+					onchange={(e) => {
+						const m = minutesOf(e.currentTarget.value);
+						if (m !== null) prefs.set('autoSleepTo', m);
+					}}
+				/>
+			</label>
+		</div>
+		<div class="row stacked">
+			<span>{t.autoSleepKind}</span>
+			<Segmented
+				size="sm"
+				label={t.autoSleepKind}
+				value={prefs.autoSleepKind}
+				options={(['smart', 'chapter', 'minutes'] as const).map((k) => ({
+					value: k,
+					label: t.autoSleepKinds[k]
+				}))}
+				onchange={choose('autoSleepKind')}
+			/>
+			{#if prefs.autoSleepKind === 'minutes'}
+				<Segmented
+					size="sm"
+					label={t.autoSleepMinutes}
+					value={prefs.autoSleepMinutes}
+					options={[15, 30, 45, 60].map((m) => ({
+						value: m,
+						label: i18n.m.player.timerMinutes(m)
+					}))}
+					onchange={choose('autoSleepMinutes')}
+				/>
+			{:else if prefs.autoSleepKind === 'smart'}
+				<small class="muted">{t.autoSleepSmart(prefs.sleepMin, prefs.sleepMax)}</small>
+			{/if}
+		</div>
+	{/if}
 </section>
 
 <section class="card" id="library" aria-labelledby="h-library">
@@ -362,6 +425,12 @@
 	<h2 class="label" id="h-storage">{t.storage}</h2>
 	{#if downloadsSupported()}
 		<p class="summary">{t.downloadsSummary(downloaded.length, bytes(downloadedSize))}</p>
+		<Toggle
+			label={t.removeFinished}
+			hint={t.removeFinishedHint}
+			checked={prefs.removeFinished}
+			onchange={choose('removeFinished')}
+		/>
 		<div class="actions">
 			<a class="btn ghost" href="/downloads">{t.manageDownloads}</a>
 			{#if downloaded.length}
@@ -454,6 +523,40 @@
 		justify-content: space-between;
 		gap: var(--sp-16);
 		flex-wrap: wrap;
+	}
+
+	/* Sound settings: the same panel as in the player. */
+	.sub {
+		display: grid;
+		gap: var(--sp-16);
+		padding: var(--sp-16);
+		border-radius: var(--r-card);
+		background: var(--c-bg);
+	}
+
+	.sub :global(.mute),
+	.sub :global(.seg) {
+		background: var(--c-card);
+	}
+
+	.times {
+		justify-content: flex-start;
+	}
+
+	.times label {
+		display: grid;
+		gap: var(--sp-4);
+		font-weight: var(--fw-semibold);
+	}
+
+	.times input {
+		min-height: var(--layout-touch);
+		padding: 0 var(--sp-12);
+		border: 1.5px solid var(--c-field);
+		border-radius: var(--r-card);
+		background: var(--c-bg);
+		color: var(--c-ink);
+		font: inherit;
 	}
 
 	/* Label above the control (wide segmented rows stay aligned on phones). */

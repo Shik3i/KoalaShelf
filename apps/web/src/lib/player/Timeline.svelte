@@ -51,7 +51,7 @@
 		aria-valuetext={at(value)}
 		oninput={(e) => (scrub = +e.currentTarget.value)}
 		onchange={(e) => {
-			player.seek(+e.currentTarget.value);
+			player.jump(+e.currentTarget.value);
 			scrub = null;
 		}}
 	/>
@@ -61,7 +61,7 @@
 			style:--f={frac(b.time)}
 			title="{clock(b.time)} · {b.title}"
 			aria-label="{clock(b.time)} {b.title}"
-			onclick={() => player.seek(b.time)}
+			onclick={() => player.jump(b.time)}
 		></button>
 	{/each}
 	{#if scrub !== null}
