@@ -1,13 +1,40 @@
-# Self-hosting example: KoalaShelf in front of Audiobookshelf on one origin.
-# Point your reverse proxy / TLS at port 8080. Audiobookshelf stays reachable as before.
+# KoalaShelf in front of your Audiobookshelf, on one origin.
+#
+#   docker compose up -d        then open http://<host>:8080 (put your TLS reverse proxy in front)
+#
+# Audiobookshelf itself stays untouched and reachable as before. If it already runs elsewhere,
+# delete the "audiobookshelf" service and point ABS_URL at it.
+# Verify the image: gh attestation verify oci://ghcr.io/shik3i/koalashelf:latest -R Shik3i/KoalaShelf
+
 services:
   koalashelf:
-    image: koalashelf-web
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+    # Pin a version (e.g. :0.1.0 or :0.1) for predictable updates; :latest is the newest release.
+    image: ghcr.io/shik3i/koalashelf:latest
     environment:
+      # Where the container reaches Audiobookshelf (internal address).
       ABS_URL: http://audiobookshelf:80
+      # Optional: the address your users know Audiobookshelf by, shown in the sign-in form.
+      # ABS_PUBLIC_URL: https://audiobooks.example.org
     ports:
       - '8080:8080'
+    restart: unless-stopped
+    # Hardening: the image runs unprivileged and needs no writable files besides Caddy's state.
+    read_only: true
+    tmpfs:
+      - /config
+      - /data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      - audiobookshelf
+
+  # Example Audiobookshelf (remove if you already run one).
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:2.37.1
+    volumes:
+      - ./audiobooks:/audiobooks
+      - ./abs/config:/config
+      - ./abs/metadata:/metadata
     restart: unless-stopped

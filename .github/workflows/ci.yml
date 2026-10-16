@@ -7,12 +7,15 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # Every release runs the full checks first (release-web.yml, release-desktop.yml).
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # In a release, github.workflow is the caller: its checks never cancel the push run on main.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -30,6 +33,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Release policy (pinned actions and images, separated roles)
+        run: |
+          node --test scripts/release.test.mjs
+          node scripts/release.mjs policy
       - name: Dependency audit
         run: pnpm audit --audit-level moderate
       - name: Types
@@ -56,7 +63,7 @@ jobs:
       - name: Starts and serves the app
         run: |
           docker run -d --name ks -p 8080:8080 koalashelf-web
-          for i in $(seq 1 30); do curl -fsS http://localhost:8080/ >/dev/null && break; sleep 1; done
+          for _ in $(seq 1 30); do curl -fsS http://localhost:8080/ >/dev/null && break; sleep 1; done
           curl -fsS http://localhost:8080/ | grep -q '<title>'
           curl -fsSI http://localhost:8080/ | grep -qi 'x-frame-options: deny'
 

@@ -2,6 +2,12 @@ import { defineConfig } from 'vitest/config';
 import { loadEnv } from 'vite';
 import adapter from '@sveltejs/adapter-static';
 import { sveltekit } from '@sveltejs/kit/vite';
+import { readFileSync } from 'node:fs';
+
+/** The web app's version (package.json), shown in Settings and sent as the client version. */
+const version: string = JSON.parse(
+	readFileSync(new URL('./package.json', import.meta.url), 'utf8')
+).version;
 
 // Dev only: proxy the Audiobookshelf API so the app runs same-origin (no CORS, cookie mode).
 // ABS_URL comes from the environment or dev/.env (see dev/README.md).
@@ -13,6 +19,7 @@ export default defineConfig(({ mode }) => {
 	const target = process.env.ABS_URL ?? env.ABS_URL ?? 'http://localhost:13378';
 
 	return {
+		define: { __APP_VERSION__: JSON.stringify(version) },
 		plugins: [
 			{
 				// Mirrors the Docker image: tells the app which Audiobookshelf server the proxy serves.

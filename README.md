@@ -76,11 +76,16 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 ## Self-hosting (Docker)
 
 ```bash
-docker build -f apps/web/Dockerfile -t koalashelf-web .
-docker run -d -p 8080:8080 -e ABS_URL=http://your-audiobookshelf:80 koalashelf-web
+docker run -d -p 8080:8080 -e ABS_URL=http://your-audiobookshelf:80 ghcr.io/shik3i/koalashelf:latest
 ```
 
-Or with Compose: see [`compose.yaml`](compose.yaml).
+Or with Compose: [`compose.yaml`](compose.yaml) is a complete, hardened example (read-only, unprivileged, no capabilities), optionally with Audiobookshelf itself. Images for linux/amd64 and linux/arm64 are published per release (`X.Y.Z`, `X.Y`, `latest`) with signed build provenance and an SBOM:
+
+```bash
+gh attestation verify oci://ghcr.io/shik3i/koalashelf:latest -R Shik3i/KoalaShelf
+```
+
+To build the image yourself: `docker build -f apps/web/Dockerfile -t koalashelf-web .`
 
 | Variable | Meaning |
 |---|---|
@@ -113,6 +118,8 @@ SCREENS_DIR=/tmp/shots pnpm test:e2e screens responsive   # screenshots for visu
 ```
 
 How KoalaShelf compares with the Audiobookshelf web app, Audible and other players: [docs/feature-parity.md](docs/feature-parity.md).
+
+Releases: [CHANGELOG.md](CHANGELOG.md) and [docs/releasing.md](docs/releasing.md) (web and desktop are released separately by tag). Security reports: [SECURITY.md](SECURITY.md).
 
 More in [docs/plan.md](docs/plan.md), [docs/tech-stack.md](docs/tech-stack.md), [docs/audit.md](docs/audit.md) and [docs/api/audiobookshelf.md](docs/api/audiobookshelf.md).
 

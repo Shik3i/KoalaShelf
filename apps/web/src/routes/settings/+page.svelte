@@ -518,6 +518,7 @@
 <section class="card" aria-labelledby="h-about">
 	<h2 class="label" id="h-about">{t.about}</h2>
 	<p class="muted">{t.aboutText}</p>
+	<p class="muted version">KoalaShelf Web {__APP_VERSION__}</p>
 	<a
 		class="link"
 		href="https://github.com/Shik3i/KoalaShelf"

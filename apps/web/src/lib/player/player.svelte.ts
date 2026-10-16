@@ -308,7 +308,7 @@ class Player {
 				{
 					deviceId: deviceId(),
 					clientName: 'KoalaShelf Web',
-					clientVersion: '0.1.0'
+					clientVersion: __APP_VERSION__
 				},
 				supportedMimeTypes()
 			);
@@ -381,7 +381,11 @@ class Player {
 			duration: this.duration,
 			playMethod: 3,
 			mediaPlayer: 'html5',
-			deviceInfo: { deviceId: deviceId(), clientName: 'KoalaShelf Web', clientVersion: '0.1.0' },
+			deviceInfo: {
+				deviceId: deviceId(),
+				clientName: 'KoalaShelf Web',
+				clientVersion: __APP_VERSION__
+			},
 			startTime: start,
 			currentTime: start,
 			timeListening: 0,
