@@ -3,7 +3,7 @@
 // sessions and uploaded when the connection is back (the server keeps the newer progress).
 import { SvelteMap } from 'svelte/reactivity';
 import type { AudioTrack, LibraryItem } from '@koalashelf/abs-client';
-import { session } from './session.svelte.ts';
+import { scoped, session } from './session.svelte.ts';
 import { toasts } from './toast.svelte.ts';
 import { i18n } from './i18n/index.svelte.ts';
 
@@ -25,6 +25,8 @@ export interface DownloadedBook {
 	size: number;
 	cover: boolean;
 	downloadedAt: number;
+	/** Accounts (user ids) that downloaded it: one copy on disk, shown to each of them. */
+	owners?: string[];
 }
 
 export interface DownloadJob {
@@ -87,7 +89,10 @@ function tracksOf(item: LibraryItem): AudioTrack[] {
 }
 
 class Downloads {
+	/** The active account's downloads. */
 	books = new SvelteMap<string, DownloadedBook>();
+	/** Every download on this device, of every saved account. */
+	#all = new Map<string, DownloadedBook>();
 	jobs = new SvelteMap<string, DownloadJob>();
 	#controllers = new Map<string, AbortController>();
 	#urls = new Map<string, string[]>();
@@ -97,6 +102,27 @@ class Downloads {
 		if (typeof window === 'undefined') return;
 		addEventListener('online', () => void this.flush());
 		session.onSignOut(() => this.books.clear());
+		session.onEnter(() => void this.init().then(() => this.#scope()));
+		session.onForget((userId) => this.forgetOwner(userId));
+	}
+
+	/** Shows the active account's books; downloads from before accounts existed become its own. */
+	#scope() {
+		const me = session.user?.id;
+		this.books.clear();
+		if (!me) return;
+		for (const [id, book] of this.#all) {
+			if (!book.owners?.length) void this.#writeMeta({ ...book, owners: [me] });
+			if (!book.owners?.length || book.owners.includes(me)) this.books.set(id, this.#all.get(id)!);
+		}
+	}
+
+	async #writeMeta(book: DownloadedBook) {
+		this.#all.set(book.id, book);
+		const meta = await (await bookDir(book.id, true)).getFileHandle('meta.json', { create: true });
+		const w = await meta.createWritable();
+		await w.write(JSON.stringify(book));
+		await w.close();
 	}
 
 	/** Reads all manifests once. */
@@ -109,7 +135,7 @@ class Downloads {
 					try {
 						const file = await (handle as FileSystemDirectoryHandle).getFileHandle('meta.json');
 						const meta = JSON.parse(await (await file.getFile()).text()) as DownloadedBook;
-						this.books.set(name, meta);
+						this.#all.set(name, meta);
 					} catch {
 						// Incomplete download (no manifest): clean up.
 						await (await root()).removeEntry(name, { recursive: true }).catch(() => undefined);
@@ -118,6 +144,7 @@ class Downloads {
 			} catch {
 				/* storage unavailable */
 			}
+			this.#scope();
 			void this.flush();
 		})();
 		return this.#ready;
@@ -129,6 +156,16 @@ class Downloads {
 
 	async download(id: string) {
 		if (this.jobs.get(id)?.state === 'running' || this.books.has(id)) return;
+		// Already on this device for another account: share the copy instead of downloading.
+		const other = this.#all.get(id);
+		const me = session.user?.id;
+		if (other && me) {
+			const book = { ...other, owners: [...new Set([...(other.owners ?? []), me])] };
+			await this.#writeMeta(book);
+			this.books.set(id, book);
+			toasts.show(i18n.m.toast.downloaded(book.item.media.metadata.title));
+			return;
+		}
 		const ctrl = new AbortController();
 		this.#controllers.set(id, ctrl);
 		this.jobs.set(id, { received: 0, total: 0, state: 'running' });
@@ -190,11 +227,10 @@ class Downloads {
 				tracks: saved,
 				size: received,
 				cover,
-				downloadedAt: Date.now()
+				downloadedAt: Date.now(),
+				owners: me ? [me] : []
 			};
-			const meta = await (await dir.getFileHandle('meta.json', { create: true })).createWritable();
-			await meta.write(JSON.stringify(book));
-			await meta.close();
+			await this.#writeMeta(book);
 			this.books.set(id, book);
 			this.jobs.delete(id);
 			toasts.show(i18n.m.toast.downloaded(item.media.metadata.title));
@@ -219,9 +255,30 @@ class Downloads {
 	async remove(id: string) {
 		this.cancel(id);
 		this.revoke(id);
-		await (await root()).removeEntry(id, { recursive: true }).catch(() => undefined);
 		this.books.delete(id);
 		this.jobs.delete(id);
+		// Still downloaded by another saved account: only this account lets go of it.
+		const book = this.#all.get(id);
+		const me = session.user?.id;
+		const rest = (book?.owners ?? []).filter((o) => o !== me);
+		if (book && rest.length) return this.#writeMeta({ ...book, owners: rest });
+		this.#all.delete(id);
+		await (await root()).removeEntry(id, { recursive: true }).catch(() => undefined);
+	}
+
+	/** Lets go of every download of an account that is being forgotten. */
+	async forgetOwner(userId: string) {
+		await this.init();
+		for (const book of [...this.#all.values()]) {
+			if (!book.owners?.includes(userId)) continue;
+			const rest = book.owners.filter((o) => o !== userId);
+			if (rest.length) await this.#writeMeta({ ...book, owners: rest });
+			else {
+				this.#all.delete(book.id);
+				this.books.delete(book.id);
+				await (await root()).removeEntry(book.id, { recursive: true }).catch(() => undefined);
+			}
+		}
 	}
 
 	/** Blob URLs for the local files, in track order (seekable, no network). */
@@ -265,7 +322,7 @@ class Downloads {
 
 	queue(): LocalSession[] {
 		try {
-			return JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]');
+			return JSON.parse(localStorage.getItem(scoped(QUEUE_KEY)) ?? '[]');
 		} catch {
 			return [];
 		}
@@ -275,7 +332,7 @@ class Downloads {
 		const list = this.queue().filter((x) => x.id !== s.id);
 		list.push(s);
 		try {
-			localStorage.setItem(QUEUE_KEY, JSON.stringify(list));
+			localStorage.setItem(scoped(QUEUE_KEY), JSON.stringify(list));
 		} catch {
 			/* ignore */
 		}
@@ -293,7 +350,7 @@ class Downloads {
 			}
 		}
 		try {
-			localStorage.setItem(QUEUE_KEY, JSON.stringify(rest));
+			localStorage.setItem(scoped(QUEUE_KEY), JSON.stringify(rest));
 		} catch {
 			/* ignore */
 		}

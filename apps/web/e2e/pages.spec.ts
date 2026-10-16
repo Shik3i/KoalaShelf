@@ -111,7 +111,10 @@ test.describe('pages', () => {
 		);
 		// Back to defaults for the following tests.
 		await page.getByRole('button', { name: 'EN' }).first().click();
-		await page.getByRole('button', { name: 'System', exact: true }).click();
+		await page
+			.getByRole('group', { name: 'Theme' })
+			.getByRole('button', { name: 'System', exact: true })
+			.click();
 		await page.getByRole('button', { name: '30 s' }).first().click();
 		await expect(page.locator('html')).not.toHaveClass(/th-light/);
 	});

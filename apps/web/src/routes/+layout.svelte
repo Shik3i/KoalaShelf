@@ -15,6 +15,7 @@
 	import CommandPalette from '#lib/components/CommandPalette.svelte';
 	import { RATE_STEP } from '#lib/player/player.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
+	import { applyCustomAccent, customAccent } from '#lib/accent.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { dev } from '$app/env';
 	import { prefs } from '#lib/prefs.svelte.ts';
@@ -44,9 +45,15 @@
 	$effect(() => {
 		const d = document.documentElement.dataset;
 		d.accent = prefs.accent;
+		d.font = prefs.font;
 		d.text = prefs.textSize;
 		d.motion = prefs.motion;
 		d.cover = prefs.coverSize;
+	});
+
+	// The listener's own accent color, in readable light and dark variants.
+	$effect(() => {
+		if (prefs.accent === 'custom') applyCustomAccent(customAccent(prefs.customAccent));
 	});
 
 	// Opening the app on "/" goes to the chosen start page (only the first time per visit).

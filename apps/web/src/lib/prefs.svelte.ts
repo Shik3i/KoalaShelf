@@ -8,8 +8,12 @@ export const TEXT_SIZES = { sm: 0.9375, md: 1, lg: 1.125, xl: 1.25 } as const;
 
 export interface Prefs {
 	// Appearance
-	accent: AccentName;
+	/** A preset, or "custom": the listener's own color (adjusted for contrast, see accent.ts). */
+	accent: AccentName | 'custom';
+	customAccent: string;
 	textSize: keyof typeof TEXT_SIZES;
+	/** Standard (Manrope and Gloock), easy to read (Atkinson Hyperlegible) or the system font. */
+	font: 'standard' | 'readable' | 'system';
 	/** Follow the system setting, or reduce / keep animations regardless of it. */
 	motion: 'system' | 'reduce' | 'full';
 	/** The record turns while playing. */
@@ -74,6 +78,8 @@ export interface Prefs {
 
 export const DEFAULTS: Prefs = {
 	accent: 'vinyl',
+	customAccent: '#7B4BD6',
+	font: 'standard',
 	textSize: 'md',
 	motion: 'system',
 	spin: true,

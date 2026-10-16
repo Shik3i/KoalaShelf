@@ -1,6 +1,6 @@
 // "Up next": books to play after the current one. Kept on this device only.
 import type { LibraryItem, LibraryItemMinified } from '@koalashelf/abs-client';
-import { session } from './session.svelte.ts';
+import { scoped, session } from './session.svelte.ts';
 
 const KEY = 'ks.queue';
 const LIMIT = 100;
@@ -17,20 +17,23 @@ function slim(item: QueuedItem): QueuedItem {
 	return { ...item, media } as unknown as QueuedItem;
 }
 
+/** Each account has its own queue. */
 function load(): QueuedItem[] {
 	try {
-		return JSON.parse(localStorage.getItem(KEY) ?? '[]');
+		return JSON.parse(localStorage.getItem(scoped(KEY)) ?? '[]');
 	} catch {
 		return [];
 	}
 }
 
 class Queue {
-	items = $state.raw<QueuedItem[]>(typeof localStorage === 'undefined' ? [] : load());
+	items = $state.raw<QueuedItem[]>([]);
 
 	constructor() {
 		if (typeof window === 'undefined') return;
-		session.onSignOut(() => this.clear());
+		// The active account's queue (switching accounts swaps it, signing out forgets it).
+		session.onEnter(() => (this.items = load()));
+		session.onSignOut(() => (this.items = []));
 	}
 
 	has(id: string) {
@@ -77,7 +80,7 @@ class Queue {
 	#set(items: QueuedItem[]) {
 		this.items = items;
 		try {
-			localStorage.setItem(KEY, JSON.stringify(items));
+			if (session.user) localStorage.setItem(scoped(KEY), JSON.stringify(items));
 		} catch {
 			/* storage full or blocked: the queue still works for this visit */
 		}

@@ -12,6 +12,9 @@ export const de: Messages = {
 		authors: 'Autor:innen',
 		search: 'Suche',
 		signOut: 'Abmelden',
+		accounts: 'Konten',
+		accountsOf: (name) => `Konten (angemeldet als ${name})`,
+		switchAccount: 'Wechseln',
 		themeSystem: 'Theme: System',
 		themeLight: 'Theme: Hell',
 		themeDark: 'Theme: Dunkel',
@@ -82,6 +85,14 @@ export const de: Messages = {
 	},
 	signin: {
 		title: 'Anmelden',
+		addTitle: 'Konto hinzufügen',
+		addIntro:
+			'Ein weiteres Konto, auf diesem oder einem anderen Server. Deine anderen Konten bleiben angemeldet.',
+		addSubmit: 'Konto hinzufügen',
+		cancel: 'Abbrechen',
+		savedAccounts: 'Weiter als',
+		signInAgain: 'Erneut anmelden',
+		orAnother: 'oder mit einem anderen Konto anmelden:',
 		intro: 'Melde dich mit deinem Audiobookshelf-Konto an.',
 		server: 'Audiobookshelf-Server',
 		serverPlaceholder: 'https://hoerbuch.example.org',
@@ -398,13 +409,22 @@ export const de: Messages = {
 		off: 'Aus',
 		sections: 'Abschnitte',
 		accent: 'Akzentfarbe',
+		customColor: 'Farbe wählen',
+		customOk: 'In beiden Themes so lesbar, wie sie ist.',
+		customAdjusted:
+			'Wo nötig etwas heller oder dunkler gemacht, damit Text in beiden Themes lesbar bleibt.',
+		font: 'Schrift',
+		fontHint:
+			'Gut lesbar: Atkinson Hyperlegible, entwickelt für Menschen mit Sehschwäche. System: die Schrift deines Geräts, nichts wird geladen.',
+		fonts: { standard: 'Standard', readable: 'Gut lesbar', system: 'System' },
 		accents: {
 			vinyl: 'Vinyl',
 			ocean: 'Ozean',
 			teal: 'Petrol',
 			forest: 'Wald',
 			indigo: 'Indigo',
-			plum: 'Pflaume'
+			plum: 'Pflaume',
+			custom: 'Eigene'
 		},
 		textSize: 'Textgröße',
 		textSizeHint: 'Zusätzlich zur Textgröße deines Browsers oder Systems.',
@@ -657,6 +677,28 @@ export const de: Messages = {
 	exports: {
 		label: 'Export',
 		csv: 'Als CSV exportieren'
+	},
+	accounts: {
+		title: 'Konten',
+		onServer: (server) => `Konten auf ${server}`,
+		active: 'Gerade aktiv',
+		signedIn: 'Angemeldet',
+		switchTo: 'Zu diesem Konto wechseln',
+		switchToName: (name) => `Zu ${name} wechseln`,
+		switch: 'Wechseln',
+		needsPassword: 'Sitzung beendet: erneut anmelden',
+		signInAgain: 'Erneut anmelden',
+		add: 'Konto hinzufügen',
+		manage: 'Konten verwalten',
+		signOut: 'Abmelden',
+		signOutOf: (name, server) => `${name} auf ${server} abmelden`,
+		signOutConfirm: (name) =>
+			`${name} abmelden? Warteschlange, Downloads und letzte Suchen dieses Kontos werden von diesem Gerät entfernt.`,
+		signedOut: (name) => `${name} abgemeldet`,
+		cancel: 'Abbrechen',
+		switched: (name, server) => `Du hörst jetzt als ${name} auf ${server}`,
+		privacy:
+			'Konten werden nur auf diesem Gerät gespeichert, jedes mit eigener Warteschlange, eigenen Downloads und Suchen. Abmelden beendet auch die Sitzung auf dem Server.'
 	},
 	select: {
 		region: 'Auswahl',

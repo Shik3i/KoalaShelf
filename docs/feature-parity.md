@@ -68,6 +68,8 @@ Not used, on purpose: podcast and e-book routes (scope), RSS feeds, shares, meta
 | Mini window on the desktop | — | ✅ pop-out player (Document Picture-in-Picture, Chromium) |
 | Cast / AirPlay | Audible (Sonos/Alexa), Audiobookshelf | ✅ through the browser's device picker |
 | Settings backup | — | ✅ export and import as a file |
+| Several accounts and servers, quick switching | Audiobookshelf app (server list), Plappa | ✅ one tap, each account with its own queue, downloads and searches |
+| Own accent color, readable font | BookPlayer (themes), Smart AudioBook Player (fonts) | ✅ any color kept readable automatically; Atkinson Hyperlegible or system font |
 | Lock screen controls, media keys, headset buttons | all | ✅ (chapter or skip, configurable) |
 | Car mode, Android Auto, CarPlay | Audible, Audiobookshelf app | ⏸ native apps |
 | Widgets, Siri / Assistant shortcuts, Wear OS / watchOS | Audible, BookPlayer | ⏸ native apps |

@@ -16,7 +16,7 @@ In scope, for example: leaking tokens or listening data to third parties, cross-
 
 - No third-party requests, trackers or analytics; fonts are self-hosted.
 - A strict Content Security Policy (scripts only from the app itself), no framing, no referrer.
-- Same-origin hosting by default: the refresh token stays in an httpOnly cookie.
+- Same-origin hosting by default: the refresh token stays in an httpOnly cookie. Further saved accounts (and servers on other addresses) keep theirs in this browser's storage, covered by the CSP; signing out revokes it on the server and deletes the account's data from the device.
 - Server descriptions are rendered as text, never as HTML.
 - Exports and backups are built on the device; settings backups never contain sign-in data.
 - Dependencies: `pnpm audit` and CodeQL on every push, Dependabot security updates, secret scanning with push protection.

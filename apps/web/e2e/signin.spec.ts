@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { env, signIn } from './helpers.ts';
+import { env, setActiveTokens, signIn } from './helpers.ts';
 
 test.describe('sign-in', () => {
 	test('preset server is prefilled and checked', async ({ page }) => {
@@ -49,11 +49,14 @@ test.describe('sign-in', () => {
 		await page.reload();
 		await expect(page.getByRole('heading', { level: 1 })).toContainText(env.ABS_USER);
 		// Cookie mode behind the proxy: no refresh token in browser storage.
-		const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('ks.session')!));
-		expect(stored.tokens.refreshToken).toBeNull();
+		const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('ks.accounts')!));
+		expect(stored.accounts).toHaveLength(1);
+		expect(stored.accounts[0].tokens.refreshToken).toBeNull();
 		await page.getByRole('button', { name: 'Sign out' }).click();
 		await expect(page).toHaveURL(/\/signin/);
-		expect(await page.evaluate(() => localStorage.getItem('ks.session'))).toBeNull();
+		// Signed out: the account and its tokens are gone from this device.
+		const after = await page.evaluate(() => JSON.parse(localStorage.getItem('ks.accounts')!));
+		expect(after.accounts).toHaveLength(0);
 	});
 
 	test('deep link while signed out returns there after sign-in', async ({ page }) => {
@@ -70,11 +73,7 @@ test.describe('sign-in', () => {
 		await signIn(page);
 		// Break both tokens: the access token is invalid and the refresh cookie is gone.
 		await context.clearCookies();
-		await page.evaluate(() => {
-			const s = JSON.parse(localStorage.getItem('ks.session')!);
-			s.tokens.accessToken = 'broken';
-			localStorage.setItem('ks.session', JSON.stringify(s));
-		});
+		await setActiveTokens(page, { accessToken: 'broken' });
 		await page.goto('/library');
 		await expect(page).toHaveURL(/\/signin/);
 		await expect(page.getByText('Your session has expired. Please sign in again.')).toBeVisible();
@@ -82,11 +81,7 @@ test.describe('sign-in', () => {
 
 	test('an expired access token is refreshed silently', async ({ page }) => {
 		await signIn(page);
-		await page.evaluate(() => {
-			const s = JSON.parse(localStorage.getItem('ks.session')!);
-			s.tokens.accessToken = 'broken';
-			localStorage.setItem('ks.session', JSON.stringify(s));
-		});
+		await setActiveTokens(page, { accessToken: 'broken' });
 		await page.goto('/library');
 		await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 		await expect(page.locator('.tile')).toHaveCount(7);

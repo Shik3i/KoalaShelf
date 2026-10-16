@@ -51,9 +51,10 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 - **Statistics**: a **daily goal** (ring on the home page) and streak, your year in review (time, books finished, top authors and genres, best month, voice of the year) also as a **picture to share**, heatmap, weekdays, most listened, the library in numbers; listening history as CSV
 
 **Yours to tailor** (stored on the device only)
-- Theme, six accent colors (all contrast-checked), text size on top of the system size, animations, record spin, cover size
+- Theme, six accent colors or **your own color** (automatically kept readable in both themes), an **easy-to-read font** (Atkinson Hyperlegible) or the system font, text size on top of the system size, animations, record spin, cover size
 - Skip steps, chapter or book timeline, clock, speed for new books and per book, headset/lock-screen buttons as chapter or skip, smart rewind, sound (volume, boost, voices, mono, leveling, skip silence), queue and series behavior, keyboard shortcuts
 - Sleep timer fade-out, rewind and night start; start page; home shelves (show, hide, reorder); daily goal; downloads; **settings backup** (export and import as a file); reset
+- **Several accounts and servers**: add accounts on the same or other Audiobookshelf servers and switch with one tap (sidebar, "More", quick search); each keeps its own queue, downloads and recent searches
 - Account: signed-in devices with remote sign-out, password change
 
 **Everywhere**

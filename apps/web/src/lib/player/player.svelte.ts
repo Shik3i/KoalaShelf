@@ -11,7 +11,7 @@ import type {
 import { AbsError, encodeFilter } from '@koalashelf/abs-client';
 import { toasts } from '../toast.svelte.ts';
 import { i18n } from '../i18n/index.svelte.ts';
-import { session } from '../session.svelte.ts';
+import { scoped, session } from '../session.svelte.ts';
 import { progress } from '../progress.svelte.ts';
 import { view } from '../items.ts';
 import {
@@ -210,13 +210,14 @@ class Player {
 		if (typeof window === 'undefined') return;
 		this.#sound.onSilence = (silent) => this.#onSilence(silent);
 		addEventListener('pagehide', () => this.#sync(true));
-		session.onSignOut(() => void this.stop().catch(() => undefined));
+		// Leaving an account (switch or sign-out): close its session, keep its last book.
+		session.onSignOut(() => void this.leave().catch(() => undefined));
 		document.addEventListener('visibilitychange', () => document.hidden && this.#sync(true));
 	}
 
 	/** Restores the last item (paused) so the mini player is there after a reload. */
 	async restoreLast() {
-		const id = storage<string | null>(LAST_KEY, null);
+		const id = storage<string | null>(scoped(LAST_KEY), null);
 		if (!id || this.item) return;
 		try {
 			const item = await session.api.item(id);
@@ -226,7 +227,7 @@ class Player {
 			this.duration = item.media.duration;
 			this.currentTime = item.userMediaProgress?.currentTime ?? 0;
 		} catch {
-			store(LAST_KEY, null);
+			store(scoped(LAST_KEY), null);
 		}
 	}
 
@@ -339,7 +340,7 @@ class Player {
 		this.#listened = 0;
 		this.silenceSavedBook = 0;
 		this.lastJump = null;
-		store(LAST_KEY, id);
+		store(scoped(LAST_KEY), id);
 		this.#applyBookRate(id);
 		this.#updateMediaSession();
 		this.#loadBookmarks();
@@ -394,7 +395,7 @@ class Player {
 			date: localDate(now),
 			dayOfWeek: new Date(now).toLocaleDateString('en-US', { weekday: 'long' })
 		};
-		store(LAST_KEY, id);
+		store(scoped(LAST_KEY), id);
 		this.#updateMediaSession();
 		this.#loadTrackAt(this.currentTime);
 		this.#syncTimer = setInterval(() => this.#sync(), SYNC_INTERVAL_MS);
@@ -1006,12 +1007,21 @@ class Player {
 		this.#listened = 0;
 	}
 
-	/** Called on sign-out. */
+	/** Stops and forgets the last book (the mini player goes away). */
 	async stop() {
-		await this.#close();
+		await this.leave();
+		store(scoped(LAST_KEY), null);
+	}
+
+	/** Closes the playback session for an account change; its last book stays remembered. */
+	async leave() {
+		const closing = this.#close();
 		this.item = null;
+		this.chapters = [];
+		this.bookmarks = [];
 		this.expanded = false;
-		store(LAST_KEY, null);
+		this.sleep = { kind: 'off' };
+		await closing;
 	}
 
 	// --- Media Session (lock screen, headset & media keys) ----------------------

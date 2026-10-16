@@ -23,6 +23,13 @@
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import LocaleSwitch from './LocaleSwitch.svelte';
 	import { dur } from '#lib/motion.ts';
+	import AccountSwitcher from './AccountSwitcher.svelte';
+	import Avatar from './Avatar.svelte';
+	import ArrowLeftRight from '@lucide/svelte/icons/arrow-left-right';
+	import { serverLabel } from '#lib/session.svelte.ts';
+
+	/** Saved accounts: the name in the sidebar (and a row in "More") opens the switcher. */
+	let switcher = $state(false);
 
 	const t = $derived(i18n.m.nav);
 	const items = $derived([
@@ -102,11 +109,18 @@
 		{/if}
 		<LocaleSwitch />
 		<div class="me">
-			<a class="who" href="/settings" title={t.settings}>
-				<span class="avatar" aria-hidden="true"
-					>{session.user?.username.slice(0, 1).toUpperCase()}</span
-				>
+			<button
+				class="who"
+				aria-haspopup="dialog"
+				onclick={() => (switcher = true)}
+				title={t.accounts}
+				aria-label={t.accountsOf(session.user?.username ?? '')}
+			>
+				<Avatar name={session.user?.username ?? '?'} size={28} />
 				<span class="name">{session.user?.username}</span>
+			</button>
+			<a class="icon" href="/settings" title={t.settings} aria-label={t.settings}>
+				<Settings size={18} />
 			</a>
 			<button class="icon" onclick={() => theme.cycle()} title={themeLabel} aria-label={themeLabel}>
 				{#if theme.choice === 'light'}<Sun size={18} />{:else if theme.choice === 'dark'}<Moon
@@ -155,6 +169,21 @@
 	onclick={(e) => e.target === sheet && closeSheet()}
 >
 	<span class="grip" aria-hidden="true"></span>
+	<button
+		class="account-row"
+		aria-haspopup="dialog"
+		onclick={() => {
+			closeSheet();
+			switcher = true;
+		}}
+	>
+		<Avatar name={session.user?.username ?? '?'} />
+		<span class="acc-text">
+			<strong>{session.user?.username}</strong>
+			<span class="muted">{serverLabel(session.active?.baseUrl ?? '')}</span>
+		</span>
+		<span class="acc-switch"><ArrowLeftRight size={16} aria-hidden="true" />{t.switchAccount}</span>
+	</button>
 	<nav aria-label={t.more}>
 		{#each extra as item (item.href)}
 			<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
@@ -178,7 +207,49 @@
 	{/if}
 </dialog>
 
+<AccountSwitcher bind:open={switcher} />
+
 <style>
+	.account-row {
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+		gap: var(--sp-12);
+		width: 100%;
+		min-height: 56px;
+		padding: var(--sp-8) var(--sp-12);
+		margin-bottom: var(--sp-8);
+		border: 0;
+		border-radius: var(--r-card);
+		background: var(--c-card);
+		color: inherit;
+		font: inherit;
+		text-align: left;
+	}
+
+	.acc-text {
+		display: grid;
+		min-width: 0;
+	}
+
+	.acc-text > * {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.acc-text .muted {
+		font-size: var(--fs-13);
+	}
+
+	.acc-switch {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: var(--fs-13);
+		font-weight: var(--fw-semibold);
+	}
+
 	.side {
 		position: sticky;
 		top: 0;
@@ -273,25 +344,23 @@
 		align-items: center;
 		gap: var(--sp-8);
 		min-height: 36px;
+		padding: 0;
+		border: 0;
 		border-radius: var(--r-card);
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.me {
+		gap: var(--sp-4);
 	}
 
 	.who:hover .name {
 		text-decoration: underline;
 		text-underline-offset: 3px;
-	}
-
-	.avatar {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		flex: none;
-		border-radius: 50%;
-		background: var(--c-accent);
-		color: var(--c-on-accent);
-		font-weight: var(--fw-bold);
-		font-size: var(--fs-13);
 	}
 
 	.name {

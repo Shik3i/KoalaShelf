@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { api, itemId, resetListening } from './helpers.ts';
+import { api, itemId, resetListening, scopedKey } from './helpers.ts';
 
 // Managing books: multi-select with bulk actions, book page extras (reset progress,
 // earlier volumes, files, details), series actions and collections.
@@ -23,7 +23,8 @@ test.describe('manage', () => {
 		page
 	}) => {
 		await page.goto('/library');
-		await page.evaluate(() => localStorage.removeItem('ks.queue'));
+		const queueKey = await scopedKey(page, 'ks.queue');
+		await page.evaluate((k) => localStorage.removeItem(k), queueKey);
 		await page.getByRole('button', { name: 'Select', exact: true }).click();
 		const bar = page.getByRole('region', { name: 'Selection' });
 		await expect(bar.getByText('0 selected')).toBeVisible();
@@ -54,9 +55,9 @@ test.describe('manage', () => {
 		await page.getByRole('button', { name: /^Kleine Eulen/ }).click();
 		await bar.getByRole('button', { name: 'Add to queue' }).click();
 		expect(
-			await page.evaluate(() => JSON.parse(localStorage.getItem('ks.queue') ?? '[]').length)
+			await page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '[]').length, queueKey)
 		).toBe(2);
-		await page.evaluate(() => localStorage.removeItem('ks.queue'));
+		await page.evaluate((k) => localStorage.removeItem(k), queueKey);
 		// Escape leaves selection mode.
 		await page.getByRole('button', { name: 'Select', exact: true }).click();
 		await page.keyboard.press('Escape');

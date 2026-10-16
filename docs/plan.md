@@ -45,6 +45,13 @@ Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin pro
 - **Server version.** Audiobookshelf ≥ 2.26 (access/refresh tokens); older servers get a clear message. SSO-only servers get a clear message too.
 - **Device name.** Sessions send no `model`, so the server names the device from the browser ("Windows 10 Edge").
 
+### Accounts
+
+- **Several saved accounts**, one active (`ks.accounts`). Through the bundled proxy the first account keeps its refresh token in the httpOnly cookie; the cookie can only belong to one account, so further accounts on that address (and accounts on other servers) sign in with `credentials: 'omit'` and keep their refresh token in local storage, as cross-origin sign-ins always did. Audiobookshelf sets the cookie on every sign-in, but a response fetched with `omit` never stores it, so the first account's cookie stays intact.
+- **Per-account data**: queue, last book, recent searches and offline sessions are stored per user (`key@userId`); downloads keep one copy on disk with a list of owners, shown only to them. Switching closes the playback session, swaps all of it and opens the new account's home page.
+- **Sign out** revokes the session on the server and removes the account with its data from the device. An account whose session ended stays listed and asks for its password (server and username prefilled). Earlier single-session storage (`ks.session`) is migrated on first start.
+- **Server address shown** is always the Audiobookshelf server's, also for accounts behind the proxy.
+
 ### Data
 - **Filters.** The server accepts one filter per request. One filter (or none) pages through the server. Anything combined becomes an exact set: one cached server request per value, values of a kind OR'ed, kinds AND'ed, status and length checked locally against current progress. The text filter unions the server search's books with the books of matching authors, series, narrators, genres and tags. Grouping series works only with at most one filter (the server groups, not the client).
 - **Search** runs in the current library or all of them in parallel; highlights are visual only, so screen readers read whole words. The quick search (Ctrl/⌘ K) is a combobox over search results, pages and actions.
@@ -74,7 +81,8 @@ Not `/login`: that is Audiobookshelf's login endpoint, which the same-origin pro
 
 ### Interface
 - **Customization** is a single typed preferences object (`prefs.svelte.ts`) with safe defaults; unknown or malformed stored values fall back to defaults. Appearance settings are applied as `data-*` attributes on `<html>` before first paint (`static/theme.js`).
-- **Accent colors** are design-token presets, each contrast-checked in both themes at build time (4.5:1 wherever the accent is text).
+- **Accent colors** are design-token presets, each contrast-checked in both themes at build time (4.5:1 wherever the accent is text). **Your own color** goes through the same rules at runtime (`src/lib/accent.ts`): light and dark variants keep the hue and move only in OKLCH lightness until every surface pair reaches 4.5:1; the variants are stored so `static/theme.js` applies them before the first paint.
+- **Fonts**: standard (Manrope, Gloock), easy to read (Atkinson Hyperlegible Next, self-hosted, only downloaded when chosen) or the system font (nothing downloaded).
 - **Text size** works through `rem` font sizes: the browser/system text size applies, the app setting adds on top.
 - **Motion** follows the system unless the listener chooses reduced or full; the record spin can be switched off separately.
 - **Responsive.** Tab bar plus "More" sheet below 800 px; sidebar (scrollable on short screens) above. Page content is capped at 1600 px for readable lines on very wide screens; tile grids always keep at least two columns on phones.

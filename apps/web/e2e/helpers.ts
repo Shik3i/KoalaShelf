@@ -107,3 +107,37 @@ export async function stopPlayer(page: Page) {
 	if (process.env.E2E_BASE_URL) return;
 	await playerCall(page, 'stop').catch(() => undefined);
 }
+
+/** The active account's storage key for per-account data, e.g. scopedKey('ks.queue'). */
+export function scopedKey(page: Page, base: string) {
+	return page.evaluate((base) => {
+		const s = JSON.parse(localStorage.getItem('ks.accounts') ?? '{}');
+		const a = (s.accounts ?? []).find((x: { key: string }) => x.key === s.active);
+		return `${base}@${a?.user.id ?? 'none'}`;
+	}, base);
+}
+
+/** Changes the active account's stored tokens (to simulate expired sessions). */
+export function setActiveTokens(page: Page, tokens: Record<string, string | null>) {
+	return page.evaluate((tokens) => {
+		const s = JSON.parse(localStorage.getItem('ks.accounts')!);
+		const a = s.accounts.find((x: { key: string }) => x.key === s.active);
+		a.tokens = { ...a.tokens, ...tokens };
+		localStorage.setItem('ks.accounts', JSON.stringify(s));
+	}, tokens);
+}
+
+/** Data loaded, then fly-ins and fades finished (infinite ones like the spinning record excepted). */
+export async function settle(page: Page) {
+	await page.waitForLoadState('networkidle');
+	await page.waitForFunction(() =>
+		document
+			.getAnimations()
+			.every(
+				(x) =>
+					x instanceof CSSTransition ||
+					x.playState !== 'running' ||
+					x.effect?.getTiming().iterations === Infinity
+			)
+	);
+}

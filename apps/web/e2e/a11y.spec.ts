@@ -1,20 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
-import { itemId } from './helpers.ts';
-
-/** Fly-ins and fades finished (infinite ones like the spinning record excepted). */
-const settle = (page: Page) =>
-	page.waitForFunction(() =>
-		document
-			.getAnimations()
-			.every(
-				(x) =>
-					x instanceof CSSTransition ||
-					x.playState !== 'running' ||
-					x.effect?.getTiming().iterations === Infinity
-			)
-	);
+import { itemId, settle } from './helpers.ts';
 
 // Automated accessibility scan (WCAG 2.2 AA plus axe best practices) of every page,
 // in both themes, on a laptop and on a phone.

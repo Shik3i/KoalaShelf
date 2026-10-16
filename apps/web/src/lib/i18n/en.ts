@@ -14,6 +14,9 @@ export const en = {
 		authors: 'Authors',
 		search: 'Search',
 		signOut: 'Sign out',
+		accounts: 'Accounts',
+		accountsOf: (name: string) => `Accounts (signed in as ${name})`,
+		switchAccount: 'Switch',
 		themeSystem: 'Theme: system',
 		themeLight: 'Theme: light',
 		themeDark: 'Theme: dark',
@@ -84,6 +87,13 @@ export const en = {
 	signin: {
 		title: 'Sign in',
 		intro: 'Sign in with your Audiobookshelf account.',
+		addTitle: 'Add an account',
+		addIntro: 'Another account, on this server or another one. Your other accounts stay signed in.',
+		addSubmit: 'Add account',
+		cancel: 'Cancel',
+		savedAccounts: 'Continue as',
+		signInAgain: 'Sign in again',
+		orAnother: 'or sign in with another account:',
 		server: 'Audiobookshelf server',
 		serverPlaceholder: 'https://audiobooks.example.org',
 		serverChecking: 'Checking server …',
@@ -398,13 +408,22 @@ export const en = {
 		off: 'Off',
 		sections: 'Sections',
 		accent: 'Accent color',
+		customColor: 'Pick your color',
+		customOk: 'Readable as it is in both themes.',
+		customAdjusted:
+			'Made a little lighter or darker where needed, so text stays readable in both themes.',
+		font: 'Font',
+		fontHint:
+			'Easy to read: Atkinson Hyperlegible, designed for people with low vision. System: your device’s font, nothing to download.',
+		fonts: { standard: 'Standard', readable: 'Easy to read', system: 'System' },
 		accents: {
 			vinyl: 'Vinyl',
 			ocean: 'Ocean',
 			teal: 'Teal',
 			forest: 'Forest',
 			indigo: 'Indigo',
-			plum: 'Plum'
+			plum: 'Plum',
+			custom: 'Your own'
 		},
 		textSize: 'Text size',
 		textSizeHint: 'On top of the text size of your browser or system.',
@@ -655,6 +674,28 @@ export const en = {
 	exports: {
 		label: 'Export',
 		csv: 'Export CSV'
+	},
+	accounts: {
+		title: 'Accounts',
+		onServer: (server: string) => `Accounts on ${server}`,
+		active: 'Active now',
+		signedIn: 'Signed in',
+		switchTo: 'Switch to this account',
+		switchToName: (name: string) => `Switch to ${name}`,
+		switch: 'Switch',
+		needsPassword: 'Session ended: sign in again',
+		signInAgain: 'Sign in again',
+		add: 'Add account',
+		manage: 'Manage accounts',
+		signOut: 'Sign out',
+		signOutOf: (name: string, server: string) => `Sign out ${name} on ${server}`,
+		signOutConfirm: (name: string) =>
+			`Sign out ${name}? Its queue, downloads and recent searches on this device are removed.`,
+		signedOut: (name: string) => `${name} signed out`,
+		cancel: 'Cancel',
+		switched: (name: string, server: string) => `Now listening as ${name} on ${server}`,
+		privacy:
+			'Accounts are remembered on this device only, each with its own queue, downloads and searches. Signing out ends the session on the server too.'
 	},
 	select: {
 		region: 'Selection',

@@ -1,6 +1,6 @@
 // Search across one or all libraries, recent searches and match highlighting.
 import type { SearchResult } from '@koalashelf/abs-client';
-import { session } from './session.svelte.ts';
+import { scoped, session } from './session.svelte.ts';
 
 export interface Found extends SearchResult {
 	/** Library name per book id (only when searching several libraries). */
@@ -60,11 +60,12 @@ export const isEmpty = (r: SearchResult) =>
 
 // --- Recent searches (this device only) -------------------------------------------
 
+/** Per account: someone else on this device does not see what you searched. */
 const RECENT_KEY = 'ks.recentSearches';
 
 export function recentSearches(): string[] {
 	try {
-		const list = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+		const list = JSON.parse(localStorage.getItem(scoped(RECENT_KEY)) ?? '[]');
 		return Array.isArray(list) ? list.filter((x) => typeof x === 'string') : [];
 	} catch {
 		return [];
@@ -79,7 +80,7 @@ export function rememberSearch(query: string) {
 		8
 	);
 	try {
-		localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+		localStorage.setItem(scoped(RECENT_KEY), JSON.stringify(list));
 	} catch {
 		/* storage blocked: nothing to remember */
 	}
@@ -88,7 +89,7 @@ export function rememberSearch(query: string) {
 
 export function clearRecentSearches() {
 	try {
-		localStorage.removeItem(RECENT_KEY);
+		localStorage.removeItem(scoped(RECENT_KEY));
 	} catch {
 		/* ignore */
 	}

@@ -2,6 +2,7 @@
 // Sessions, device ids and server lists are never part of it.
 import { sanitize } from './prefs.svelte.ts';
 import { saveFile, today } from './export.ts';
+import { isHex } from './accent.ts';
 
 const MARK = 'ks.imported';
 
@@ -20,6 +21,11 @@ const KEYS: Record<string, (raw: string) => boolean> = {
 	'ks.locale': (raw) => /^[a-z]{2}$/.test(raw),
 	'ks.bookRates': json((v) => typeof v === 'object' && v !== null && !Array.isArray(v)),
 	'ks.rate': json((v) => typeof v === 'number' && v > 0),
+	// Light and dark variants of a custom accent color (hex values only).
+	'ks.accentCustom': json((v) => {
+		const c = v as { light?: Record<string, unknown>; dark?: Record<string, unknown> } | null;
+		return [c?.light?.accent, c?.light?.onAccent, c?.dark?.accent, c?.dark?.onAccent].every(isHex);
+	}),
 	// View, sort and grouping as a query string ("view=list&sort=added").
 	'ks.libraryView': (raw) => /^[\w=&%.+-]*$/.test(raw)
 };

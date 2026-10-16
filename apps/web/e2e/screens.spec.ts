@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { itemId, playerCall, resetListening } from './helpers.ts';
+import { itemId, playerCall, resetListening, scopedKey } from './helpers.ts';
 
 // Visual review: renders every page and key state to screenshots (not an assertion test).
 // Run with: SCREENS_DIR=<folder> pnpm exec playwright test screens
@@ -90,7 +90,7 @@ test.describe('screens', () => {
 				await shot('player-sound');
 				await dialog.getByRole('button', { name: 'Sound' }).click();
 				await shot('player-plain');
-				await page.evaluate(() => localStorage.removeItem('ks.queue'));
+				await page.evaluate((k) => localStorage.removeItem(k), await scopedKey(page, 'ks.queue'));
 				await playerCall(page, 'setSleep', {
 					kind: 'minutes',
 					minutes: 15,

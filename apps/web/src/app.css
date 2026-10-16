@@ -1,6 +1,8 @@
 @import '@koalashelf/design-tokens/tokens.css';
 @import '@fontsource/gloock/400.css';
 @import '@fontsource-variable/manrope/wght.css';
+/* Only downloaded when chosen (Settings > Appearance > Font): fonts load on first use. */
+@import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
 
 *,
 *::before,
@@ -33,6 +35,20 @@ html {
 
 :root[data-text='xl'] {
 	font-size: 125%;
+}
+
+/* Settings > Appearance > Font. "Readable": Atkinson Hyperlegible Next, made for low vision,
+   for text and headings alike; "System": the device's own font, nothing downloaded. */
+:root[data-font='readable'] {
+	--font-text: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+	--font-display: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+	--fw-display: 700;
+}
+
+:root[data-font='system'] {
+	--font-text: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--font-display: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--fw-display: 700;
 }
 
 :root[data-cover='sm'] {
@@ -78,7 +94,7 @@ h2,
 h3,
 .display {
 	font-family: var(--font-display);
-	font-weight: var(--fw-regular);
+	font-weight: var(--fw-display, var(--fw-regular));
 	line-height: 1.05;
 	letter-spacing: -0.01em;
 	margin: 0;

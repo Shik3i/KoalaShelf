@@ -10,17 +10,17 @@ Last full pass: 2026-10-16 (after the dependency updates). The web app is verifi
 | `pnpm lint` | Prettier + ESLint | clean |
 | `pnpm audit` | all workspace dependencies | no known vulnerabilities |
 | GitHub | Dependabot alerts and security updates, secret scanning with push protection, CodeQL; CI runs all of the checks below on every push | enabled |
-| `pnpm test` | unit (web): formatting, placeholder contrast, turntable ramp, smart sleep forecast and window, library queries, search highlighting, device names, CSV export, streak | 30/30 |
+| `pnpm test` | unit (web): formatting, placeholder contrast, turntable ramp, smart sleep forecast and window, library queries, search highlighting, device names, CSV export, streak, own accent color readability | 41/41 |
 | `pnpm --filter @koalashelf/abs-client test` | unit (client): filter encoding, version check, token expiry | 4/4 |
 | Design token build | every theme × every accent preset, WCAG contrast pairs | passes (fails the build otherwise) |
-| `pnpm test:e2e` | 129 Playwright tests in 17 files, Edge, against a local Audiobookshelf 2.37.1 with generated sample books | 121 passed, 8 skipped (on-demand screenshot spec, production-only checks) |
-| `E2E_BASE_URL=… pnpm test:e2e` | production Docker image (Caddy, strict CSP, service worker) | 95 passed, 34 skipped: tests that read player internals need the dev server and skip before any playback starts |
+| `pnpm test:e2e` | 135 Playwright tests in 18 files, Edge, against a local Audiobookshelf 2.37.1 with generated sample books | 127 passed, 8 skipped (on-demand screenshot spec, production-only checks) |
+| `E2E_BASE_URL=… pnpm test:e2e` | production Docker image (Caddy, strict CSP, service worker) | 101 passed, 34 skipped: tests that read player internals need the dev server and skip before any playback starts |
 | axe-core | every page, the "More" sheet, mini player, full player and all its panels; light + dark; laptop and phone widths; WCAG 2.2 AA **and** axe best practices | no violations |
 | Responsive matrix (`e2e/responsive.spec.ts`) | 11 viewports from 320 × 640 to 2560 × 1440 incl. landscape phone and tablets, every page plus the full player; 125 % text on a small phone | no sideways scrolling, player controls on screen everywhere |
 | Lighthouse 13.5 | production image, signed in: home, library, book, statistics, settings; mobile and desktop | performance 100, accessibility 100, best practices 100 (LCP ≤ 1.2 s mobile / 0.3 s desktop, TBT ≤ 60 ms, CLS ≤ 0.04); SEO 63–66 only because of the deliberate `noindex` |
 | Screenshot reviews | all pages and player states (desktop and mobile, light and dark), the responsive matrix, Windows high-contrast mode | reviewed zoomed in; findings fixed |
 
-Both full runs (dev and production image) were repeated on 2026-10-16 after the dependency updates, and Lighthouse on the final image. One full dev run before that had an accessibility finding on a single page that could not be reproduced (13 isolated repeats and a second full run were clean); CI keeps the Playwright report of any failing run.
+Both full runs (dev and production image) were repeated on 2026-10-16 after the dependency updates, and Lighthouse on the final image. A sporadic accessibility finding (low contrast on one library tile) turned out to be the scan running while tiles were still fading in after their data arrived; scans now wait for the network to settle before waiting for animations.
 
 ## Workflows covered by end-to-end tests
 
@@ -30,6 +30,8 @@ Both full runs (dev and production image) were repeated on 2026-10-16 after the 
 - **Search**: genres and tags, recent searches, every library at once with library labels; quick search (Ctrl K and `/`) by keyboard to books and pages
 - **Managing**: multi-select in shelf and list view (mark finished / not finished, queue, several books into a new playlist, select all, Escape), reset progress with undo, mark earlier volumes finished, files tab, linked details, series "mark finished" with undo, collections (create from a book, add, arrange, remove with undo, rename with description, save as playlist, delete)
 - **Player extras**: fine speed (steps, slider, quick choices, keys), volume, mute, boost, clearer voices, mono through the whole chain, skip silence (rate while silent, saved time) and the silence detector itself (worklet reports pause and sound), jump back (toast and `U`), go to a typed time, "ends at", sleep timer +5/+15 min, chapter timer to countdown, last-chance hint with +10 min, night start
+- **Accounts**: a second account added from the sidebar (the first keeps the cookie, the added one its own token), separate queues, switching from the sidebar and the quick search, signing out from the settings, the remaining account offered with one tap, an ended session asking for its password with server and name prefilled
+- **Appearance**: own accent color (darkened for readability, same hue, applied before the first paint after a reload), easy-to-read and system fonts; accessibility scans of the switcher, the settings and the library in an own color in both themes
 - **Your data**: daily goal (statistics and home ring, off again), year picture (valid PNG), bookmarks as Markdown and CSV (quoting), history as CSV, settings export and import (accent restored, foreign files refused)
 - **Book**: details, description without HTML, bookmarks from the server, mark finished/unfinished (also with a slow first load and with a duplicate progress entry from the server), no chapters, not found, save files as ZIP (valid archive with every file), history tab
 - **Player**: play/pause/sync to server, skip, chapter navigation, speed per book and fixed default, bookmarks add/edit/delete/pins with undo and links, sleep timer at chapter end and without rewind, smart sleep timer (forecast, chapter stop, latest-time fallback), multi-file boundary, end of book → finished → listen again, next from the queue, next in series, reload restores position, keyboard, quick switching between books, chapter timeline (range, clock, scope)

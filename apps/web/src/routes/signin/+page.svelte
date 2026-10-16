@@ -3,6 +3,9 @@
 	import { page } from '$app/state';
 	import { AbsError, isVersionAtLeast, MIN_SERVER_VERSION } from '@koalashelf/abs-client';
 	import { presetServer, ServerTooOldError, session } from '#lib/session.svelte.ts';
+	import { byServer, switchAccount } from '#lib/accounts.ts';
+	import Avatar from '#lib/components/Avatar.svelte';
+	import KeyRound from '@lucide/svelte/icons/key-round';
 	import {
 		forgetServer,
 		ProbeError,
@@ -18,9 +21,19 @@
 
 	const t = $derived(i18n.m.signin);
 
+	/** ?add=1: another account while signed in (the current one stays signed in). */
+	const adding = $derived(page.url.searchParams.get('add') === '1');
+	const wantServer = page.url.searchParams.get('server');
+	const wantUser = page.url.searchParams.get('user');
+	/** Saved accounts to continue with (not while adding one). */
+	const saved = $derived(adding ? [] : byServer(session.accounts, null));
+	let passwordInput = $state<HTMLInputElement>();
+
 	let recent = $state(recentServers());
-	let server = $state(recentServers()[0] ?? '');
-	let username = $state('');
+	let server = $state(
+		wantServer && wantServer !== 'proxy' ? wantServer : (recentServers()[0] ?? '')
+	);
+	let username = $state(wantUser ?? '');
 	let password = $state('');
 	let busy = $state(false);
 	let error = $state<unknown>(null);
@@ -37,13 +50,26 @@
 
 	presetServer().then((p) => {
 		preset = p;
-		if (p && !server) server = p;
+		if (p && (!server || wantServer === 'proxy')) server = p;
+		if (wantUser) queueMicrotask(() => passwordInput?.focus());
 	});
 
+	/** Set once this form signed in (adding an account starts while already signed in). */
+	let signedIn = $state(false);
 	$effect(() => {
-		if (session.ready && session.client)
+		if (session.ready && session.client && (!adding || signedIn))
 			goto(page.url.searchParams.get('next') ?? '/', { replace: true });
 	});
+
+	/** A saved account: open it, or ask for its password when its session ended. */
+	async function resume(key: string) {
+		const a = session.accounts.find((x) => x.key === key);
+		if (!a) return;
+		if (a.tokens) return switchAccount(key);
+		username = a.user.username;
+		server = a.baseUrl || preset || location.origin;
+		passwordInput?.focus();
+	}
 
 	// Live server check while typing (debounced), so problems show up before signing in.
 	$effect(() => {
@@ -110,6 +136,7 @@
 			await session.signIn(url, username.trim(), password);
 			recent = rememberServer(viaProxy && preset ? preset : url);
 			password = '';
+			signedIn = true;
 		} catch (err) {
 			error = err;
 		} finally {
@@ -130,9 +157,34 @@
 				label={0.42}
 			/>
 		</div>
-		<h1>KoalaShelf</h1>
-		<p class="muted">{t.intro}</p>
-		{#if session.expired}<p class="error" role="status">{t.expired}</p>{/if}
+		<h1>{adding ? t.addTitle : 'KoalaShelf'}</h1>
+		<p class="muted">{adding ? t.addIntro : t.intro}</p>
+		{#if session.expired && !adding}<p class="error" role="status">{t.expired}</p>{/if}
+
+		{#if saved.length}
+			<section class="saved" aria-labelledby="saved-title">
+				<h2 class="label" id="saved-title">{t.savedAccounts}</h2>
+				<ul>
+					{#each saved as g (g.label)}
+						{#each g.accounts as a (a.key)}
+							<li>
+								<button type="button" class="acc" onclick={() => resume(a.key)}>
+									<Avatar name={a.user.username} />
+									<span class="who">
+										<strong>{a.user.username}</strong>
+										<span class="muted">{g.label}</span>
+									</span>
+									{#if !a.tokens}<span class="again"
+											><KeyRound size={14} aria-hidden="true" />{t.signInAgain}</span
+										>{/if}
+								</button>
+							</li>
+						{/each}
+					{/each}
+				</ul>
+				<p class="muted or">{t.orAnother}</p>
+			</section>
+		{/if}
 
 		<form onsubmit={submit}>
 			<label class="field">
@@ -179,14 +231,22 @@
 			</label>
 			<label class="field">
 				<span class="label">{t.password}</span>
-				<input bind:value={password} type="password" autocomplete="current-password" />
+				<input
+					bind:this={passwordInput}
+					bind:value={password}
+					type="password"
+					autocomplete="current-password"
+				/>
 			</label>
 
 			{#if message}<p class="error" role="alert">{message}</p>{/if}
 
 			<button class="btn primary" type="submit" disabled={busy || preset === undefined}>
-				{busy ? t.connecting : t.submit}
+				{busy ? t.connecting : adding ? t.addSubmit : t.submit}
 			</button>
+			{#if adding && session.client}
+				<button type="button" class="btn ghost" onclick={() => history.back()}>{t.cancel}</button>
+			{/if}
 		</form>
 		<p class="note muted">{t.privacy}</p>
 		<div class="lang"><LocaleSwitch /></div>
@@ -194,6 +254,70 @@
 </div>
 
 <style>
+	.saved {
+		display: grid;
+		gap: var(--sp-8);
+		margin-bottom: var(--sp-8);
+	}
+
+	.saved ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: var(--sp-4);
+	}
+
+	.acc {
+		width: 100%;
+		display: grid;
+		grid-template-columns: auto 1fr auto;
+		align-items: center;
+		gap: var(--sp-12);
+		min-height: 56px;
+		padding: var(--sp-8) var(--sp-12);
+		border: 1.5px solid var(--c-field);
+		border-radius: var(--r-card);
+		background: var(--c-bg);
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.acc:hover {
+		border-color: var(--c-accent);
+	}
+
+	.acc .who {
+		display: grid;
+		min-width: 0;
+	}
+
+	.acc .who > * {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.acc .muted,
+	.again {
+		font-size: var(--fs-13);
+	}
+
+	.again {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-weight: var(--fw-semibold);
+	}
+
+	.or {
+		margin: var(--sp-8) 0 0;
+		font-size: var(--fs-13);
+		text-align: center;
+	}
+
 	.wrap {
 		min-height: 100dvh;
 		display: grid;

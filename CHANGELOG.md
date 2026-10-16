@@ -23,6 +23,8 @@ The first release: a fast, private, self-hostable client for Audiobookshelf 2.26
 - Daily goal and streak, year in review (also as a picture to share), heatmap, the library in numbers
 - Export bookmarks (Markdown, CSV) and history (CSV); back up and restore settings
 
-**Yours to tailor**: theme, six accent colors, text size, motion, cover size, skip steps, media buttons, home shelves, start page and more, stored on the device only.
+**Accounts**: several accounts on one or more Audiobookshelf servers, switched with one tap; each keeps its own queue, downloads and recent searches; signing out ends the session on the server and removes the account's data from the device.
+
+**Yours to tailor**: theme, six accent colors or your own (kept readable in both themes), an easy-to-read font (Atkinson Hyperlegible) or the system font, text size, motion, cover size, skip steps, media buttons, home shelves, start page and more, stored on the device only.
 
 **Self-hosting**: one container (Caddy) serves the app and proxies Audiobookshelf on the same origin, with a strict Content Security Policy; runs unprivileged and read-only; images for amd64 and arm64 with signed provenance and SBOM.

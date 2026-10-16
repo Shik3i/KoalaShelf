@@ -1,5 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
-import { api, env, itemId, needsDevServer, player, playerCall, stopPlayer } from './helpers.ts';
+import {
+	api,
+	env,
+	itemId,
+	needsDevServer,
+	player,
+	playerCall,
+	scopedKey,
+	stopPlayer
+} from './helpers.ts';
 
 const playing = (page: Page) => player<boolean>(page, 'playing');
 const time = (page: Page) => player<number>(page, 'currentTime');
@@ -49,7 +58,7 @@ test.describe('listening', () => {
 	}) => {
 		needsDevServer(); // reads player internals: skip before any playback starts
 		await page.goto('/');
-		await page.evaluate(() => localStorage.removeItem('ks.queue'));
+		await page.evaluate((k) => localStorage.removeItem(k), await scopedKey(page, 'ks.queue'));
 		for (const title of ['Kleine Eulen', 'Wintergrün']) {
 			await page.goto(`/book/${await itemId(title)}`);
 			await page.getByRole('button', { name: 'Add to queue' }).click();

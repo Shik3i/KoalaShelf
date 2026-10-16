@@ -27,6 +27,9 @@
 	import Mic from '@lucide/svelte/icons/mic';
 	import User from '@lucide/svelte/icons/user';
 	import Clock from '@lucide/svelte/icons/clock';
+	import UserPlus from '@lucide/svelte/icons/user-plus';
+	import { addAccountUrl, switchAccount } from '#lib/accounts.ts';
+	import { serverLabel } from '#lib/session.svelte.ts';
 
 	/** Quick search from anywhere (Ctrl/⌘ K): books, people, pages and actions. */
 	let { open = $bindable(false) }: { open?: boolean } = $props();
@@ -170,7 +173,25 @@
 					}
 				]
 			: []),
-		{ id: 'a-theme', group: t.actions, label: t.theme, icon: SunMoon, run: () => theme.cycle() }
+		{ id: 'a-theme', group: t.actions, label: t.theme, icon: SunMoon, run: () => theme.cycle() },
+		// Saved accounts: switch by typing a name or a server.
+		...session.accounts
+			.filter((a) => a.key !== session.activeKey)
+			.map((a) => ({
+				id: `acc-${a.key}`,
+				group: t.actions,
+				label: i18n.m.accounts.switchToName(a.user.username),
+				sub: serverLabel(a.baseUrl),
+				icon: User,
+				run: () => void switchAccount(a.key)
+			})),
+		{
+			id: 'a-add-account',
+			group: t.actions,
+			label: i18n.m.accounts.add,
+			icon: UserPlus,
+			run: go(addAccountUrl())
+		}
 	]);
 
 	/** Words of the query all appear in the label (accent- and case-insensitive). */

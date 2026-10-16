@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { getServerStatus } from '@koalashelf/abs-client';
 	import { accents, type AccentName } from '@koalashelf/design-tokens';
+	import { customAccent } from '#lib/accent.ts';
 	import { session, presetServer } from '#lib/session.svelte.ts';
 	import { theme, type ThemeChoice } from '#lib/theme.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -19,6 +20,7 @@
 	import Segmented from '#lib/components/Segmented.svelte';
 	import Toggle from '#lib/components/Toggle.svelte';
 	import AccountSecurity from '#lib/components/AccountSecurity.svelte';
+	import SavedAccounts from '#lib/components/SavedAccounts.svelte';
 	import ChevronUp from '@lucide/svelte/icons/chevron-up';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Check from '@lucide/svelte/icons/check';
@@ -29,6 +31,12 @@
 	const themeLabel = (c: ThemeChoice) =>
 		({ system: t.themeSystem, light: t.themeLight, dark: t.themeDark })[c];
 	const ACCENTS = Object.keys(accents) as AccentName[];
+	/** The listener's color in readable variants (shown on the swatch and as a preview). */
+	const own = $derived(customAccent(prefs.customAccent));
+	function pickColor(hex: string) {
+		prefs.set('customAccent', hex);
+		prefs.set('accent', 'custom');
+	}
 	/** Swatch in the theme that is showing right now. */
 	const dark = $derived(
 		theme.choice === 'dark' ||
@@ -153,8 +161,62 @@
 					<span class="name">{t.accents[name]}</span>
 				</label>
 			{/each}
+			<label
+				class="swatch"
+				style:--sw={own[dark ? 'dark' : 'light'].accent}
+				style:--sw-ink={own[dark ? 'dark' : 'light'].onAccent}
+			>
+				<input
+					type="radio"
+					name="accent"
+					value="custom"
+					checked={prefs.accent === 'custom'}
+					onchange={() => prefs.set('accent', 'custom')}
+				/>
+				<span class="dot own" aria-hidden="true"><Check size={16} strokeWidth={3} /></span>
+				<span class="name">{t.accents.custom}</span>
+			</label>
 		</div>
+		{#if prefs.accent === 'custom'}
+			<div class="own-color">
+				<label class="picker">
+					<input
+						type="color"
+						value={prefs.customAccent}
+						oninput={(e) => pickColor(e.currentTarget.value.toUpperCase())}
+					/>
+					<span>{t.customColor}</span>
+				</label>
+				<small class="muted" aria-live="polite">
+					{own.adjusted ? t.customAdjusted : t.customOk}
+				</small>
+				<span class="previews" aria-hidden="true">
+					<span class="preview" style:background={own.light.accent} style:color={own.light.onAccent}
+						>{t.themeLight}</span
+					>
+					<span class="preview" style:background={own.dark.accent} style:color={own.dark.onAccent}
+						>{t.themeDark}</span
+					>
+				</span>
+			</div>
+		{/if}
 	</fieldset>
+	<div class="row stacked">
+		<span class="stack">
+			{t.font}
+			<small class="muted">{t.fontHint}</small>
+		</span>
+		<Segmented
+			size="sm"
+			label={t.font}
+			value={prefs.font}
+			options={(['standard', 'readable', 'system'] as const).map((f) => ({
+				value: f,
+				label: t.fonts[f]
+			}))}
+			onchange={choose('font')}
+		/>
+	</div>
 	<div class="row stacked">
 		<span class="stack">
 			{t.textSize}
@@ -511,7 +573,7 @@
 		<dt>{t.version}</dt>
 		<dd>{serverVersion ? `Audiobookshelf ${serverVersion}` : '…'}</dd>
 	</dl>
-	<button class="btn ghost" onclick={() => session.signOut()}>{t.signOut}</button>
+	<SavedAccounts />
 	<AccountSecurity />
 </section>
 
@@ -689,7 +751,7 @@
 	}
 
 	.swatch input:checked + .dot {
-		color: #fff;
+		color: var(--sw-ink, #fff);
 		box-shadow:
 			0 0 0 3px var(--c-card),
 			0 0 0 5px var(--sw);
@@ -703,6 +765,56 @@
 	.name {
 		font-size: var(--fs-12);
 		font-weight: var(--fw-semibold);
+	}
+
+	/* The own color: a rainbow ring around it says "any color". */
+	.dot.own {
+		background:
+			radial-gradient(var(--sw) 55%, transparent 56%),
+			conic-gradient(#e5484d, #f5a524, #45b26b, #3b82f6, #8b5cf6, #e5484d);
+	}
+
+	.own-color {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--sp-8) var(--sp-16);
+		margin-top: var(--sp-16);
+	}
+
+	.picker {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-8);
+		font-weight: var(--fw-semibold);
+		cursor: pointer;
+	}
+
+	.picker input {
+		width: 44px;
+		height: 44px;
+		padding: 2px;
+		border: 1.5px solid var(--c-field);
+		border-radius: var(--r-card);
+		background: var(--c-card);
+		cursor: pointer;
+	}
+
+	.own-color small {
+		flex-basis: 100%;
+		font-size: var(--fs-13);
+	}
+
+	.previews {
+		display: flex;
+		gap: var(--sp-8);
+	}
+
+	.preview {
+		padding: 4px 12px;
+		border-radius: var(--r-pill);
+		font-size: var(--fs-12);
+		font-weight: var(--fw-bold);
 	}
 
 	.shelves {

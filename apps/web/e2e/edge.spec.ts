@@ -7,7 +7,8 @@ import {
 	playerCall,
 	signIn,
 	resetListening,
-	needsDevServer
+	needsDevServer,
+	scopedKey
 } from './helpers.ts';
 
 test.describe('live and offline', () => {
@@ -47,6 +48,7 @@ test.describe('live and offline', () => {
 		await expect(row).toBeVisible();
 		await expect(row).toContainText(/KB|MB/);
 
+		const sessionsKey = await scopedKey(page, 'ks.localSessions');
 		await context.setOffline(true);
 		await expect(page.getByRole('status').filter({ hasText: 'You are offline' })).toBeVisible();
 		await row.getByRole('button', { name: 'Play' }).click();
@@ -56,7 +58,7 @@ test.describe('live and offline', () => {
 		await playerCall(page, 'pause');
 		await expect
 			.poll(() =>
-				page.evaluate(() => JSON.parse(localStorage.getItem('ks.localSessions') ?? '[]').length)
+				page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '[]').length, sessionsKey)
 			)
 			.toBe(1);
 
@@ -64,8 +66,7 @@ test.describe('live and offline', () => {
 		// Coming back online uploads the queued offline session.
 		await expect
 			.poll(
-				() =>
-					page.evaluate(() => JSON.parse(localStorage.getItem('ks.localSessions') ?? '[]').length),
+				() => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? '[]').length, sessionsKey),
 				{
 					timeout: 15_000
 				}
