@@ -15,11 +15,17 @@
 		method POST
 		path /login
 	}
+	# The server sees its own name (header_up Host), also when it sits behind its own
+	# reverse proxy (nginx, Traefik, …) that routes by host name.
 	handle @abs {
-		reverse_proxy {$ABS_URL}
+		reverse_proxy {$ABS_URL} {
+			header_up Host {upstream_hostport}
+		}
 	}
 	handle @login {
-		reverse_proxy {$ABS_URL}
+		reverse_proxy {$ABS_URL} {
+			header_up Host {upstream_hostport}
+		}
 	}
 
 	header {

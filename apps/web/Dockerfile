@@ -25,12 +25,12 @@ LABEL org.opencontainers.image.title="KoalaShelf" \
       org.opencontainers.image.source="https://github.com/Shik3i/KoalaShelf" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="$VERSION"
-# Runs as an unprivileged user. Port 8080 needs no capability, so the one Caddy's binary
+# Runs as an unprivileged user (uid/gid 10001, for tmpfs ownership). Port 8080 needs no capability, so the one Caddy's binary
 # carries is dropped (it would also stop the container under no-new-privileges).
 RUN apk add --no-cache libcap \
  && setcap -r /usr/bin/caddy \
  && apk del libcap \
- && addgroup -S koalashelf && adduser -S -G koalashelf -H koalashelf \
+ && addgroup -S -g 10001 koalashelf && adduser -S -u 10001 -G koalashelf -H koalashelf \
  && chown -R koalashelf:koalashelf /config /data
 COPY apps/web/docker/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/apps/web/build /srv
