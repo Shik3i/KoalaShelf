@@ -201,7 +201,9 @@ test.describe('listening', () => {
 		const { sessions } = await api<{ sessions: { deviceInfo: { deviceName: string } }[] }>(
 			'/api/me/listening-sessions?itemsPerPage=1'
 		);
-		expect(sessions[0].deviceInfo.deviceName).toMatch(/^Windows .* Edge$/);
+		// A readable name ("Windows 10 Edge", "Linux x86_64 Edge"), not a user agent dump.
+		expect(sessions[0].deviceInfo.deviceName).toMatch(/^\S.* Edge$/);
+		expect(sessions[0].deviceInfo.deviceName).not.toMatch(/Mozilla/);
 	});
 
 	test('phones reach every page through "More"', async ({ page }) => {

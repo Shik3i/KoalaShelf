@@ -148,6 +148,15 @@ test.describe('quality of life', () => {
 		await page.getByRole('button', { name: 'Open player' }).click();
 		const dialog = page.getByRole('dialog', { name: 'Player' });
 		const timeline = dialog.locator('.timeline');
+		// Measure after the player has slid in (slower machines are still animating).
+		await dialog.evaluate((d) =>
+			Promise.all(
+				d
+					.getAnimations({ subtree: true })
+					.filter((a) => a.effect?.getTiming().iterations !== Infinity)
+					.map((a) => a.finished.catch(() => undefined))
+			)
+		);
 		const box = (await timeline.boundingBox())!;
 		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 		const duration = await player<number>(page, 'duration');
