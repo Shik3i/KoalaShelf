@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import type { LibraryItem, LibraryItemMinified } from '@koalashelf/abs-client';
 	import { view } from '#lib/items.ts';
 	import Cover from './Cover.svelte';
@@ -11,7 +12,7 @@
 </script>
 
 <div class="mosaic" class:grid={shown.length === 4} aria-hidden="true">
-	{#each shown as item (item.id)}
+	{#each unique(shown, byId) as item (item.id)}
 		{@const v = view(item)}
 		<Cover title={v.title} author={v.author} src={v.cover} {sizes} titleTop />
 	{:else}

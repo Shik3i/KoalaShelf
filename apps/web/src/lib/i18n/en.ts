@@ -544,6 +544,13 @@ export const en = {
 	common: {
 		error: (msg: string) => `Something went wrong: ${msg}`,
 		retry: 'Retry',
+		reload: 'Reload the app',
+		home: 'Go to home',
+		notFoundTitle: 'Not found',
+		notFoundText: 'This page does not exist (anymore).',
+		brokenTitle: 'This page could not be shown',
+		brokenText:
+			'Something in the data from your server tripped it up. Everything else keeps working; try again, or reload the app.',
 		loading: 'Loading …',
 		noLibrary: 'There is no audiobook library on this server for your account.',
 		offline: 'You are offline. Playback and updates resume once the connection is back.'

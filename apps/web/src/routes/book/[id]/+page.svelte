@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import {
 		encodeFilter,
 		type Bookmark,
@@ -271,13 +272,14 @@
 				<h1>{v.title}</h1>
 				{#if meta.subtitle}<p class="subtitle">{meta.subtitle}</p>{/if}
 				<p class="people">
-					{#each meta.authors as a, i (a.id)}{i ? ', ' : ''}<a href="/author/{a.id}">{a.name}</a
+					{#each unique(meta.authors, byId) as a, i (a.id)}{i ? ', ' : ''}<a href="/author/{a.id}"
+							>{a.name}</a
 						>{/each}
 				</p>
 				{#if meta.narrators.length}
 					<p class="muted">
 						{t.readBy}
-						{#each meta.narrators as n, i (n)}{i ? ', ' : ''}<a
+						{#each unique(meta.narrators) as n, i (n)}{i ? ', ' : ''}<a
 								href="/library?narrator={encodeURIComponent(n)}">{n}</a
 							>{/each}
 					</p>
@@ -429,7 +431,7 @@
 						<p class="muted">{t.noChapters}</p>
 					{:else if tab === 'chapters'}
 						<ol class="rows">
-							{#each item.media.chapters as c, i (c.id)}
+							{#each item.media.chapters as c, i (i)}
 								{@const current = isCurrent && player.chapter?.id === c.id}
 								<li>
 									<button class:current onclick={() => playAt(c.start)}>
@@ -442,7 +444,7 @@
 						</ol>
 					{:else if tab === 'bookmarks'}
 						<ul class="rows">
-							{#each bookmarks as b (b.time)}
+							{#each unique(bookmarks, (b) => b.time) as b (b.time)}
 								<li>
 									<button onclick={() => playAt(b.time)}>
 										<span class="pin tabular">{clock(b.time)}</span>
@@ -466,7 +468,7 @@
 							<div class="skeleton" style="height: 110px; border-radius: 18px"></div>
 						{:else}
 							<ul class="sessions">
-								{#each history as s (s.id)}
+								{#each unique(history, byId) as s (s.id)}
 									<SessionRow {s} />
 								{:else}
 									<li class="muted empty">{t.noHistory}</li>
@@ -475,7 +477,7 @@
 						{/if}
 					{:else if tab === 'files'}
 						<ol class="rows files">
-							{#each [...item.media.audioFiles].sort((a, b) => a.index - b.index) as f, i (f.ino)}
+							{#each unique(item.media.audioFiles, (f) => f.ino).sort((a, b) => a.index - b.index) as f, i (f.ino)}
 								<li>
 									<span class="num display">{i + 1}</span>
 									<span class="ttl">{f.metadata.filename}</span>
@@ -485,7 +487,7 @@
 						</ol>
 					{:else}
 						<div class="shelf">
-							{#each more as m (m.id)}<BookTile item={m} />{/each}
+							{#each unique(more, byId) as m (m.id)}<BookTile item={m} />{/each}
 						</div>
 					{/if}
 				</div>
@@ -509,13 +511,13 @@
 					<dd>{bytes(item.media.size)}</dd>
 					{#if meta.genres.length}<dt>{t.genre}</dt>
 						<dd>
-							{#each meta.genres as g, i (g)}{i ? ', ' : ''}<a
+							{#each unique(meta.genres) as g, i (g)}{i ? ', ' : ''}<a
 									href="/library?genre={encodeURIComponent(g)}">{g}</a
 								>{/each}
 						</dd>{/if}
 					{#if item.media.tags?.length}<dt>{t.tags}</dt>
 						<dd>
-							{#each item.media.tags as g, i (g)}{i ? ', ' : ''}<a
+							{#each unique(item.media.tags) as g, i (g)}{i ? ', ' : ''}<a
 									href="/library?tag={encodeURIComponent(g)}">{g}</a
 								>{/each}
 						</dd>{/if}

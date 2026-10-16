@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import type { Collection } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
@@ -29,7 +30,7 @@
 {#if list && !list.length}<EmptyState text={t.empty} />{/if}
 
 <div class="crates">
-	{#each list ?? [] as c (c.id)}
+	{#each unique(list, byId) as c (c.id)}
 		<Crate
 			title={c.name}
 			note={t.books(c.books.length)}

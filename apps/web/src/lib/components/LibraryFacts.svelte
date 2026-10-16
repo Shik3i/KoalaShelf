@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import type { LibraryStats } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -61,7 +62,7 @@
 				<div>
 					<h3 class="label">{t.longest}</h3>
 					<ol class="ranks plain">
-						{#each stats.longestItems.slice(0, 6) as b (b.id)}
+						{#each unique(stats.longestItems, byId).slice(0, 6) as b (b.id)}
 							<li>
 								<a href="/book/{b.id}">{b.title}</a>
 								<span class="muted tabular">{duration(b.duration)}</span>

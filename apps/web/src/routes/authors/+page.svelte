@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import type { Author, Narrator } from '@koalashelf/abs-client';
 	import { goto } from '$app/navigation';
@@ -61,7 +62,7 @@
 		{/each}
 	{/if}
 	{#if tab === 'authors'}
-		{#each authors ?? [] as a (a.id)}
+		{#each unique(authors, byId) as a (a.id)}
 			<a href="/author/{a.id}" class="person">
 				<span class="pic">
 					<Portrait
@@ -76,7 +77,7 @@
 			</a>
 		{/each}
 	{:else}
-		{#each narrators ?? [] as n (n.id)}
+		{#each unique(narrators, byId) as n (n.id)}
 			<a href="/library?narrator={encodeURIComponent(n.name)}" class="person">
 				<span class="pic"><Portrait name={n.name} /></span>
 				<strong>{n.name}</strong>

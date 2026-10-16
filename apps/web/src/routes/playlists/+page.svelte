@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import type { Playlist } from '@koalashelf/abs-client';
 	import { goto } from '$app/navigation';
 	import { session } from '#lib/session.svelte.ts';
@@ -53,8 +54,8 @@
 				style="aspect-ratio: 1; border-radius: 16px"
 			></div>{/each}
 	{/if}
-	{#each lists ?? [] as p (p.id)}
-		{@const items = p.items.map((i) => i.libraryItem)}
+	{#each unique(lists, byId) as p (p.id)}
+		{@const items = p.items.map((i) => i.libraryItem).filter((i) => !!i)}
 		<a class="list" href="/playlists/{p.id}">
 			<CoverMosaic {items} sizes="(max-width: 800px) 45vw, 220px" />
 			<strong>{p.name}</strong>

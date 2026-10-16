@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import type { LibraryItem, YearStats } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -108,7 +109,7 @@
 
 		{#if covers.length}
 			<div class="covers">
-				{#each covers as item (item.id)}
+				{#each unique(covers, byId) as item (item.id)}
 					{@const v = view(item)}
 					<a href="/book/{item.id}" title={v.title}>
 						<Cover title={v.title} author={v.author} src={coverSrc(item)} sizes="64px" />
@@ -122,7 +123,7 @@
 				<div>
 					<h3 class="label">{t.topAuthors}</h3>
 					<ol class="ranks">
-						{#each data.topAuthors as a (a.name)}
+						{#each unique(data.topAuthors, (a) => a.name) as a (a.name)}
 							<li style:--w={a.time / maxAuthor}>
 								<span>{a.name}</span><span class="muted tabular">{duration(a.time)}</span>
 							</li>
@@ -134,7 +135,7 @@
 				<div>
 					<h3 class="label">{t.topGenres}</h3>
 					<ol class="ranks">
-						{#each data.topGenres as g (g.genre)}
+						{#each unique(data.topGenres, (g) => g.genre) as g (g.genre)}
 							<li style:--w={g.time / maxGenre}>
 								<span>{g.genre}</span><span class="muted tabular">{duration(g.time)}</span>
 							</li>

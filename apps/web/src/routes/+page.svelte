@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import type { LibraryItemMinified, Shelf } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
@@ -216,7 +217,7 @@
 {/if}
 
 <div class="crates">
-	{#each shownCrates as c (c.id)}
+	{#each unique(shownCrates, byId) as c (c.id)}
 		<Crate title={c.label} note={c.note} entries={c.entries} />
 	{/each}
 </div>

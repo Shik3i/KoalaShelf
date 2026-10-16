@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -126,7 +127,7 @@
 	{#if result.book.length}
 		<h2 class="label">{t.books}</h2>
 		<div class="books">
-			{#each result.book as { libraryItem: item } (item.id)}
+			{#each unique(result.book, (b) => b.libraryItem.id) as { libraryItem: item } (item.id)}
 				{@const v = view(item)}
 				{@const lib = result.libraryOf.get(item.id)}
 				<a href="/book/{item.id}" class="book">
@@ -162,7 +163,7 @@
 	{#if result.authors.length}
 		<h2 class="label">{t.authors}</h2>
 		<div class="chips">
-			{#each result.authors as a (a.id)}
+			{#each unique(result.authors, byId) as a (a.id)}
 				<a class="chip" href="/author/{a.id}"><Highlight text={a.name} {query} /></a>
 			{/each}
 		</div>
@@ -171,7 +172,7 @@
 	{#if result.narrators.length}
 		<h2 class="label">{t.narrators}</h2>
 		<div class="chips">
-			{#each result.narrators as n (n.name)}
+			{#each unique(result.narrators, (n) => n.name) as n (n.name)}
 				<a class="chip" href="/library?narrator={encodeURIComponent(n.name)}"
 					><Highlight text={n.name} {query} /> <span class="n">{n.numBooks}</span></a
 				>
@@ -182,7 +183,7 @@
 	{#if result.genres.length}
 		<h2 class="label">{t.genres}</h2>
 		<div class="chips">
-			{#each result.genres as g (g.name)}
+			{#each unique(result.genres, (g) => g.name) as g (g.name)}
 				<a class="chip" href="/library?genre={encodeURIComponent(g.name)}"
 					><Highlight text={g.name} {query} /> <span class="n">{g.numItems}</span></a
 				>
@@ -193,7 +194,7 @@
 	{#if result.tags.length}
 		<h2 class="label">{t.tags}</h2>
 		<div class="chips">
-			{#each result.tags as g (g.name)}
+			{#each unique(result.tags, (g) => g.name) as g (g.name)}
 				<a class="chip" href="/library?tag={encodeURIComponent(g.name)}"
 					>#<Highlight text={g.name} {query} /> <span class="n">{g.numItems}</span></a
 				>

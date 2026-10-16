@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -189,7 +190,8 @@
 				},
 				signal
 			);
-			items = pageNo === 0 ? res.results : [...items, ...res.results];
+			// Pages can overlap when books are added meanwhile: each book once.
+			items = unique(pageNo === 0 ? res.results : [...items, ...res.results], byId);
 			total = res.total;
 			pageNo++;
 			done = items.length >= res.total;
@@ -211,7 +213,7 @@
 		try {
 			const result = await runSet(session.api, lib, query, (id) => progress.status(id), signal);
 			if (signal?.aborted) return;
-			items = result;
+			items = unique(result, byId);
 			total = result.length;
 			shownCount = PAGE;
 			done = result.length <= PAGE;

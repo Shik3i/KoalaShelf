@@ -166,7 +166,25 @@
 				{#if session.librariesLoaded && !session.libraries.length && !/^\/(settings|downloads)/.test(page.url.pathname)}
 					<p class="no-lib">{i18n.m.common.noLibrary}</p>
 				{:else}
-					{@render children()}
+					<!-- A page that fails keeps the app usable: navigation and player stay. -->
+					<svelte:boundary onerror={(e) => console.error(e)}>
+						{@render children()}
+						{#snippet failed(error, reset)}
+							<div class="broken" role="alert">
+								<h1>{i18n.m.common.brokenTitle}</h1>
+								<p class="muted">{i18n.m.common.brokenText}</p>
+								<p class="muted small">
+									<code>{error instanceof Error ? error.message : String(error)}</code>
+								</p>
+								<div class="broken-actions">
+									<button class="btn primary" onclick={reset}>{i18n.m.common.retry}</button>
+									<button class="btn ghost" onclick={() => location.reload()}
+										>{i18n.m.common.reload}</button
+									>
+								</div>
+							</div>
+						{/snippet}
+					</svelte:boundary>
 				{/if}
 			</div>
 		</main>
@@ -179,6 +197,24 @@
 {/if}
 
 <style>
+	.broken {
+		display: grid;
+		gap: var(--sp-12);
+		max-width: 52ch;
+		padding: var(--sp-48) 0;
+	}
+
+	.broken .small {
+		font-size: var(--fs-13);
+		overflow-wrap: anywhere;
+	}
+
+	.broken-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--sp-8);
+	}
+
 	.shell {
 		display: grid;
 		grid-template-columns: var(--layout-sidebar) 1fr;

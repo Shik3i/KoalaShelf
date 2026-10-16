@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { unique } from '#lib/unique.ts';
 	import type { Bookmark, LibraryItem } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
@@ -143,7 +144,7 @@
 				</span>
 			</a>
 			<ul>
-				{#each g.list as m (m.time)}
+				{#each unique(g.list, (m) => m.time) as m (m.time)}
 					<li>
 						<button
 							class="jump"

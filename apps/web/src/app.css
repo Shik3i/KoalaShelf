@@ -258,10 +258,15 @@ button {
 .field {
 	display: grid;
 	gap: var(--sp-8);
+	min-width: 0;
 }
 
 .field input,
 .field select {
+	/* Never wider than its column (a long library name would push out of the sidebar). */
+	width: 100%;
+	min-width: 0;
+	text-overflow: ellipsis;
 	min-height: var(--layout-touch);
 	padding: 0 var(--sp-16);
 	border: 1.5px solid var(--c-field);

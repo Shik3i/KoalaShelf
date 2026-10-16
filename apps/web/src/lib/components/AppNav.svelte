@@ -43,7 +43,8 @@
 		{ href: '/history', label: t.history, icon: History, tab: false },
 		{ href: '/stats', label: t.stats, icon: ChartColumn, tab: false },
 		{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
-		{ href: '/search', label: t.search, icon: Search, tab: true }
+		{ href: '/search', label: t.search, icon: Search, tab: true },
+		{ href: '/settings', label: t.settings, icon: Settings, tab: false }
 	]);
 
 	/** Shortcut hint for the quick search (⌘ on Apple devices). */
@@ -53,10 +54,7 @@
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 
 	// Phones: pages beyond the tab bar live in a "More" sheet.
-	const extra = $derived([
-		...items.filter((i) => !i.tab),
-		{ href: '/settings', label: t.settings, icon: Settings, tab: false }
-	]);
+	const extra = $derived(items.filter((i) => !i.tab));
 	const moreActive = $derived(extra.some((i) => active(i.href)));
 	let sheet = $state<HTMLDialogElement>();
 	let closing = $state(false);
@@ -119,9 +117,6 @@
 				<Avatar name={session.user?.username ?? '?'} size={28} />
 				<span class="name">{session.user?.username}</span>
 			</button>
-			<a class="icon" href="/settings" title={t.settings} aria-label={t.settings}>
-				<Settings size={18} />
-			</a>
 			<button class="icon" onclick={() => theme.cycle()} title={themeLabel} aria-label={themeLabel}>
 				{#if theme.choice === 'light'}<Sun size={18} />{:else if theme.choice === 'dark'}<Moon
 						size={18}
@@ -325,6 +320,8 @@
 	.profile {
 		margin-top: auto;
 		display: grid;
+		/* The column never grows past the sidebar: long names are cut, not pushed out. */
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--sp-12);
 	}
 

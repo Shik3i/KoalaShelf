@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import { downloads, supported, type DownloadedBook } from '#lib/downloads.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -60,7 +61,7 @@
 	<EmptyState text={t.empty} />
 {:else}
 	<ul class="list">
-		{#each list as b (b.id)}
+		{#each unique(list, byId) as b (b.id)}
 			{@const v = view(b.item)}
 			<li>
 				<a class="c" href="/book/{b.id}"

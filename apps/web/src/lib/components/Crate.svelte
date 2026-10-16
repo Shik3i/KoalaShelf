@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	import { unique } from '#lib/unique.ts';
 	export interface CrateEntry {
 		id: string;
 		href: string;
@@ -22,7 +23,7 @@
 <!-- "Kiste": covers stand in a row, a dark ledge hides their lower part (titles sit on top). -->
 <section class="crate" aria-label={title}>
 	<div class="row">
-		{#each entries as e (e.id)}
+		{#each unique(entries, (e) => e.id) as e (e.id)}
 			<a href={e.href} class="slot" title="{e.title} · {e.author}">
 				<Cover title={e.title} author={e.author} src={e.cover} sizes="170px" titleTop />
 				<span class="sr-only">{e.title}</span>

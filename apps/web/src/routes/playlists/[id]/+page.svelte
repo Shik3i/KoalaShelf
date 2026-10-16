@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import type { Playlist } from '@koalashelf/abs-client';
 	import { flip } from 'svelte/animate';
 	import { goto } from '$app/navigation';
@@ -34,7 +35,13 @@
 	let list = $derived<Playlist | null>(data.playlist);
 	$effect(() => void progress.load());
 
-	const items = $derived((list?.items ?? []).map((i) => i.libraryItem));
+	// Each book once, and none whose book was removed from the library meanwhile.
+	const items = $derived(
+		unique(
+			(list?.items ?? []).map((i) => i.libraryItem).filter((i) => !!i),
+			byId
+		)
+	);
 	const total = $derived(items.reduce((s, i) => s + i.media.duration, 0));
 
 	let renaming = $state(false);
@@ -187,7 +194,7 @@
 		<EmptyState text={t.emptyList} />
 	{:else}
 		<ol class="items">
-			{#each items as item, i (item.id)}
+			{#each unique(items, byId) as item, i (item.id)}
 				{@const v = view(item)}
 				{@const status = progress.status(item.id)}
 				<li animate:flip={{ duration: dur(260) }}>

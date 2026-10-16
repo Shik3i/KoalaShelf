@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { progress } from '#lib/progress.svelte.ts';
 	import { player } from '#lib/player/player.svelte.ts';
@@ -23,7 +24,7 @@
 
 	const t = $derived(i18n.m.seriesPage);
 	const series = $derived(data.series);
-	const items = $derived(data.items);
+	const items = $derived(unique(data.items, byId));
 
 	$effect(() => void progress.load());
 
@@ -105,7 +106,7 @@
 {:else}
 	<header>
 		<div class="covers" aria-hidden="true">
-			{#each items.slice(0, 3) as item, i (item.id)}
+			{#each unique(items, byId).slice(0, 3) as item, i (item.id)}
 				{@const v = view(item)}
 				<div class="c" style:--i={i}>
 					<Cover title={v.title} author={v.author} src={v.cover} sizes="160px" eager />
@@ -153,7 +154,7 @@
 	</header>
 
 	<ol class="books">
-		{#each items as item (item.id)}
+		{#each unique(items, byId) as item (item.id)}
 			{@const v = view(item)}
 			{@const status = progress.status(item.id)}
 			{@const p = progress.get(item.id)}

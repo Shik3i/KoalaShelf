@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import { untrack } from 'svelte';
 	import type { LibraryItem, ListeningSession } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
@@ -155,7 +156,7 @@
 					<span class="tabular">{span(d.total)}</span>
 				</h2>
 				<ul>
-					{#each d.list as s (s.id)}
+					{#each unique(d.list, byId) as s (s.id)}
 						<SessionRow
 							{s}
 							withBook

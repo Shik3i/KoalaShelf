@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import type { AuthorDetail } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -72,11 +73,11 @@
 		</div>
 	</header>
 
-	{#each series as s (s.id)}
+	{#each unique(series, byId) as s (s.id)}
 		<section>
 			<h2><a href="/series/{s.id}">{s.name}</a></h2>
 			<div class="shelf">
-				{#each s.items as item, i (item.id)}<BookTile {item} index={i} />{/each}
+				{#each unique(s.items, byId) as item, i (item.id)}<BookTile {item} index={i} />{/each}
 			</div>
 		</section>
 	{/each}
@@ -85,7 +86,7 @@
 		<section>
 			<h2>{series.length ? t.otherBooks : t.books}</h2>
 			<div class="shelf">
-				{#each others as item, i (item.id)}<BookTile {item} index={i} />{/each}
+				{#each unique(others, byId) as item, i (item.id)}<BookTile {item} index={i} />{/each}
 			</div>
 		</section>
 	{/if}

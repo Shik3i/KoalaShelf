@@ -36,7 +36,7 @@
 	<div class="track" aria-hidden="true">
 		<div class="fill"></div>
 		{#if !scope.chapter}
-			{#each player.chapters.slice(1) as c (c.id)}
+			{#each player.chapters.slice(1) as c, i (i)}
 				<span class="tick" style:--f={frac(c.start)}></span>
 			{/each}
 		{/if}

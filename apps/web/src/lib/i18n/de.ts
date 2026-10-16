@@ -544,6 +544,13 @@ export const de: Messages = {
 	common: {
 		error: (msg) => `Etwas ist schiefgelaufen: ${msg}`,
 		retry: 'Nochmal versuchen',
+		reload: 'App neu laden',
+		home: 'Zur Startseite',
+		notFoundTitle: 'Nicht gefunden',
+		notFoundText: 'Diese Seite gibt es nicht (mehr).',
+		brokenTitle: 'Diese Seite konnte nicht angezeigt werden',
+		brokenText:
+			'Etwas in den Daten deines Servers hat sie aus dem Tritt gebracht. Alles andere läuft weiter; versuch es nochmal oder lade die App neu.',
 		loading: 'Lade …',
 		noLibrary: 'Auf diesem Server gibt es für dein Konto keine Hörbuch-Bibliothek.',
 		offline:

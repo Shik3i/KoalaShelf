@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { unique } from '#lib/unique.ts';
 	import { untrack } from 'svelte';
 	import { player } from './player.svelte.ts';
 	import { clampWindow, forecast, SMART_STEP } from './sleep.ts';
@@ -131,7 +132,7 @@
 	<div class="viz" aria-hidden="true">
 		<span class="win" style:left={pct(win.from)} style:width="calc({pct(win.to)} - {pct(win.from)})"
 		></span>
-		{#each ends as e (e)}<span class="end" style:left={pct(e)}></span>{/each}
+		{#each unique(ends) as e (e)}<span class="end" style:left={pct(e)}></span>{/each}
 		{#if plan}<span
 				class="stop"
 				class:at-chapter={plan.chapter !== null}

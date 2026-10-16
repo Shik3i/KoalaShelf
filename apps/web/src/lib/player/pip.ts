@@ -17,7 +17,13 @@ export async function togglePip() {
 	const pip = api();
 	if (!pip) return;
 	if (pip.window) return pip.window.close();
-	const win = await pip.requestWindow({ width: 340, height: 220 });
+	let win: Window;
+	try {
+		win = await pip.requestWindow({ width: 340, height: 220 });
+	} catch {
+		// Refused (no user gesture, or blocked by the browser): the full player stays.
+		return;
+	}
 	const doc = win.document;
 	// Same styles and theme as the app.
 	for (const sheet of document.styleSheets) {

@@ -420,7 +420,7 @@
 							</div>
 							{#if gotoError}<p class="err small">{t.goToInvalid}</p>{/if}
 							<ol class="list" bind:this={chapterList}>
-								{#each shownChapters as { c, i } (c.id)}
+								{#each shownChapters as { c, i } (i)}
 									{@const current = player.chapter === c}
 									<li>
 										<button

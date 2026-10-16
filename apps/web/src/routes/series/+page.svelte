@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { untrack } from 'svelte';
 	import type { Series } from '@koalashelf/abs-client';
@@ -23,7 +24,7 @@
 		const signal = controller?.signal;
 		try {
 			const r = await session.api.series(session.libraryId, { page, limit: 48 }, signal);
-			list = [...list, ...r.results];
+			list = unique([...list, ...r.results], byId);
 			total = r.total;
 			page++;
 			done = list.length >= r.total;
@@ -70,7 +71,7 @@
 		{@const books = s.books.slice(0, 3)}
 		<a class="series" href="/series/{s.id}">
 			<div class="stack" style:--n={books.length}>
-				{#each books.toReversed() as b, i (b.id)}
+				{#each unique(books, byId).toReversed() as b, i (b.id)}
 					{@const v = view(b)}
 					<div class="card" style:--i={books.length - 1 - i}>
 						<Cover title={v.title} author={v.author} src={coverSrc(b)} sizes="180px" />

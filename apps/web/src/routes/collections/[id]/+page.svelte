@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { byId, unique } from '#lib/unique.ts';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { flip } from 'svelte/animate';
@@ -189,7 +190,7 @@
 
 	{#if editing}
 		<ol class="items">
-			{#each books as b, i (b.id)}
+			{#each unique(books, byId) as b, i (b.id)}
 				{@const v = view(b)}
 				<li animate:flip={{ duration: dur(260) }}>
 					<a href="/book/{b.id}">
@@ -227,7 +228,7 @@
 		</ol>
 	{:else}
 		<div class="shelf">
-			{#each books as b, i (b.id)}<BookTile item={b} eager={i < 12} />{/each}
+			{#each unique(books, byId) as b, i (b.id)}<BookTile item={b} eager={i < 12} />{/each}
 		</div>
 	{/if}
 {/if}
