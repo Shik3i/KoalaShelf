@@ -1,14 +1,18 @@
 // Initializes the local dev Audiobookshelf: root user, library, scan. Idempotent.
 // Credentials are generated once and stored in dev/.env (gitignored).
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 
 const BASE = process.env.ABS_URL ?? 'http://localhost:13378';
 const envFile = join(import.meta.dirname, '.env');
-const env = existsSync(envFile)
-  ? Object.fromEntries(readFileSync(envFile, 'utf8').split('\n').filter(Boolean).map((l) => l.split('=')))
-  : {};
+// Read directly (no exists-check first: the file could change in between).
+let env = {};
+try {
+  env = Object.fromEntries(readFileSync(envFile, 'utf8').split('\n').filter(Boolean).map((l) => l.split('=')));
+} catch {
+  /* first run: no credentials yet */
+}
 if (env.ABS_USER && !env.ABS_GUEST_USER) {
   env.ABS_GUEST_USER = 'gast';
   env.ABS_GUEST_PASSWORD = randomBytes(12).toString('base64url');

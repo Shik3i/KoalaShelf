@@ -86,7 +86,12 @@ interface RequestOptions {
 	withCookies?: boolean;
 }
 
-export const normalizeBaseUrl = (url: string) => url.trim().replace(/\/+$/, '');
+/** Trims whitespace and trailing slashes (a loop: a regex here could backtrack on long input). */
+export function normalizeBaseUrl(url: string) {
+	let s = url.trim();
+	while (s.endsWith('/')) s = s.slice(0, -1);
+	return s;
+}
 
 function withQuery(path: string, query?: Query) {
 	if (!query) return path;
