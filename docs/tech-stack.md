@@ -15,14 +15,14 @@ Versions verified on 2026-10-12 (web extras and test tools on 2026-10-13) agains
 
 | Package | Version | Note |
 |---|---|---|
-| SvelteKit | 3.0 | SPA via `adapter-static`, config lives in the Vite plugin |
+| SvelteKit | 3.1 | SPA via `adapter-static`, config lives in the Vite plugin |
 | Svelte | 5.57 | runes, attachments |
 | Vite | 8.3 | Rolldown |
-| TypeScript | **6.0** | TypeScript 7 (native compiler) is out, but SvelteKit 3, svelte-check and typescript-eslint support ≤ 6 so far. Switch once they do. |
+| TypeScript | **6.0** | TypeScript 7 (native compiler) is out, but SvelteKit 3, svelte-check and typescript-eslint support ≤ 6 so far (tried again 2026-10-16: `svelte-kit sync` and ESLint fail). Switch once they do; Dependabot skips TypeScript majors until then. |
 | Vitest | 5.0 | |
 | ESLint / Prettier | 10 / 3.9 | flat config, prettier-plugin-svelte |
 | Style Dictionary | 5.6 | DTCG token format, custom formats |
-| Icons | `@lucide/svelte` 1.55 | per-icon imports (tree-shaken) |
+| Icons | `@lucide/svelte` 1.57 | per-icon imports (tree-shaken) |
 | Fonts | `@fontsource/gloock`, `@fontsource-variable/manrope` | self-hosted, OFL |
 | PWA | SvelteKit service worker + manifest | `@vite-pwa/sveltekit` does not support SvelteKit 3 yet |
 | Icons build | sharp 0.35 | renders PWA icons from SVG (`pnpm icons`) |
@@ -38,6 +38,9 @@ Versions verified on 2026-10-12 (web extras and test tools on 2026-10-13) agains
 | axe-core (`@axe-core/playwright`) | 4.13 | WCAG 2.2 AA and best-practice rules |
 | Lighthouse | 13.5 | run on demand against the production image; not a project dependency |
 | Audiobookshelf | 2.37.1 | local test server in Docker (`dev/`) |
+| GitHub Actions | — | CI on every push and pull request: `pnpm audit`, types, lint, unit tests, build, the Docker image (starts, serves, security headers) and the full end-to-end suite in Edge against a fresh Audiobookshelf with generated sample books; actions pinned to commit hashes |
+| CodeQL | 4.39 | JavaScript/TypeScript and workflow analysis (security-extended) on every push, pull request and weekly |
+| Dependabot | — | security updates immediately; weekly grouped version updates for npm, Cargo, Docker, Compose and Actions, with a 3-day cooldown for fresh releases |
 
 ### i18n
 

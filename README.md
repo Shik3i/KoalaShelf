@@ -1,5 +1,7 @@
 # KoalaShelf
 
+[![CI](https://github.com/Shik3i/KoalaShelf/actions/workflows/ci.yml/badge.svg)](https://github.com/Shik3i/KoalaShelf/actions/workflows/ci.yml) [![CodeQL](https://github.com/Shik3i/KoalaShelf/actions/workflows/codeql.yml/badge.svg)](https://github.com/Shik3i/KoalaShelf/actions/workflows/codeql.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A fast, private, self-hostable client for your [Audiobookshelf](https://www.audiobookshelf.org) server: web app (PWA) today, native desktop and Android apps next. Your server stays untouched; KoalaShelf only replaces the interface.
 
 Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crates and shelves.
@@ -21,6 +23,7 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 - **Performance.** Static SPA, about 130 kB of compressed JavaScript on first load (the HLS player is only loaded when a stream needs it), instant navigation, cover cache, offline app shell. Lighthouse: 100 for performance, accessibility and best practices.
 - **Accessible.** WCAG 2.2 AA, checked on every page in both themes at laptop and phone widths; keyboard, screen readers, high-contrast mode, reduced motion and any text size.
 - **International.** English and German UI, type-checked translations; code, routes and docs in English.
+- **Maintained.** Every push runs the dependency audit, types, lint, unit and end-to-end tests and builds the image (GitHub Actions); CodeQL scans the code; Dependabot keeps dependencies current.
 
 ## Features (web)
 

@@ -235,7 +235,8 @@
 	{/if}
 {/if}
 
-<LibraryFacts />
+<!-- After the listening stats: appearing first, it would be pushed down when they load. -->
+{#if stats || error}<LibraryFacts />{/if}
 
 <style>
 	h1 {
