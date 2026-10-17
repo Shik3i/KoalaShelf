@@ -14,7 +14,8 @@
 
 	const tween = new Tween(0, { duration: dur(900), easing: cubicOut });
 	$effect(() => {
-		tween.target = value;
+		// Bad data from a server (a string, NaN) counts as nothing rather than breaking the page.
+		tween.target = Number.isFinite(value) ? value : 0;
 	});
 </script>
 

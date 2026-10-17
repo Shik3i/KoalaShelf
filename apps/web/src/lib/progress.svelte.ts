@@ -5,6 +5,8 @@ import { session } from './session.svelte';
 /** Reactive media progress of the signed-in user, keyed by library item id. */
 class ProgressStore {
 	byItem = new SvelteMap<string, MediaProgress>();
+	/** The book just finished on this device (not one that already was): its record shines gold. */
+	justFinished = $state<{ id: string; n: number } | null>(null);
 	#loaded: Promise<void> | null = null;
 	/** Only the latest load may write: an older, slower response must not undo newer state. */
 	#generation = 0;
@@ -47,6 +49,16 @@ class ProgressStore {
 		this.#loaded = null;
 		this.#generation++;
 		this.byItem.clear();
+	}
+
+	/** A book was finished here and now (end of playback or "mark finished"). */
+	celebrate(itemId: string) {
+		this.justFinished = { id: itemId, n: (this.justFinished?.n ?? 0) + 1 };
+	}
+
+	/** Counter for a record that should shine (changes once per finish of that book). */
+	shine(itemId: string | undefined) {
+		return itemId && this.justFinished?.id === itemId ? this.justFinished.n : 0;
 	}
 
 	get(itemId: string) {

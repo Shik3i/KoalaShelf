@@ -8,7 +8,7 @@
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import { fly } from 'svelte/transition';
-	import { flyUp } from '#lib/motion.ts';
+	import { flyUp, placeRecord } from '#lib/motion.ts';
 	import Timer from '@lucide/svelte/icons/timer';
 
 	const t = $derived(i18n.m.player);
@@ -36,15 +36,18 @@
 	<div class="mini" transition:fly={flyUp(24)} role="region" aria-label={t.player}>
 		<div class="line" style:--p={player.scopeProgress} aria-hidden="true"></div>
 		<button class="open" onclick={() => (player.expanded = true)} aria-label={t.open}>
-			<div class="disc">
-				<Vinyl
-					title={v.title}
-					author={v.author}
-					src={v.cover}
-					playing={player.playing}
-					label={0.5}
-				/>
-			</div>
+			{#key player.item?.id}
+				<div class="disc" in:placeRecord>
+					<Vinyl
+						title={v.title}
+						author={v.author}
+						src={v.cover}
+						playing={player.playing}
+						speed={player.rate}
+						label={0.5}
+					/>
+				</div>
+			{/key}
 			<span class="text">
 				<strong>{v.title}</strong>
 				{#if player.error}

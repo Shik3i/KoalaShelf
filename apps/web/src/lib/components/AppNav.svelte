@@ -50,6 +50,35 @@
 	/** Shortcut hint for the quick search (⌘ on Apple devices). */
 	const modKey = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
 
+	/**
+	 * The highlight is one element that glides to the current entry (CSS does the motion),
+	 * instead of jumping from item to item. Hidden while no entry of this nav is current.
+	 */
+	function glide(nav: HTMLElement) {
+		const place = () => {
+			const cur = nav.querySelector<HTMLElement>('[aria-current="page"], button.current');
+			nav.style.setProperty('--pill-on', cur ? '1' : '0');
+			if (!cur) return;
+			nav.style.setProperty('--pill-x', `${cur.offsetLeft}px`);
+			nav.style.setProperty('--pill-y', `${cur.offsetTop}px`);
+			nav.style.setProperty('--pill-w', `${cur.offsetWidth}px`);
+			nav.style.setProperty('--pill-h', `${cur.offsetHeight}px`);
+		};
+		const watch = new MutationObserver(place);
+		watch.observe(nav, {
+			subtree: true,
+			attributes: true,
+			attributeFilter: ['aria-current', 'class']
+		});
+		const size = new ResizeObserver(place);
+		size.observe(nav);
+		place();
+		return () => {
+			watch.disconnect();
+			size.disconnect();
+		};
+	}
+
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
 
@@ -81,7 +110,8 @@
 		<img src="/favicon.svg" alt="" width="28" height="28" />
 		<span class="display">KoalaShelf</span>
 	</a>
-	<nav aria-label={t.main}>
+	<nav aria-label={t.main} {@attach glide}>
+		<span class="pill" aria-hidden="true"></span>
 		{#each items as item (item.href)}
 			<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
 				<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
@@ -134,7 +164,8 @@
 	</div>
 </aside>
 
-<nav class="tabs" aria-label={t.main}>
+<nav class="tabs" aria-label={t.main} {@attach glide}>
+	<span class="pill" aria-hidden="true"></span>
 	{#each items.filter((i) => i.tab) as item (item.href)}
 		<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
 			<item.icon size={22} strokeWidth={2} aria-hidden="true" />
@@ -313,8 +344,31 @@
 	}
 
 	.side nav a[aria-current='page'] {
-		background: var(--c-sel);
 		color: var(--c-sel-ink);
+	}
+
+	.side nav {
+		position: relative;
+		isolation: isolate;
+	}
+
+	/* One highlight under the entries, gliding with a little spring to the current one. */
+	.pill {
+		position: absolute;
+		top: 0;
+		left: 0;
+		z-index: -1;
+		width: var(--pill-w, 0);
+		height: var(--pill-h, 0);
+		translate: var(--pill-x, 0) var(--pill-y, 0);
+		opacity: var(--pill-on, 0);
+		border-radius: var(--r-card);
+		background: var(--c-sel);
+		pointer-events: none;
+		transition:
+			translate 460ms cubic-bezier(0.3, 1.18, 0.45, 1),
+			height var(--motion-base) var(--motion-ease),
+			opacity var(--motion-fast) var(--motion-ease);
 	}
 
 	.profile {
@@ -440,6 +494,15 @@
 		.tabs button.current,
 		.tabs a[aria-current='page'] {
 			color: var(--c-accent);
+		}
+
+		/* On the tab bar the highlight is a short bar along the top edge. */
+		.tabs .pill {
+			width: 28px;
+			height: 3px;
+			translate: calc(var(--pill-x, 0) + var(--pill-w, 0) / 2 - 14px) 0;
+			border-radius: 0 0 var(--r-pill) var(--r-pill);
+			background: var(--c-accent);
 		}
 	}
 

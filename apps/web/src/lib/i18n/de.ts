@@ -350,7 +350,8 @@ export const de: Messages = {
 		title: 'Serien',
 		count: (n) => `${n} Serien`,
 		books: (n) => (n === 1 ? '1 Band' : `${n} Bände`),
-		empty: 'Keine Serien in dieser Bibliothek.'
+		empty: 'Keine Serien in dieser Bibliothek.',
+		flipHint: 'Mit den Pfeiltasten links und rechts durch die Bände in der Kiste blättern.'
 	},
 	authors: {
 		narrators: 'Sprecher:innen',

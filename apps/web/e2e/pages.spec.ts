@@ -45,6 +45,28 @@ test.describe('pages', () => {
 		await expect(page.getByText('This title does not exist (anymore).')).toBeVisible();
 	});
 
+	test('series overview: a crate to flip through by pointer and keys', async ({ page }) => {
+		await page.goto('/series');
+		const crate = page.getByRole('link', { name: /Küstenlichter/ });
+		await expect(crate).toContainText('2 books');
+		await expect(crate.locator('.rec')).toHaveCount(2);
+		// Over the right half of the crate: the second record is pulled up.
+		const box = (await crate.locator('.bin').boundingBox())!;
+		await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2);
+		await expect(crate).toContainText('2/2 · Salzwasser');
+		await expect(crate.locator('.rec.cur')).toHaveCount(1);
+		await page.mouse.move(0, 0);
+		await expect(crate).toContainText('2 books');
+		// Keyboard: focus pulls the crate out, arrows flip, the hint explains it.
+		await crate.focus();
+		await expect(crate).toContainText('1/2 · Der lange Weg');
+		await page.keyboard.press('ArrowRight');
+		await expect(crate).toContainText('2/2 · Salzwasser');
+		await expect(crate).toHaveAccessibleDescription(/arrow keys flip/i);
+		await page.keyboard.press('Enter');
+		await expect(page).toHaveURL(/\/series\/[\w-]+$/);
+	});
+
 	test('series overview lists the series as a stack and opens its page', async ({ page }) => {
 		await page.goto('/series');
 		await expect(page.getByText('1 series')).toBeVisible();

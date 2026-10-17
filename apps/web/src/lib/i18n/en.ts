@@ -349,7 +349,8 @@ export const en = {
 		title: 'Series',
 		count: (n: number) => plural(n, 'series', 'series'),
 		books: (n: number) => plural(n, 'book', 'books'),
-		empty: 'No series in this library.'
+		empty: 'No series in this library.',
+		flipHint: 'Left and right arrow keys flip through the books in the crate.'
 	},
 	authors: {
 		narrators: 'Narrators',

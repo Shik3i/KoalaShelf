@@ -873,6 +873,7 @@ class Player {
 				.catch(() => undefined);
 			const p = progress.get(id);
 			if (p) progress.set({ ...p, isFinished: true, progress: 1 });
+			progress.celebrate(id);
 			// Finished books need no space on the device (if the listener wants it so).
 			if (prefs.removeFinished && downloads.has(id) && !this.#local) void downloads.remove(id);
 			// A timer that stops at a chapter end treats the end of the book as one.

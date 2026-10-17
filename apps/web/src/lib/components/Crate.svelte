@@ -25,6 +25,7 @@
 	<div class="row">
 		{#each unique(entries, (e) => e.id) as e (e.id)}
 			<a href={e.href} class="slot" title="{e.title} · {e.author}">
+				<span class="sleeve-disc" aria-hidden="true"></span>
 				<Cover title={e.title} author={e.author} src={e.cover} sizes="170px" titleTop />
 				<span class="sr-only">{e.title}</span>
 			</a>
@@ -55,10 +56,12 @@
 		overflow-x: auto;
 		scroll-snap-type: x mandatory;
 		scrollbar-width: none;
-		padding-top: 12px;
+		padding-top: 26px;
 	}
 
 	.slot {
+		position: relative;
+		isolation: isolate;
 		scroll-snap-align: start;
 		transition: translate var(--motion-base) var(--motion-ease);
 	}
@@ -72,6 +75,11 @@
 	.slot:hover,
 	.slot:focus-visible {
 		translate: 0 -10px;
+	}
+
+	.slot:hover .sleeve-disc,
+	.slot:focus-visible .sleeve-disc {
+		translate: 0 -14px;
 	}
 
 	.ledge {

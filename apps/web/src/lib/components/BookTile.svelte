@@ -2,6 +2,8 @@
 	import type { LibraryItem, LibraryItemMinified } from '@koalashelf/abs-client';
 	import { view } from '#lib/items.ts';
 	import { progress } from '#lib/progress.svelte.ts';
+	import { player } from '#lib/player/player.svelte.ts';
+	import { prefs } from '#lib/prefs.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from './Cover.svelte';
 	import Check from '@lucide/svelte/icons/check';
@@ -25,6 +27,8 @@
 
 	const v = $derived(view(item));
 	const p = $derived(progress.get(item.id));
+	/** The book in the player keeps its record half out of the sleeve (turning while it plays). */
+	const loaded = $derived(player.item?.id === item.id);
 	// With "group series" the server returns one item per series; a one-book series stays a book.
 	const group = $derived(
 		'collapsedSeries' in item && (item.collapsedSeries?.numBooks ?? 0) > 1
@@ -36,8 +40,11 @@
 {#snippet body()}
 	<div
 		class="cover"
+		class:loaded
+		class:spinning={loaded && player.playing && prefs.spin}
 		style:view-transition-name={group || selecting ? undefined : `cover-${item.id}`}
 	>
+		{#if !group && !selecting}<span class="disc sleeve-disc" aria-hidden="true"></span>{/if}
 		<Cover
 			title={v.title}
 			author={v.author}
@@ -93,7 +100,8 @@
 		contain-intrinsic-size: auto 260px;
 		display: grid;
 		align-content: start;
-		padding: 0 var(--sp-12);
+		/* Headroom for the record peeking out of its sleeve. */
+		padding: var(--sp-20) var(--sp-12) 0;
 		min-width: 0;
 	}
 
@@ -145,11 +153,28 @@
 
 	.cover {
 		position: relative;
+		isolation: isolate;
 		transition: translate var(--motion-base) var(--motion-ease);
 	}
 
 	.tile:hover .cover {
 		translate: 0 -4px;
+	}
+
+	/* The record slides up a little on hover and stays out for the book in the player. */
+
+	.tile:hover .disc,
+	.tile:focus-visible .disc {
+		translate: 0 -16px;
+	}
+
+	.loaded .disc,
+	.tile:hover .loaded .disc {
+		translate: 0 -20px;
+	}
+
+	.spinning .disc {
+		animation: spin 1.8s linear infinite;
 	}
 
 	/* Continuous shelf: tiles have no column gap, so ledge segments join up. */
@@ -166,6 +191,16 @@
 			6px -6px 0 -1px var(--c-ledge),
 			12px -12px 0 -2px color-mix(in oklab, var(--c-ledge) 60%, transparent);
 		border-radius: var(--r-cover);
+		transition:
+			translate var(--motion-base) var(--motion-ease),
+			box-shadow 420ms var(--motion-spring);
+	}
+
+	/* Hovered, the stack fans out a little further: there is more than one book in it. */
+	.group:hover .cover {
+		box-shadow:
+			9px -8px 0 -1px var(--c-ledge),
+			18px -15px 0 -2px color-mix(in oklab, var(--c-ledge) 60%, transparent);
 	}
 
 	.count {

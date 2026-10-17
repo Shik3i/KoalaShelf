@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Vinyl from './Vinyl.svelte';
+	import { placeRecord } from '#lib/motion.ts';
 
 	interface Props {
 		title: string;
@@ -7,6 +8,9 @@
 		src?: ((width: number) => string) | null;
 		playing?: boolean;
 		marks?: number[];
+		speed?: number;
+		gold?: boolean;
+		shine?: number;
 		/** Book progress 0..1, moves the tonearm from the rim towards the label. */
 		progress?: number;
 	}
@@ -26,9 +30,12 @@
 </script>
 
 <div class="deck">
-	<div class="platter">
-		<Vinyl {playing} {...rest} />
-	</div>
+	<!-- Another book: its record is put on the platter. -->
+	{#key rest.title}
+		<div class="platter" in:placeRecord>
+			<Vinyl {playing} {...rest} />
+		</div>
+	{/key}
 	<svg class="arm" viewBox="0 0 100 100" aria-hidden="true">
 		<circle cx={PIVOT.x} cy={PIVOT.y} r="4.6" class="base" />
 		<g class="swing" style:rotate="{angle}deg" style:transform-origin="{PIVOT.x}px {PIVOT.y}px">

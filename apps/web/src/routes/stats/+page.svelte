@@ -201,9 +201,9 @@
 			<section class="card block">
 				<h2 class="label">{t.weekdays}</h2>
 				<div class="bars">
-					{#each weekdays as d (d.label)}
+					{#each weekdays as d, i (d.label)}
 						<div class="bar" title={duration(d.v)}>
-							<span style:--h={d.pct}></span>
+							<span style:--h={d.pct} style:--i={i}></span>
 							<small class="muted">{d.label}</small>
 						</div>
 					{/each}
@@ -430,6 +430,16 @@
 		height: calc(max(var(--h), 0.02) * 100%);
 		border-radius: 6px 6px 2px 2px;
 		background: var(--c-accent);
+		/* Rising one after another, like the level meters on an amplifier. */
+		transform-origin: bottom;
+		animation: meter 700ms var(--motion-out) both;
+		animation-delay: calc(var(--i, 0) * 60ms + 150ms);
+	}
+
+	@keyframes meter {
+		from {
+			scale: 1 0;
+		}
 	}
 
 	.bar small {

@@ -219,6 +219,9 @@ export class AbsClient {
 				signal,
 				keepalive,
 				credentials: withCookies ? 'same-origin' : 'omit',
+				// Always fresh: some reverse proxies mark API answers as cacheable, and the browser's
+				// cache ignores the Authorization header (stale progress, another account's data).
+				cache: 'no-store',
 				headers: {
 					Authorization: `Bearer ${this.tokens.accessToken}`,
 					...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),

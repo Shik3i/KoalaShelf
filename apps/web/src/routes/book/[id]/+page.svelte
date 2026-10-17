@@ -213,6 +213,7 @@
 		});
 		toasts.show(done ? i18n.m.toast.finished : i18n.m.toast.unfinished);
 		await progress.load(true);
+		if (done) progress.celebrate(item.id);
 	}
 
 	const formats = $derived(
@@ -249,6 +250,9 @@
 						author={v.author}
 						src={coverSrc}
 						playing={isCurrent && player.playing}
+						speed={player.rate}
+						gold={!!p?.isFinished}
+						shine={progress.shine(item.id)}
 						{marks}
 					/>
 				</div>
@@ -297,9 +301,9 @@
 				<div class="progress">
 					<div class="bar" style:--p={pct}></div>
 					<span class="muted tabular">
-						{Math.round(pct * 100)} % · {t.remaining(
-							duration(Math.max(0, item.media.duration - position))
-						)}
+						{Math.round(pct * 100)} % · {p?.isFinished && !isCurrent
+							? i18n.m.library.done
+							: t.remaining(duration(Math.max(0, item.media.duration - position)))}
 					</span>
 				</div>
 

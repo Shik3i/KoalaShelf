@@ -5,6 +5,7 @@
 	import { clock, parseClock, speed } from '#lib/format.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Turntable from '#lib/components/Turntable.svelte';
+	import { progress } from '#lib/progress.svelte.ts';
 	import Timeline from './Timeline.svelte';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
@@ -268,6 +269,9 @@
 						author={v.author}
 						src={v.cover}
 						playing={player.playing}
+						speed={player.rate}
+						gold={!!(player.item && progress.get(player.item.id)?.isFinished)}
+						shine={progress.shine(player.item?.id)}
 						progress={player.progress}
 						marks={player.chapters.slice(1).map((c) => c.start / player.duration)}
 					/>

@@ -13,6 +13,12 @@
 		marks?: number[];
 		/** Label size relative to the disc. */
 		label?: number;
+		/** Playback speed: a faster book turns the record faster (the motor ramps to it). */
+		speed?: number;
+		/** A finished book: a gold record. */
+		gold?: boolean;
+		/** Changes when the book was just finished: the record shines once. */
+		shine?: number;
 	}
 
 	let {
@@ -21,8 +27,19 @@
 		src = null,
 		playing = false,
 		marks = [],
-		label = 0.4
+		label = 0.4,
+		speed = 1,
+		gold = false,
+		shine = 0
 	}: Props = $props();
+
+	let shining = $state(false);
+	$effect(() => {
+		if (!shine || reducedMotion()) return;
+		shining = true;
+		const id = setTimeout(() => (shining = false), 1800);
+		return () => clearTimeout(id);
+	});
 
 	const SPIN_MS = 9000;
 	const RAMP_MS = 900;
@@ -57,7 +74,7 @@
 	});
 
 	$effect(() => {
-		const target = playing ? 1 : 0;
+		const target = playing ? Math.min(3, Math.max(0.5, speed)) : 0;
 		void spinner;
 		const a = anim;
 		if (!a) return;
@@ -79,7 +96,13 @@
 	});
 </script>
 
-<div class="disc" style:--ticks={ticks} style:--label="{label * 100}%">
+<div
+	class="disc"
+	class:gold
+	class:shine={shining}
+	style:--ticks={ticks}
+	style:--label="{label * 100}%"
+>
 	<div class="spinner" bind:this={spinner}>
 		<div class="ticks" aria-hidden="true"></div>
 		<div class="label">
@@ -103,7 +126,15 @@
 			inset 0 0 0 2px rgb(0 0 0 / 0.35);
 	}
 
+	/* Gold record: warm metallic grooves (the label stays the cover). */
+	.gold {
+		--c-vinyl-a: #6e5216;
+		--c-vinyl-b: #a8832c;
+		--tick: rgb(255 244 210 / 0.7);
+	}
+
 	.spinner {
+		transition: background 600ms var(--motion-ease);
 		position: absolute;
 		inset: 0;
 		border-radius: 50%;
@@ -136,6 +167,43 @@
 			transparent calc(var(--label) / 2),
 			#000 calc(var(--label) / 2 + 1%)
 		);
+	}
+
+	/* One sweep of light across the record when it turns gold. */
+	.shine .sheen::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 50%;
+		background: linear-gradient(
+			115deg,
+			transparent 30%,
+			rgb(255 240 200 / 0.75) 48%,
+			rgb(255 255 255 / 0.9) 50%,
+			rgb(255 240 200 / 0.75) 52%,
+			transparent 70%
+		);
+		background-size: 300% 100%;
+		animation: gold-sweep 1.4s var(--motion-ease) both;
+	}
+
+	.shine {
+		animation: gold-pop 900ms var(--motion-spring);
+	}
+
+	@keyframes gold-sweep {
+		from {
+			background-position: 100% 0;
+		}
+		to {
+			background-position: 0% 0;
+		}
+	}
+
+	@keyframes gold-pop {
+		40% {
+			scale: 1.04;
+		}
 	}
 
 	.ticks {

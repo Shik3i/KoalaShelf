@@ -32,3 +32,6 @@ captures/
 Thumbs.db
 .vscode/*
 !.vscode/extensions.json
+
+# Local browser profile with a signed-in session for testing against a real server (never commit)
+dev/.auth/

@@ -10,6 +10,7 @@
 	import { clock, duration } from '#lib/format.ts';
 	import Turntable from '#lib/components/Turntable.svelte';
 	import Crate, { type CrateEntry } from '#lib/components/Crate.svelte';
+	import RecordCrate, { type CrateRecord } from '#lib/components/RecordCrate.svelte';
 	import PlayPauseIcon from '#lib/components/PlayPauseIcon.svelte';
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { prefs } from '#lib/prefs.svelte.ts';
@@ -88,6 +89,7 @@
 			const label = LABELS[s.id];
 			if (!label) return [];
 			let entries: CrateEntry[] = [];
+			let series: { id: string; name: string; records: CrateRecord[] }[] | undefined;
 			let note = '';
 			if (s.type === 'book') {
 				const list = s.id === 'continue-listening' ? s.entities.slice(1) : s.entities;
@@ -99,15 +101,17 @@
 				)
 					note = t.thisWeek;
 			} else if (s.type === 'series') {
-				entries = s.entities
-					.filter((se) => se.books?.length)
-					.map((se) => ({
-						...entry(se.books[0], `/library?series=${se.id}`),
-						id: se.id,
-						title: se.name
-					}));
+				// Every series is a small crate of its own: its books can be flipped through.
+				series = unique(
+					s.entities.filter((se) => se.books?.length),
+					byId
+				).map((se) => ({
+					id: se.id,
+					name: se.name,
+					records: se.books.map((b) => ({ ...entry(b), finished: progress.get(b.id)?.isFinished }))
+				}));
 			}
-			return entries.length ? [{ id: s.id, label, note, entries }] : [];
+			return entries.length || series?.length ? [{ id: s.id, label, note, entries, series }] : [];
 		});
 	});
 
@@ -179,6 +183,7 @@
 				author={heroView.author}
 				src={heroView.cover}
 				playing={heroIsPlaying && player.playing}
+				speed={player.rate}
 				progress={heroPct}
 			/>
 		</a>
@@ -218,7 +223,24 @@
 
 <div class="crates">
 	{#each unique(shownCrates, byId) as c (c.id)}
-		<Crate title={c.label} note={c.note} entries={c.entries} />
+		{#if c.series}
+			<section class="series-shelf" aria-label={c.label}>
+				<h2 class="label">{c.label}</h2>
+				<div class="series-row">
+					{#each c.series as se (se.id)}
+						<RecordCrate
+							name={se.name}
+							href="/series/{se.id}"
+							note={i18n.m.series.books(se.records.length)}
+							records={se.records}
+							sizes="150px"
+						/>
+					{/each}
+				</div>
+			</section>
+		{:else}
+			<Crate title={c.label} note={c.note} entries={c.entries} />
+		{/if}
 	{/each}
 </div>
 
@@ -340,6 +362,30 @@
 	.crates {
 		display: grid;
 		gap: var(--sp-32);
+	}
+
+	.series-shelf {
+		display: grid;
+		gap: var(--sp-8);
+		min-width: 0;
+	}
+
+	/* A row of small crates; the headroom lets records rise when one is pulled out. */
+	.series-row {
+		--fan-max: 22%;
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: calc(150px * var(--tile-scale));
+		gap: var(--sp-20);
+		overflow-x: auto;
+		scrollbar-width: none;
+		padding: var(--sp-48) var(--sp-4) var(--sp-4);
+		margin-top: calc(-1 * var(--sp-40));
+		scroll-snap-type: x proximity;
+	}
+
+	.series-row > :global(*) {
+		scroll-snap-align: start;
 	}
 
 	/* Without the sidebar (phones) settings are reached from here. */

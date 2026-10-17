@@ -2,14 +2,26 @@
 	import { byId, unique } from '#lib/unique.ts';
 	import EmptyState from '#lib/components/EmptyState.svelte';
 	import { untrack } from 'svelte';
-	import type { Series } from '@koalashelf/abs-client';
+	import type { LibraryItemMinified, Series } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { onVisible } from '#lib/attach.ts';
 	import { coverSrc, view } from '#lib/items.ts';
-	import Cover from '#lib/components/Cover.svelte';
+	import RecordCrate, { type CrateRecord } from '#lib/components/RecordCrate.svelte';
+	import { progress } from '#lib/progress.svelte.ts';
 
 	const t = $derived(i18n.m.series);
+
+	function record(b: LibraryItemMinified): CrateRecord {
+		const v = view(b);
+		return {
+			id: b.id,
+			title: v.title,
+			author: v.author,
+			cover: coverSrc(b),
+			finished: progress.get(b.id)?.isFinished
+		};
+	}
 	let list = $state.raw<Series[]>([]);
 	let total = $state(0);
 	let page = 0;
@@ -38,6 +50,7 @@
 	// Reload only when the library changes (more() must not become a dependency).
 	$effect(() => {
 		void session.libraryId;
+		progress.load();
 		untrack(() => {
 			controller?.abort();
 			controller = new AbortController();
@@ -64,23 +77,18 @@
 <div class="grid">
 	{#if !list.length && !done && !error}
 		{#each Array.from({ length: 10 }, (_, i) => i) as i (i)}
-			<div class="skeleton" style="aspect-ratio: 1"></div>
+			<div class="skeleton" style="aspect-ratio: 1 / 1.08"></div>
 		{/each}
 	{/if}
-	{#each list as s (s.id)}
-		{@const books = s.books.slice(0, 3)}
-		<a class="series" href="/series/{s.id}">
-			<div class="stack" style:--n={books.length}>
-				{#each unique(books, byId).toReversed() as b, i (b.id)}
-					{@const v = view(b)}
-					<div class="card" style:--i={books.length - 1 - i}>
-						<Cover title={v.title} author={v.author} src={coverSrc(b)} sizes="180px" />
-					</div>
-				{/each}
-			</div>
-			<strong>{s.name}</strong>
-			<span class="muted">{t.books(s.books.length)}</span>
-		</a>
+	{#each list as s, i (s.id)}
+		<div class="rise" style:--i={i % 48}>
+			<RecordCrate
+				name={s.name}
+				href="/series/{s.id}"
+				note={t.books(s.books.length)}
+				records={s.books.map(record)}
+			/>
+		</div>
 	{/each}
 </div>
 {#if !done && !error}<div class="sentinel" {@attach onVisible(more)}></div>{/if}
@@ -100,44 +108,6 @@
 			minmax(min(calc(170px * var(--tile-scale)), 42%), 1fr)
 		);
 		gap: var(--sp-32) var(--sp-24);
-	}
-
-	.series {
-		display: grid;
-		gap: var(--sp-4);
-		min-width: 0;
-	}
-
-	.stack {
-		position: relative;
-		aspect-ratio: 1;
-		margin: 0 calc(var(--sp-8) * (var(--n) - 1)) var(--sp-12) 0;
-	}
-
-	.card {
-		position: absolute;
-		inset: 0;
-		translate: calc(var(--i) * 8px) calc(var(--i) * -6px);
-		scale: calc(1 - var(--i) * 0.04);
-		transform-origin: bottom left;
-		filter: brightness(calc(1 - var(--i) * 0.12));
-		transition: translate var(--motion-base) var(--motion-ease);
-	}
-
-	.series:hover .card {
-		translate: calc(var(--i) * 18px) calc(var(--i) * -8px);
-	}
-
-	strong {
-		font-weight: var(--fw-semibold);
-		font-size: var(--fs-14);
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.muted {
-		font-size: var(--fs-13);
 	}
 
 	.sentinel {
