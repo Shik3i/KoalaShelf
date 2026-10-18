@@ -45,6 +45,12 @@ export interface Prefs {
 	mono: boolean;
 	/** Speed through silent stretches. */
 	skipSilence: boolean;
+	/** Subtle vintage needle drop sound cue when playback starts. */
+	needleDrop: boolean;
+	/** Ambient vinyl surface crackle & analog warmth. */
+	vinylCrackle: boolean;
+	/** Vinyl crackle volume (0.01 to 0.15). */
+	vinylCrackleVolume: number;
 	autoQueue: boolean;
 	seriesOffer: boolean;
 	shortcuts: boolean;
@@ -99,6 +105,9 @@ export const DEFAULTS: Prefs = {
 	voiceBoost: false,
 	mono: false,
 	skipSilence: false,
+	needleDrop: false,
+	vinylCrackle: false,
+	vinylCrackleVolume: 0.04,
 	autoQueue: true,
 	seriesOffer: true,
 	shortcuts: true,

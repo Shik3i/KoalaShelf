@@ -253,11 +253,14 @@ class Player {
 				this.#sleepPausedAt = null;
 				this.sleepPausedLeft = null;
 				void this.#sound.resume();
+				this.#sound.setPlaybackState(true);
+				if (prefs.needleDrop) this.#sound.playNeedleDrop();
 				this.#positionState();
 			});
 			a.addEventListener('pause', () => {
 				this.#onSilence(false);
 				this.playing = false;
+				this.#sound.setPlaybackState(false);
 				this.loadingId = null;
 				this.#lastTick = 0;
 				this.#pausedAt = Date.now();
@@ -625,7 +628,9 @@ class Player {
 			boost: prefs.boost,
 			voice: prefs.voiceBoost,
 			mono: prefs.mono,
-			silence: prefs.skipSilence && this.silenceAvailable
+			silence: prefs.skipSilence && this.silenceAvailable,
+			crackle: prefs.vinylCrackle,
+			crackleVolume: prefs.vinylCrackleVolume
 		};
 	}
 
@@ -634,7 +639,17 @@ class Player {
 	}
 
 	/** Changes one sound setting and applies it to what is playing. */
-	setSound<K extends 'leveling' | 'boost' | 'voiceBoost' | 'mono' | 'skipSilence'>(
+	setSound<
+		K extends
+			| 'leveling'
+			| 'boost'
+			| 'voiceBoost'
+			| 'mono'
+			| 'skipSilence'
+			| 'needleDrop'
+			| 'vinylCrackle'
+			| 'vinylCrackleVolume'
+	>(
 		key: K,
 		value: Prefs[K]
 	) {

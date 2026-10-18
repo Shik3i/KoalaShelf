@@ -1,5 +1,5 @@
-// Sound processing through Web Audio: volume boost, mono, clearer voices, volume leveling
-// and silence detection (for skipping silence).
+// Sound processing through Web Audio: volume boost, mono, clearer voices, volume leveling,
+// silence detection (for skipping silence) and analog vinyl warmth (needle drop & crackle).
 //
 // The <audio> element is routed through Web Audio once (createMediaElementSource cannot be
 // undone); switching every effect off afterwards leaves a plain pass-through.
@@ -15,6 +15,10 @@ export interface SoundSettings {
 	mono: boolean;
 	/** Report silent stretches (the player then speeds through them). */
 	silence: boolean;
+	/** Subtle ambient vinyl surface crackle & warmth. */
+	crackle: boolean;
+	/** Vinyl crackle volume (0.01 - 0.15). */
+	crackleVolume: number;
 }
 
 export const NO_SOUND: SoundSettings = {
@@ -22,7 +26,9 @@ export const NO_SOUND: SoundSettings = {
 	boost: 1,
 	voice: false,
 	mono: false,
-	silence: false
+	silence: false,
+	crackle: false,
+	crackleVolume: 0.04
 };
 
 /** The compressor lowers peaks; this brings the overall level back up. */
@@ -31,7 +37,7 @@ const WORKLET = '/worklets/silence.js';
 
 /** True when any setting needs the Web Audio graph. */
 export function needsGraph(s: SoundSettings) {
-	return s.leveling || s.boost !== 1 || s.voice || s.mono || s.silence;
+	return s.leveling || s.boost !== 1 || s.voice || s.mono || s.silence || s.crackle;
 }
 
 export class SoundChain {
@@ -45,6 +51,10 @@ export class SoundChain {
 	#detector: AudioWorkletNode | null = null;
 	#detectorLoading: Promise<void> | null = null;
 	#settings: SoundSettings = NO_SOUND;
+	#crackleSource: AudioBufferSourceNode | null = null;
+	#crackleGain: GainNode | null = null;
+	#isPlaying = false;
+
 	/** Called with true when a silent stretch starts, false when sound returns. */
 	onSilence: ((silent: boolean) => void) | null = null;
 
@@ -98,12 +108,54 @@ export class SoundChain {
 		this.#compressor = c;
 		this.#gain = ctx.createGain();
 		this.#route();
+		this.#updateCrackleState();
 	}
 
 	set(settings: SoundSettings) {
 		this.#settings = { ...settings };
 		this.#route();
 		if (settings.silence) void this.#loadDetector();
+		this.#updateCrackleState();
+	}
+
+	setPlaybackState(playing: boolean) {
+		this.#isPlaying = playing;
+		this.#updateCrackleState();
+	}
+
+	/** Plays a subtle authentic 1.2s vintage stylus needle drop sound cue. */
+	playNeedleDrop() {
+		const ctx = this.#ctx;
+		if (!ctx || ctx.state === 'suspended') return;
+		try {
+			const now = ctx.currentTime;
+			const duration = 1.2;
+			const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate);
+			const data = buffer.getChannelData(0);
+			for (let i = 0; i < data.length; i++) {
+				const t = i / ctx.sampleRate;
+				const thud = t < 0.08 ? Math.sin(2 * Math.PI * 65 * t) * Math.exp(-t * 40) * 0.4 : 0;
+				const scratch =
+					t >= 0.04 && t < 0.3 ? (Math.random() * 2 - 1) * Math.exp(-(t - 0.04) * 12) * 0.25 : 0;
+				const hiss =
+					t >= 0.2 ? (Math.random() * 2 - 1) * 0.08 * (1 - (t - 0.2) / 1.0) : 0;
+				const pop = Math.random() < 8 / ctx.sampleRate ? (Math.random() - 0.5) * 0.3 : 0;
+				data[i] = thud + scratch + hiss + pop;
+			}
+			const source = ctx.createBufferSource();
+			source.buffer = buffer;
+			const filter = ctx.createBiquadFilter();
+			filter.type = 'lowpass';
+			filter.frequency.value = 3500;
+			const gain = ctx.createGain();
+			gain.gain.setValueAtTime(0.18, now);
+			source.connect(filter);
+			filter.connect(gain);
+			gain.connect(ctx.destination);
+			source.start(now);
+		} catch {
+			// Ignore if buffer cannot be scheduled
+		}
 	}
 
 	/** Browsers start audio contexts suspended until a user gesture; call before play(). */
@@ -123,6 +175,70 @@ export class SoundChain {
 		await this.#detectorLoading.catch(() => {
 			this.#detectorLoading = null;
 		});
+	}
+
+	#updateCrackleState() {
+		const ctx = this.#ctx;
+		if (!ctx) return;
+		if (!this.#settings.crackle) {
+			if (this.#crackleGain) {
+				this.#crackleGain.gain.setTargetAtTime(0, ctx.currentTime, 0.1);
+			}
+			return;
+		}
+
+		if (!this.#crackleSource) {
+			try {
+				const sampleRate = ctx.sampleRate;
+				const length = sampleRate * 4;
+				const buffer = ctx.createBuffer(1, length, sampleRate);
+				const data = buffer.getChannelData(0);
+				let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+				for (let i = 0; i < length; i++) {
+					const white = Math.random() * 2 - 1;
+					b0 = 0.99886 * b0 + white * 0.0555179;
+					b1 = 0.99332 * b1 + white * 0.0750759;
+					b2 = 0.96900 * b2 + white * 0.1538520;
+					b3 = 0.86650 * b3 + white * 0.3104856;
+					b4 = 0.55000 * b4 + white * 0.5329522;
+					b5 = -0.76160 * b5 - white * 0.0168980;
+					const pink = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.06;
+					b6 = white * 0.115926;
+					let sample = pink;
+					if (Math.random() < 14 / sampleRate) {
+						sample += (Math.random() * 0.7 + 0.3) * (Math.random() > 0.5 ? 1 : -1);
+					}
+					data[i] = sample;
+				}
+
+				const src = ctx.createBufferSource();
+				src.buffer = buffer;
+				src.loop = true;
+
+				const filter = ctx.createBiquadFilter();
+				filter.type = 'bandpass';
+				filter.frequency.value = 1800;
+				filter.Q.value = 0.6;
+
+				const gain = ctx.createGain();
+				gain.gain.value = 0;
+
+				src.connect(filter);
+				filter.connect(gain);
+				gain.connect(ctx.destination);
+				src.start();
+
+				this.#crackleSource = src;
+				this.#crackleGain = gain;
+			} catch {
+				return;
+			}
+		}
+
+		if (this.#crackleGain) {
+			const target = this.#isPlaying ? this.#settings.crackleVolume : 0;
+			this.#crackleGain.gain.setTargetAtTime(target, ctx.currentTime, 0.15);
+		}
 	}
 
 	#route() {

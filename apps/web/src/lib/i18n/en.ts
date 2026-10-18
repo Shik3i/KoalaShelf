@@ -745,6 +745,11 @@ export const en = {
 		silence: 'Skip silence',
 		silenceHint: 'Speeds through pauses longer than half a second.',
 		saved: (book: string, total: string) => `Saved ${book} in this book · ${total} in total`,
+		needleDrop: 'Needle drop cue',
+		needleDropHint: 'Subtle vintage stylus contact sound when starting playback.',
+		vinylCrackle: 'Vinyl crackle & warmth',
+		vinylCrackleHint: 'Gentle analog surface rumble and crackle in the background.',
+		crackleVolume: 'Crackle volume',
 		unavailable: 'Sound effects are not available in this app version.'
 	},
 	format: {

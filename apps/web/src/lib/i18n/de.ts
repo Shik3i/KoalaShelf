@@ -746,6 +746,11 @@ export const de: Messages = {
 		silence: 'Stille überspringen',
 		silenceHint: 'Läuft schneller durch Pausen, die länger als eine halbe Sekunde sind.',
 		saved: (book, total) => `${book} in diesem Buch gespart · ${total} insgesamt`,
+		needleDrop: 'Nadel-Aufsetzen',
+		needleDropHint: 'Subtiles Aufsetzgeräusch der Nadel beim Starten der Wiedergabe.',
+		vinylCrackle: 'Vinyl-Knistern & analoge Wärme',
+		vinylCrackleHint: 'Sanftes analoges Knistern und Rauschen im Hintergrund.',
+		crackleVolume: 'Knistern-Lautstärke',
 		unavailable: 'Klang-Effekte gibt es in dieser App-Version nicht.'
 	},
 	format: {

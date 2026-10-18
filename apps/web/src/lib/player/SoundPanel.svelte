@@ -87,6 +87,37 @@
 			</p>
 		{/if}
 	{/if}
+	<Toggle
+		label={t.needleDrop}
+		hint={t.needleDropHint}
+		checked={prefs.needleDrop}
+		onchange={(on) => player.setSound('needleDrop', on)}
+	/>
+	<Toggle
+		label={t.vinylCrackle}
+		hint={t.vinylCrackleHint}
+		checked={prefs.vinylCrackle}
+		onchange={(on) => player.setSound('vinylCrackle', on)}
+	/>
+	{#if prefs.vinylCrackle}
+		<div class="row">
+			<span class="stack">
+				{t.crackleVolume}
+			</span>
+			<div class="volume">
+				<input
+					type="range"
+					min="0.01"
+					max="0.12"
+					step="0.01"
+					value={prefs.vinylCrackleVolume}
+					aria-label={t.crackleVolume}
+					oninput={(e) => player.setSound('vinylCrackleVolume', +e.currentTarget.value)}
+				/>
+				<span class="tabular muted">{Math.round(prefs.vinylCrackleVolume * 800)}%</span>
+			</div>
+		</div>
+	{/if}
 {:else}
 	<p class="muted hint">{t.unavailable}</p>
 {/if}
