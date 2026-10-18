@@ -54,7 +54,7 @@ export async function search(
 						narrators: [],
 						tags: [],
 						genres: []
-				  }))
+					}))
 			).then((r) => ({ l, r }))
 		)
 	);
@@ -66,7 +66,7 @@ export async function search(
 					if (minSeconds !== undefined && dur < minSeconds) return false;
 					if (maxSeconds !== undefined && dur >= maxSeconds) return false;
 					return true;
-			  })
+				})
 			: r.book;
 		out.book.push(...filteredBooks);
 		out.series.push(...r.series);

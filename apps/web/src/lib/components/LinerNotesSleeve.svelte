@@ -114,7 +114,10 @@
 									</li>
 								{/each}
 								{#if chapters.length > 16}
-									<li class="more-tracks">+{chapters.length - 16} {t.chapterCount(chapters.length)}</li>
+									<li class="more-tracks">
+										+{chapters.length - 16}
+										{t.chapterCount(chapters.length)}
+									</li>
 								{/if}
 							</ol>
 						</div>
@@ -242,8 +245,7 @@
 		padding: var(--sp-16, 16px);
 		gap: var(--sp-10, 10px);
 		background:
-			radial-gradient(circle at 10% 10%, rgb(255 255 255 / 0.03), transparent 60%),
-			var(--c-card);
+			radial-gradient(circle at 10% 10%, rgb(255 255 255 / 0.03), transparent 60%), var(--c-card);
 	}
 
 	.back-header {

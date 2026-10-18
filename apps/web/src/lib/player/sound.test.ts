@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsGraph, NO_SOUND, type SoundSettings } from './sound.ts';
+import { needsGraph, NO_SOUND } from './sound.ts';
 
 describe('SoundChain needsGraph', () => {
 	it('returns false for default no-sound configuration', () => {

@@ -37,7 +37,6 @@ const SYNC_INTERVAL_MS = 15_000;
 const RATE_KEY = 'ks.rate';
 const LAST_KEY = 'ks.lastItem';
 const DEVICE_KEY = 'ks.deviceId';
-const FADE_SECONDS = 10;
 const SILENCE_SAVED_KEY = 'ks.silenceSaved';
 /** Jumps at least this long (seconds) can be undone. */
 const JUMP_UNDO_MIN = 30;
@@ -652,10 +651,7 @@ class Player {
 			| 'needleDrop'
 			| 'vinylCrackle'
 			| 'vinylCrackleVolume'
-	>(
-		key: K,
-		value: Prefs[K]
-	) {
+	>(key: K, value: Prefs[K]) {
 		prefs.set(key, value);
 		if (key === 'soundProfile') {
 			prefs.set('voiceBoost', value === 'voice');

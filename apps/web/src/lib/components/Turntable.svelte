@@ -96,7 +96,7 @@
 		}
 	}
 
-	function onPointerUp(e: PointerEvent) {
+	function onPointerUp() {
 		if (!isScratching) return;
 		isScratching = false;
 		scratchRotateDeg = 0;

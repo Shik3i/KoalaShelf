@@ -41,7 +41,9 @@ export function parseDurationQuery(raw: string): DurationFilter {
 	let maxHours: number | undefined;
 
 	// Range: "4-8h", "4 bis 8 stunden", "4 to 8 hours"
-	const rangeMatch = text.match(/(?:^|\s)(\d+(?:[.,]\d+)?)\s*(?:-|–|bis|to)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i);
+	const rangeMatch = text.match(
+		/(?:^|\s)(\d+(?:[.,]\d+)?)\s*(?:-|–|bis|to)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i
+	);
 	if (rangeMatch) {
 		minHours = parseFloat(rangeMatch[1].replace(',', '.'));
 		maxHours = parseFloat(rangeMatch[2].replace(',', '.'));
@@ -49,14 +51,18 @@ export function parseDurationQuery(raw: string): DurationFilter {
 	}
 
 	// Under / less than: "<8h", "< 8", "unter 8 stunden", "unter 4", "nur unter 8h", "under 8 hours"
-	const underMatch = text.match(/(?:^|\s)(?:(?:nur|only)\s+)?(?:<|unter|under|weniger\s+als|less\s+than)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i);
+	const underMatch = text.match(
+		/(?:^|\s)(?:(?:nur|only)\s+)?(?:<|unter|under|weniger\s+als|less\s+than)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i
+	);
 	if (underMatch) {
 		maxHours = parseFloat(underMatch[1].replace(',', '.'));
 		text = text.replace(underMatch[0], ' ').trim();
 	}
 
 	// Over / more than: ">12h", "> 10", "über 10 stunden", "mehr als 8 stunden", "over 10 hours"
-	const overMatch = text.match(/(?:^|\s)(?:(?:nur|only)\s+)?(?:>|über|ueber|over|mehr\s+als|more\s+than)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i);
+	const overMatch = text.match(
+		/(?:^|\s)(?:(?:nur|only)\s+)?(?:>|über|ueber|over|mehr\s+als|more\s+than)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i
+	);
 	if (overMatch) {
 		minHours = parseFloat(overMatch[1].replace(',', '.'));
 		text = text.replace(overMatch[0], ' ').trim();

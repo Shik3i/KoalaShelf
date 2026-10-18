@@ -46,11 +46,8 @@
 		const ctrl = new AbortController();
 		const timer = setTimeout(async () => {
 			busy = true;
-			const params = new URLSearchParams();
-			params.set('q', query);
-			if (everywhere) params.set('in', 'all');
-			if (withChapters) params.set('chapters', '1');
-			goto(`?${params.toString()}`, { replace: true, reset: false });
+			const searchStr = `?q=${encodeURIComponent(query)}${everywhere ? '&in=all' : ''}${withChapters ? '&chapters=1' : ''}`;
+			goto(searchStr, { replace: true, reset: false });
 			try {
 				result = await search(query, everywhere, 24, ctrl.signal, withChapters);
 				recent = rememberSearch(query);

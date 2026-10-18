@@ -95,10 +95,29 @@
 			{/if}
 		</div>
 
-		<div class="radar-meter" role="progressbar" aria-label={t.storageRadar} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(bookPct)}>
-			<div class="bar-segment books" style:width="{Math.max(2, bookPct)}%" title="{t.audiobooksUsed}: {bytes(usage.size)}"></div>
-			<div class="bar-segment other" style:width="{otherPct}%" title="{t.otherUsed}: {bytes(otherUsed)}"></div>
-			<div class="bar-segment free" style:width="{freePct}%" title="{t.freeSpace}: {bytes(Math.max(0, usage.quota - usage.used))}"></div>
+		<div
+			class="radar-meter"
+			role="progressbar"
+			aria-label={t.storageRadar}
+			aria-valuemin={0}
+			aria-valuemax={100}
+			aria-valuenow={Math.round(bookPct)}
+		>
+			<div
+				class="bar-segment books"
+				style:width="{Math.max(2, bookPct)}%"
+				title="{t.audiobooksUsed}: {bytes(usage.size)}"
+			></div>
+			<div
+				class="bar-segment other"
+				style:width="{otherPct}%"
+				title="{t.otherUsed}: {bytes(otherUsed)}"
+			></div>
+			<div
+				class="bar-segment free"
+				style:width="{freePct}%"
+				title="{t.freeSpace}: {bytes(Math.max(0, usage.quota - usage.used))}"
+			></div>
 		</div>
 
 		<div class="radar-legend">

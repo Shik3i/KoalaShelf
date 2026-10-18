@@ -4,9 +4,6 @@ import { i18n } from './i18n/index.svelte.ts';
 import { duration } from './format.ts';
 import { coverSrc } from './items.ts';
 
-const W = 1080;
-const H = 1350;
-
 function loadImage(src: string): Promise<HTMLImageElement | null> {
 	return new Promise((resolve) => {
 		const img = new Image();

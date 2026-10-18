@@ -6,7 +6,7 @@
 	import { player } from '#lib/player/player.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { haptic } from '#lib/haptics.ts';
-	import { coverSrc, view } from '#lib/items.ts';
+	import { view } from '#lib/items.ts';
 	import { duration as formatDuration } from '#lib/format.ts';
 	import Cover from './Cover.svelte';
 	import X from '@lucide/svelte/icons/x';
@@ -42,7 +42,9 @@
 
 	const current = $derived<LibraryItemMinified | undefined>(filtered[at]);
 	const currentView = $derived(current ? view(current) : null);
-	const currentDuration = $derived(current?.media?.duration ? formatDuration(current.media.duration) : '');
+	const currentDuration = $derived(
+		current?.media?.duration ? formatDuration(current.media.duration) : ''
+	);
 
 	async function load() {
 		const lib = session.libraryId;
@@ -134,7 +136,13 @@
 				<p class="subtitle">{t.subtitle}</p>
 			</div>
 			<div class="header-actions">
-				<button class="btn-refresh" onclick={load} title={t.digNew} aria-label={t.digNew} disabled={loading}>
+				<button
+					class="btn-refresh"
+					onclick={load}
+					title={t.digNew}
+					aria-label={t.digNew}
+					disabled={loading}
+				>
 					<RotateCw size={16} class={loading ? 'spinning' : ''} />
 					<span>{t.digNew}</span>
 				</button>
@@ -147,20 +155,32 @@
 		<div class="filter-bar">
 			<button
 				class="chip {filter === 'all' ? 'active' : ''}"
-				onclick={() => { filter = 'all'; at = 0; }}
-			>{t.filterAll}</button>
+				onclick={() => {
+					filter = 'all';
+					at = 0;
+				}}>{t.filterAll}</button
+			>
 			<button
 				class="chip {filter === 'unfinished' ? 'active' : ''}"
-				onclick={() => { filter = 'unfinished'; at = 0; }}
-			>{t.filterUnfinished}</button>
+				onclick={() => {
+					filter = 'unfinished';
+					at = 0;
+				}}>{t.filterUnfinished}</button
+			>
 			<button
 				class="chip {filter === 'short' ? 'active' : ''}"
-				onclick={() => { filter = 'short'; at = 0; }}
-			>{t.filterShort}</button>
+				onclick={() => {
+					filter = 'short';
+					at = 0;
+				}}>{t.filterShort}</button
+			>
 			<button
 				class="chip {filter === 'long' ? 'active' : ''}"
-				onclick={() => { filter = 'long'; at = 0; }}
-			>{t.filterLong}</button>
+				onclick={() => {
+					filter = 'long';
+					at = 0;
+				}}>{t.filterLong}</button
+			>
 		</div>
 
 		{#if loading && items.length === 0}
@@ -176,7 +196,13 @@
 		{:else if filtered.length === 0}
 			<div class="empty-state">
 				<p class="muted">{t.empty}</p>
-				<button class="btn outline" onclick={() => { filter = 'all'; at = 0; }}>{t.filterAll}</button>
+				<button
+					class="btn outline"
+					onclick={() => {
+						filter = 'all';
+						at = 0;
+					}}>{t.filterAll}</button
+				>
 			</div>
 		{:else if current && currentView}
 			<div class="record-stage">
@@ -242,7 +268,10 @@
 				{#each filtered as it, idx (it.id)}
 					<button
 						class="track-thumb {idx === at ? 'active' : ''}"
-						onclick={() => { at = idx; haptic.tick(); }}
+						onclick={() => {
+							at = idx;
+							haptic.tick();
+						}}
 						title={it.media?.metadata?.title ?? ''}
 					></button>
 				{/each}
@@ -429,7 +458,9 @@
 		height: 188px;
 		border-radius: 50%;
 		background: radial-gradient(circle at center, #111 35%, #252525 65%, #0d0d0d 100%);
-		box-shadow: inset 0 0 4px rgba(255, 255, 255, 0.1), 3px 5px 12px rgba(0, 0, 0, 0.4);
+		box-shadow:
+			inset 0 0 4px rgba(255, 255, 255, 0.1),
+			3px 5px 12px rgba(0, 0, 0, 0.4);
 		z-index: 1;
 		pointer-events: none;
 		transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -557,7 +588,11 @@
 	}
 
 	@keyframes spin {
-		from { transform: rotate(0deg); }
-		to { transform: rotate(360deg); }
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
 	}
 </style>

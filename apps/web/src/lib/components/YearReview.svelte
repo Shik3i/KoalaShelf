@@ -66,7 +66,12 @@
 	<div class="head">
 		<h2 id="yr-title">{t.title(year)}</h2>
 		{#if data?.totalListeningTime}
-			<button class="btn ghost sm" class:is-loading={drawing} onclick={() => shareCard('story')} title={t.shareStory}>
+			<button
+				class="btn ghost sm"
+				class:is-loading={drawing}
+				onclick={() => shareCard('story')}
+				title={t.shareStory}
+			>
 				<ImageDown size={16} aria-hidden="true" />
 				<span>{t.shareStory}</span>
 			</button>
