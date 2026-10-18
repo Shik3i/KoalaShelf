@@ -626,7 +626,8 @@ class Player {
 		return {
 			leveling: prefs.leveling,
 			boost: prefs.boost,
-			voice: prefs.voiceBoost,
+			profile: prefs.soundProfile,
+			voice: prefs.soundProfile === 'voice' || prefs.voiceBoost,
 			mono: prefs.mono,
 			silence: prefs.skipSilence && this.silenceAvailable,
 			crackle: prefs.vinylCrackle,
@@ -644,6 +645,7 @@ class Player {
 			| 'leveling'
 			| 'boost'
 			| 'voiceBoost'
+			| 'soundProfile'
 			| 'mono'
 			| 'skipSilence'
 			| 'needleDrop'
@@ -654,6 +656,11 @@ class Player {
 		value: Prefs[K]
 	) {
 		prefs.set(key, value);
+		if (key === 'soundProfile') {
+			prefs.set('voiceBoost', value === 'voice');
+		} else if (key === 'voiceBoost') {
+			prefs.set('soundProfile', value ? 'voice' : 'off');
+		}
 		const a = this.#audio;
 		// A remote stream loaded without CORS would play silently through Web Audio: reload it.
 		const reload =

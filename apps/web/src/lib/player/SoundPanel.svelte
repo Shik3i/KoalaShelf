@@ -56,12 +56,24 @@
 			onchange={(b) => player.setSound('boost', b)}
 		/>
 	</div>
-	<Toggle
-		label={t.voice}
-		hint={t.voiceHint}
-		checked={prefs.voiceBoost}
-		onchange={(on) => player.setSound('voiceBoost', on)}
-	/>
+	<div class="row">
+		<span class="stack">
+			{t.profile}
+			<small class="muted">{t.profileHint}</small>
+		</span>
+		<Segmented
+			size="sm"
+			label={t.profile}
+			value={prefs.soundProfile}
+			options={[
+				{ value: 'off', label: t.profileOff },
+				{ value: 'voice', label: t.profileVoice },
+				{ value: 'night', label: t.profileNight },
+				{ value: 'commute', label: t.profileCommute }
+			]}
+			onchange={(p) => player.setSound('soundProfile', p)}
+		/>
+	</div>
 	<Toggle
 		label={i18n.m.settings.leveling}
 		hint={i18n.m.settings.levelingHint}

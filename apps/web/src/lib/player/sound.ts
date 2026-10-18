@@ -4,13 +4,19 @@
 // The <audio> element is routed through Web Audio once (createMediaElementSource cannot be
 // undone); switching every effect off afterwards leaves a plain pass-through.
 
+import type { SoundProfile } from '../prefs.svelte.ts';
+
+export type { SoundProfile } from '../prefs.svelte.ts';
+
 export interface SoundSettings {
 	/** Even out loud and quiet passages (compressor). */
 	leveling: boolean;
 	/** Output gain: 1 = normal, up to 2 = twice as loud. */
 	boost: number;
-	/** Presence lift and rumble cut for speech. */
-	voice: boolean;
+	/** Audio equalizer and scene profile preset. */
+	profile: SoundProfile;
+	/** Presence lift and rumble cut for speech (legacy). */
+	voice?: boolean;
 	/** Both channels mixed into one (one earbud, uneven stereo). */
 	mono: boolean;
 	/** Report silent stretches (the player then speeds through them). */
@@ -24,6 +30,7 @@ export interface SoundSettings {
 export const NO_SOUND: SoundSettings = {
 	leveling: false,
 	boost: 1,
+	profile: 'off',
 	voice: false,
 	mono: false,
 	silence: false,
@@ -37,7 +44,15 @@ const WORKLET = '/worklets/silence.js';
 
 /** True when any setting needs the Web Audio graph. */
 export function needsGraph(s: SoundSettings) {
-	return s.leveling || s.boost !== 1 || s.voice || s.mono || s.silence || s.crackle;
+	return (
+		s.leveling ||
+		s.boost !== 1 ||
+		(s.profile && s.profile !== 'off') ||
+		s.voice ||
+		s.mono ||
+		s.silence ||
+		s.crackle
+	);
 }
 
 export class SoundChain {
@@ -46,6 +61,7 @@ export class SoundChain {
 	#mono: GainNode | null = null;
 	#highpass: BiquadFilterNode | null = null;
 	#presence: BiquadFilterNode | null = null;
+	#warmth: BiquadFilterNode | null = null;
 	#compressor: DynamicsCompressorNode | null = null;
 	#gain: GainNode | null = null;
 	#detector: AudioWorkletNode | null = null;
@@ -93,6 +109,10 @@ export class SoundChain {
 		presence.frequency.value = 2800;
 		presence.Q.value = 0.9;
 		presence.gain.value = 5;
+		const warmth = ctx.createBiquadFilter();
+		warmth.type = 'highshelf';
+		warmth.frequency.value = 4500;
+		warmth.gain.value = 0;
 		const c = ctx.createDynamicsCompressor();
 		// Speech-friendly: start compressing well below peaks, soft knee, moderate ratio.
 		c.threshold.value = -32;
@@ -105,6 +125,7 @@ export class SoundChain {
 		this.#mono = mono;
 		this.#highpass = highpass;
 		this.#presence = presence;
+		this.#warmth = warmth;
 		this.#compressor = c;
 		this.#gain = ctx.createGain();
 		this.#route();
@@ -247,10 +268,12 @@ export class SoundChain {
 		const gain = this.#gain;
 		if (!ctx || !src || !gain) return;
 		const s = this.#settings;
+		const profile = s.profile ?? (s.voice ? 'voice' : 'off');
 		const nodes = [
 			this.#mono,
 			this.#highpass,
 			this.#presence,
+			this.#warmth,
 			this.#compressor,
 			gain,
 			this.#detector
@@ -259,10 +282,39 @@ export class SoundChain {
 		for (const n of nodes) n?.disconnect();
 		const chain: AudioNode[] = [];
 		if (s.mono) chain.push(this.#mono!);
-		if (s.voice) chain.push(this.#highpass!, this.#presence!);
-		if (s.leveling) chain.push(this.#compressor!);
+
+		if (profile === 'voice') {
+			this.#highpass!.frequency.value = 90;
+			this.#presence!.type = 'peaking';
+			this.#presence!.frequency.value = 2800;
+			this.#presence!.Q.value = 0.9;
+			this.#presence!.gain.value = 5;
+			chain.push(this.#highpass!, this.#presence!);
+		} else if (profile === 'night') {
+			this.#highpass!.frequency.value = 120;
+			this.#presence!.type = 'peaking';
+			this.#presence!.frequency.value = 1400;
+			this.#presence!.Q.value = 1.0;
+			this.#presence!.gain.value = 3;
+			this.#warmth!.type = 'highshelf';
+			this.#warmth!.frequency.value = 4500;
+			this.#warmth!.gain.value = -4;
+			chain.push(this.#highpass!, this.#presence!, this.#warmth!);
+		} else if (profile === 'commute') {
+			this.#highpass!.frequency.value = 160;
+			this.#presence!.type = 'peaking';
+			this.#presence!.frequency.value = 3000;
+			this.#presence!.Q.value = 1.2;
+			this.#presence!.gain.value = 6.5;
+			this.#warmth!.type = 'highshelf';
+			this.#warmth!.frequency.value = 8000;
+			this.#warmth!.gain.value = -2;
+			chain.push(this.#highpass!, this.#presence!, this.#warmth!);
+		}
+
+		if (s.leveling || profile === 'commute') chain.push(this.#compressor!);
 		chain.push(gain);
-		gain.gain.value = (s.leveling ? MAKEUP_GAIN : 1) * s.boost;
+		gain.gain.value = (s.leveling || profile === 'commute' ? MAKEUP_GAIN : 1) * s.boost;
 		let prev: AudioNode = src;
 		for (const n of chain) prev = prev.connect(n);
 		gain.connect(ctx.destination);

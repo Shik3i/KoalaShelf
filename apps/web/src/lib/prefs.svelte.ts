@@ -6,6 +6,8 @@ const KEY = 'ks.prefs';
 export const SKIP_STEPS = [10, 15, 30, 45, 60] as const;
 export const TEXT_SIZES = { sm: 0.9375, md: 1, lg: 1.125, xl: 1.25 } as const;
 
+export type SoundProfile = 'off' | 'voice' | 'night' | 'commute';
+
 export interface Prefs {
 	// Appearance
 	/** A preset, or "custom": the listener's own color (adjusted for contrast, see accent.ts). */
@@ -42,6 +44,8 @@ export interface Prefs {
 	boost: number;
 	/** Clearer voices (presence lift, rumble cut), both channels mixed into one. */
 	voiceBoost: boolean;
+	/** Equalizer / audio scene profile. */
+	soundProfile: SoundProfile;
 	mono: boolean;
 	/** Speed through silent stretches. */
 	skipSilence: boolean;
@@ -105,6 +109,7 @@ export const DEFAULTS: Prefs = {
 	volume: 1,
 	boost: 1,
 	voiceBoost: false,
+	soundProfile: 'off',
 	mono: false,
 	skipSilence: false,
 	needleDrop: false,
@@ -136,11 +141,13 @@ export function sanitize(saved: Record<string, unknown>): Prefs {
 	const valid = (k: string, v: unknown, fallback: unknown) =>
 		k === 'defaultRate'
 			? v === 'last' || (typeof v === 'number' && v > 0)
-			: k === 'sleepFadeDuration'
-				? v === 10 || v === 30 || v === 60
-				: Array.isArray(fallback)
-					? Array.isArray(v)
-					: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
+			: k === 'soundProfile'
+				? v === 'off' || v === 'voice' || v === 'night' || v === 'commute'
+				: k === 'sleepFadeDuration'
+					? v === 10 || v === 30 || v === 60
+					: Array.isArray(fallback)
+						? Array.isArray(v)
+						: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
 	return Object.fromEntries(
 		Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
 	) as unknown as Prefs;
