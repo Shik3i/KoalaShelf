@@ -45,32 +45,40 @@ test.describe('pages', () => {
 		await expect(page.getByText('This title does not exist (anymore).')).toBeVisible();
 	});
 
-	test('series overview: a crate to flip through by pointer and keys', async ({ page }) => {
+	test('series overview: a crate to flip through every book, by pointer, wheel and keys', async ({
+		page
+	}) => {
 		await page.goto('/series');
-		const crate = page.getByRole('link', { name: /Küstenlichter/ });
+		const crate = page.getByRole('group', { name: 'Küstenlichter' });
 		await expect(crate).toContainText('2 books');
-		await expect(crate.locator('.rec')).toHaveCount(2);
-		// Over the right half of the crate: the second record is pulled up.
-		const box = (await crate.locator('.bin').boundingBox())!;
+		// In series order, whatever order the server lists them in.
+		const record = crate.getByRole('link', { name: /^Der lange Weg – Küstenlichter, 1 of 2$/ });
+		await expect(record).toBeVisible();
+		// Over the right half of the crate: the second record is pulled up, the link follows it.
+		const box = (await record.boundingBox())!;
 		await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2);
 		await expect(crate).toContainText('2/2 · Salzwasser');
 		await expect(crate.locator('.rec.cur')).toHaveCount(1);
+		const second = crate.getByRole('link', { name: /^Salzwasser – Küstenlichter, 2 of 2$/ });
+		await expect(second).toHaveAttribute('href', `/book/${await itemId('Salzwasser')}`);
+		// Sideways scrolling flips back.
+		await page.mouse.wheel(-200, 0);
+		await expect(crate).toContainText('1/2 · Der lange Weg');
 		await page.mouse.move(0, 0);
 		await expect(crate).toContainText('2 books');
-		// Keyboard: focus pulls the crate out, arrows flip, the hint explains it.
-		await crate.focus();
-		await expect(crate).toContainText('1/2 · Der lange Weg');
-		await page.keyboard.press('ArrowRight');
+		// Keyboard: arrows and End flip, the hint explains it, Enter opens the book in front.
+		await record.focus();
+		await page.keyboard.press('End');
 		await expect(crate).toContainText('2/2 · Salzwasser');
-		await expect(crate).toHaveAccessibleDescription(/arrow keys flip/i);
+		await expect(second).toHaveAccessibleDescription(/arrow keys flip/i);
 		await page.keyboard.press('Enter');
-		await expect(page).toHaveURL(/\/series\/[\w-]+$/);
+		await expect(page.getByRole('heading', { level: 1, name: 'Salzwasser' })).toBeVisible();
 	});
 
 	test('series overview lists the series as a stack and opens its page', async ({ page }) => {
 		await page.goto('/series');
 		await expect(page.getByText('1 series')).toBeVisible();
-		await page.getByRole('link', { name: /Küstenlichter/ }).click();
+		await page.getByRole('link', { name: 'Küstenlichter', exact: true }).click();
 		await expect(page).toHaveURL(/\/series\/[\w-]+$/);
 	});
 

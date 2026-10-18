@@ -308,7 +308,7 @@ button {
 }
 
 /* Out of the sleeve (hover, focus, or the book in the player). */
-:is(.tile:hover, .tile:focus-visible, .slot:hover, .slot:focus-visible, .loaded) .sleeve-disc {
+:is(.tile:hover, .tile:focus-visible, .slot:hover, .slot:focus-visible, .in-player) .sleeve-disc {
 	visibility: visible;
 	box-shadow: 0 -2px 6px rgb(0 0 0 / 0.25);
 	transition: translate 420ms var(--motion-out);

@@ -464,8 +464,8 @@
 			grid-auto-flow: column;
 			grid-auto-columns: 1fr;
 			padding: var(--sp-4) var(--sp-8) calc(var(--sp-4) + env(safe-area-inset-bottom));
-			background: color-mix(in oklab, var(--c-panel) 86%, transparent);
-			backdrop-filter: blur(16px) saturate(1.4);
+			/* Opaque: labels keep their contrast over any cover scrolling underneath. */
+			background: var(--c-panel);
 			border-top: 1px solid var(--c-line);
 		}
 

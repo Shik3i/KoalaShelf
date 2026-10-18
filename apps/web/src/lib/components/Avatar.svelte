@@ -14,8 +14,9 @@
 	style:width="{size}px"
 	style:height="{size}px"
 	style:font-size="{Math.round(size * 0.42)}px"
-	aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span
->
+	data-initial={name.slice(0, 1).toUpperCase()}
+	aria-hidden="true"
+></span>
 
 <style>
 	/* Dark text on a light tint, or light text on a deep one: 4.5:1 either way. */
@@ -28,6 +29,11 @@
 		color: oklch(0.3 0.09 var(--h));
 		font-weight: var(--fw-bold);
 		line-height: 1;
+	}
+
+	/* Drawn by CSS: the initial is decoration, never part of a button's name or its visible label. */
+	.avatar::before {
+		content: attr(data-initial);
 	}
 
 	@media (prefers-color-scheme: dark) {

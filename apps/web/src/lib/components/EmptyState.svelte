@@ -7,11 +7,13 @@
 <!-- An empty crate with one record leaning in: shown whenever a view has nothing to list. -->
 <div class="empty">
 	<svg viewBox="0 0 160 120" aria-hidden="true">
-		<circle cx="96" cy="52" r="34" class="disc" />
-		<circle cx="96" cy="52" r="26" class="groove" />
-		<circle cx="96" cy="52" r="18" class="groove" />
-		<circle cx="96" cy="52" r="11" class="label" />
-		<circle cx="96" cy="52" r="2" class="hole" />
+		<g class="record">
+			<circle cx="96" cy="52" r="34" class="disc" />
+			<circle cx="96" cy="52" r="26" class="groove" />
+			<circle cx="96" cy="52" r="18" class="groove" />
+			<circle cx="96" cy="52" r="11" class="label" />
+			<circle cx="96" cy="52" r="2" class="hole" />
+		</g>
 		<path d="M24 66 H136 V104 a6 6 0 0 1 -6 6 H30 a6 6 0 0 1 -6 -6 Z" class="crate" />
 		<path d="M24 66 H136" class="rim" />
 	</svg>
@@ -30,6 +32,21 @@
 
 	svg {
 		width: 140px;
+	}
+
+	/* The record drops into the empty crate and settles. */
+	.record {
+		transform-box: fill-box;
+		transform-origin: 50% 100%;
+		animation: drop-in 700ms var(--motion-spring) 120ms both;
+	}
+
+	@keyframes drop-in {
+		from {
+			translate: 0 -40px;
+			rotate: -12deg;
+			opacity: 0;
+		}
 	}
 
 	.disc {

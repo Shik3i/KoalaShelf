@@ -9,6 +9,7 @@
 	import { coverSrc, view } from '#lib/items.ts';
 	import RecordCrate, { type CrateRecord } from '#lib/components/RecordCrate.svelte';
 	import { progress } from '#lib/progress.svelte.ts';
+	import { inSeriesOrder } from '#lib/series-order.ts';
 
 	const t = $derived(i18n.m.series);
 
@@ -86,7 +87,7 @@
 				name={s.name}
 				href="/series/{s.id}"
 				note={t.books(s.books.length)}
-				records={s.books.map(record)}
+				records={inSeriesOrder(s.books, s.name).map(record)}
 			/>
 		</div>
 	{/each}

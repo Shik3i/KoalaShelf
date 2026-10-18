@@ -12,6 +12,8 @@
 		eager?: boolean;
 		/** Hide the title line (for crates: the ledge covers the bottom). */
 		titleTop?: boolean;
+		/** Motif only, no text (where a caption names the book, e.g. records in a crate). */
+		bare?: boolean;
 	}
 
 	let {
@@ -20,7 +22,8 @@
 		src = null,
 		sizes = '200px',
 		eager = false,
-		titleTop = false
+		titleTop = false,
+		bare = false
 	}: Props = $props();
 
 	const art = $derived(coverArt(`${title}|${author}`));
@@ -68,8 +71,8 @@
 					<circle cx="62" cy="30" r="12" fill="var(--bg)" />
 				{/if}
 			</svg>
-			<span class="author">{author}</span>
-			{#if !titleTop}<span class="title">{title}</span>{/if}
+			{#if !bare}<span class="author">{author}</span>{/if}
+			{#if !titleTop && !bare}<span class="title">{title}</span>{/if}
 		</div>
 	{/if}
 	{#if src && !failed}

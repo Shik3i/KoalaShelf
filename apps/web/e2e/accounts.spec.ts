@@ -10,7 +10,7 @@ const accounts = (page: Page) =>
 
 async function addGuest(page: Page) {
 	await page.goto('/');
-	await page.getByRole('button', { name: /^Accounts \(signed in as/ }).click();
+	await page.getByRole('button', { name: /, switch accounts$/ }).click();
 	const switcher = page.getByRole('dialog', { name: 'Accounts' });
 	await switcher.getByRole('button', { name: 'Add account' }).click();
 	await expect(page.getByRole('heading', { name: 'Add an account' })).toBeVisible();
@@ -43,7 +43,7 @@ test.describe('accounts', () => {
 		await expect(page.getByRole('button', { name: 'Add to queue' })).toBeVisible();
 
 		// Switch back from the sidebar: the owner's queue is still there.
-		await page.getByRole('button', { name: /^Accounts \(signed in as/ }).click();
+		await page.getByRole('button', { name: /, switch accounts$/ }).click();
 		const switcher = page.getByRole('dialog', { name: 'Accounts' });
 		await expect(switcher.getByRole('region')).toHaveCount(1); // one server
 		if (dir) await page.screenshot({ path: `${dir}/accounts-switcher.png` });
@@ -186,7 +186,7 @@ test.describe('accounts and appearance pass axe', () => {
 				).toEqual([]);
 			};
 			await page.goto('/');
-			await page.getByRole('button', { name: /^Accounts \(signed in as/ }).click();
+			await page.getByRole('button', { name: /, switch accounts$/ }).click();
 			await expect(page.getByRole('dialog', { name: 'Accounts' })).toBeVisible();
 			await scan('switcher');
 			await page.keyboard.press('Escape');

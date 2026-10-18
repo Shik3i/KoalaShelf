@@ -15,6 +15,7 @@
 	import { toasts } from '#lib/toast.svelte.ts';
 	import { prefs } from '#lib/prefs.svelte.ts';
 	import { shelfOrder } from '#lib/shelves.ts';
+	import { inSeriesOrder } from '#lib/series-order.ts';
 	import X from '@lucide/svelte/icons/x';
 	import Settings from '@lucide/svelte/icons/settings';
 	import GoalRing from '#lib/components/GoalRing.svelte';
@@ -108,7 +109,10 @@
 				).map((se) => ({
 					id: se.id,
 					name: se.name,
-					records: se.books.map((b) => ({ ...entry(b), finished: progress.get(b.id)?.isFinished }))
+					records: inSeriesOrder(se.books, se.name).map((b) => ({
+						...entry(b),
+						finished: progress.get(b.id)?.isFinished
+					}))
 				}));
 			}
 			return entries.length || series?.length ? [{ id: s.id, label, note, entries, series }] : [];

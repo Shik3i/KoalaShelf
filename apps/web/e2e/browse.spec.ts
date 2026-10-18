@@ -62,7 +62,7 @@ test.describe('browse', () => {
 
 	test('series page: progress, the next book, queue and "continue series"', async ({ page }) => {
 		await page.goto('/series');
-		await page.getByRole('link', { name: /Küstenlichter/ }).click();
+		await page.getByRole('link', { name: 'Küstenlichter', exact: true }).click();
 		await expect(page).toHaveURL(/\/series\//);
 		await expect(page.getByRole('heading', { level: 1, name: 'Küstenlichter' })).toBeVisible();
 		await expect(page.getByText(/of 2 finished/)).toBeVisible();

@@ -28,7 +28,7 @@
 	const v = $derived(view(item));
 	const p = $derived(progress.get(item.id));
 	/** The book in the player keeps its record half out of the sleeve (turning while it plays). */
-	const loaded = $derived(player.item?.id === item.id);
+	const inPlayer = $derived(player.item?.id === item.id);
 	// With "group series" the server returns one item per series; a one-book series stays a book.
 	const group = $derived(
 		'collapsedSeries' in item && (item.collapsedSeries?.numBooks ?? 0) > 1
@@ -40,8 +40,8 @@
 {#snippet body()}
 	<div
 		class="cover"
-		class:loaded
-		class:spinning={loaded && player.playing && prefs.spin}
+		class:in-player={inPlayer}
+		class:spinning={inPlayer && player.playing && prefs.spin}
 		style:view-transition-name={group || selecting ? undefined : `cover-${item.id}`}
 	>
 		{#if !group && !selecting}<span class="disc sleeve-disc" aria-hidden="true"></span>{/if}
@@ -168,8 +168,8 @@
 		translate: 0 -16px;
 	}
 
-	.loaded .disc,
-	.tile:hover .loaded .disc {
+	.in-player .disc,
+	.tile:hover .in-player .disc {
 		translate: 0 -20px;
 	}
 

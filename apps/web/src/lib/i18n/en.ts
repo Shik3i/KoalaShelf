@@ -15,7 +15,7 @@ export const en = {
 		search: 'Search',
 		signOut: 'Sign out',
 		accounts: 'Accounts',
-		accountsOf: (name: string) => `Accounts (signed in as ${name})`,
+		accountsOf: (name: string) => `${name}, switch accounts`,
 		switchAccount: 'Switch',
 		themeSystem: 'Theme: system',
 		themeLight: 'Theme: light',
@@ -350,7 +350,10 @@ export const en = {
 		count: (n: number) => plural(n, 'series', 'series'),
 		books: (n: number) => plural(n, 'book', 'books'),
 		empty: 'No series in this library.',
-		flipHint: 'Left and right arrow keys flip through the books in the crate.'
+		flipHint:
+			'Arrow keys flip through the books in the crate, Page Up and Page Down by ten; Enter opens the book in front.',
+		crateRecord: (title: string, series: string, i: number, n: number) =>
+			`${title} – ${series}, ${i} of ${n}`
 	},
 	authors: {
 		narrators: 'Narrators',

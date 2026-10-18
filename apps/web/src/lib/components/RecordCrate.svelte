@@ -21,35 +21,42 @@
 		sizes = '170px'
 	}: {
 		name: string;
+		/** The series page. A record opens its own book. */
 		href: string;
+		/** Every book of the series, in order: all of them can be flipped through. */
 		records: CrateRecord[];
 		/** Second line under the name, e.g. "7 books". */
 		note?: string;
 		sizes?: string;
 	} = $props();
 
-	/** More records than this only make the crate deeper, not easier to browse. */
-	const MAX = 9;
-	/** Covers on show before the crate is first touched; the rest load when it is pulled out. */
-	const PEEK = 3;
+	/** Records in the page around the current one (a crate of 116 needs no 116 elements);
+	   at rest only the few whose tops show. */
+	const BEHIND = 9;
+	const BEHIND_AT_REST = 4;
+	const AHEAD = 3;
+	/** Covers loaded behind the current record: deeper ones are in the crate's shadow. */
+	const COVERS_BEHIND = 3;
 
 	const uid = $props.id();
-	const shown = $derived(unique(records, (r) => r.id).slice(0, MAX));
+	const all = $derived(unique(records, (r) => r.id));
+	const n = $derived(all.length);
 	const t = $derived(i18n.m.series);
 
 	let open = $state(false);
-	let woken = $state(false);
 	let at = $state(0);
-	const current = $derived(shown[Math.min(at, shown.length - 1)]);
+	const current = $derived(all[Math.min(at, n - 1)]);
+	const slice = $derived(
+		all.slice(Math.max(0, at - AHEAD), at + (open ? BEHIND : BEHIND_AT_REST)).map((r, k) => ({
+			r,
+			i: Math.max(0, at - AHEAD) + k
+		}))
+	);
 
 	let bin = $state<HTMLElement>();
 	let touchX: number | null = null;
+	let wheel = 0;
 	let swiped = false;
-
-	function pull() {
-		open = true;
-		woken = true;
-	}
 
 	function push() {
 		open = false;
@@ -57,21 +64,21 @@
 	}
 
 	function flipTo(i: number) {
-		at = Math.max(0, Math.min(shown.length - 1, i));
+		open = true;
+		at = Math.max(0, Math.min(n - 1, i));
 	}
 
 	function onpointermove(e: PointerEvent) {
-		if (!bin || shown.length < 2) return;
+		if (!bin || n < 2) return;
 		if (e.pointerType === 'mouse' || e.pointerType === 'pen') {
-			pull();
+			// From the left edge (first book) to the right edge (last): any book is one move away.
 			const r = bin.getBoundingClientRect();
-			flipTo(Math.floor(((e.clientX - r.left) / r.width) * shown.length));
+			flipTo(Math.floor(((e.clientX - r.left) / r.width) * n));
 		} else if (touchX !== null) {
 			// Touch: every short swipe step flips one record, like thumbing through a crate.
-			const step = 26;
+			const step = 22;
 			const dx = e.clientX - touchX;
 			if (Math.abs(dx) >= step) {
-				pull();
 				swiped = true;
 				flipTo(at + Math.trunc(dx / step));
 				touchX = e.clientX;
@@ -79,17 +86,30 @@
 		}
 	}
 
+	/** Sideways scrolling (trackpad, Shift + wheel) flips one record per notch. */
+	function onwheel(e: WheelEvent) {
+		if (n < 2 || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+		e.preventDefault();
+		wheel += e.deltaX;
+		const steps = Math.trunc(wheel / 40);
+		if (steps) {
+			wheel -= steps * 40;
+			flipTo(at + steps);
+		}
+	}
+
 	function onkeydown(e: KeyboardEvent) {
-		if (shown.length < 2) return;
+		if (n < 2) return;
 		const keys: Record<string, number> = {
 			ArrowRight: at + 1,
 			ArrowLeft: at - 1,
+			PageDown: at + 10,
+			PageUp: at - 10,
 			Home: 0,
-			End: shown.length - 1
+			End: n - 1
 		};
 		if (!(e.key in keys)) return;
 		e.preventDefault();
-		pull();
 		flipTo(keys[e.key]);
 	}
 
@@ -97,37 +117,45 @@
 	const tilt = (i: number) => (((i * 7919) % 5) - 2) * 0.6;
 </script>
 
-<a
+<div
 	class="crate"
 	class:open
-	{href}
-	aria-describedby={shown.length > 1 ? `${uid}-hint` : undefined}
-	onpointerenter={(e) => e.pointerType !== 'touch' && pull()}
+	role="group"
+	aria-label={name}
+	onpointerenter={(e) => e.pointerType !== 'touch' && n > 0 && (open = true)}
 	onpointerleave={push}
-	onfocus={pull}
-	onblur={push}
-	{onkeydown}
-	onclick={(e) => {
-		// A swipe through the crate is browsing, not a tap on it.
-		if (swiped) e.preventDefault();
-		swiped = false;
-	}}
 >
-	<div
+	<!-- The record in front is a link to its book: flip to the one you want, then pick it. -->
+	<a
 		class="bin"
 		bind:this={bin}
-		aria-hidden="true"
-		style:--n={shown.length}
+		href={current ? `/book/${current.id}` : href}
+		aria-label={current
+			? n > 1
+				? t.crateRecord(current.title, name, at + 1, n)
+				: current.title
+			: name}
+		aria-describedby={n > 1 ? `${uid}-hint` : undefined}
+		style:--n={n}
 		{onpointermove}
+		{onwheel}
+		{onkeydown}
+		onfocus={() => (open = true)}
+		onblur={push}
 		onpointerdown={(e) => {
 			if (e.pointerType === 'touch') touchX = e.clientX;
 			swiped = false;
 		}}
 		onpointerup={() => (touchX = null)}
 		onpointercancel={() => (touchX = null)}
+		onclick={(e) => {
+			// A swipe through the crate is browsing, not a tap on a record.
+			if (swiped) e.preventDefault();
+			swiped = false;
+		}}
 	>
-		<div class="records">
-			{#each shown as r, i (r.id)}
+		<div class="records" aria-hidden="true">
+			{#each slice as { r, i } (r.id)}
 				{@const d = i - at}
 				<div
 					class="rec"
@@ -136,30 +164,32 @@
 					class:done={r.finished}
 					style:--d={d}
 					style:--rz="{tilt(i)}deg"
-					style:z-index={shown.length - Math.abs(d)}
 				>
-					{#if i < PEEK || woken}
-						<Cover title={r.title} author={r.author} src={r.cover} {sizes} titleTop />
+					{#if d >= -1 && d <= COVERS_BEHIND}
+						<Cover title={r.title} author={r.author} src={r.cover} {sizes} bare />
 					{:else}
 						<div class="blank"></div>
 					{/if}
 				</div>
 			{/each}
 		</div>
-		<div class="wall">
+		<div class="wall" aria-hidden="true">
 			<span class="grip"></span>
+			{#if open && n > 1}
+				<span class="scrub" style:--p={at / (n - 1)}></span>
+			{/if}
 		</div>
-	</div>
-	<strong>{name}</strong>
-	{#if shown.length > 1}<span id="{uid}-hint" hidden>{t.flipHint}</span>{/if}
-	<span class="note muted">
-		{#if open && shown.length > 1 && current}
-			<span class="tabular">{at + 1}/{shown.length}</span> · {current.title}
+	</a>
+	<a class="name" {href}><strong>{name}</strong></a>
+	{#if n > 1}<span id="{uid}-hint" hidden>{t.flipHint}</span>{/if}
+	<span class="note muted" aria-hidden={open && n > 1}>
+		{#if open && n > 1 && current}
+			<span class="tabular">{at + 1}/{n}</span> · {current.title}
 		{:else}
 			{note}
 		{/if}
 	</span>
-</a>
+</div>
 
 <style>
 	.crate {
@@ -167,9 +197,52 @@
 		display: grid;
 		gap: var(--sp-4);
 		min-width: 0;
-		outline-offset: 4px;
-		border-radius: var(--r-card);
 		-webkit-touch-callout: none;
+	}
+
+	/* The crate clips its sides, so the focus ring goes around its front panel. */
+	.bin:focus-visible {
+		outline: none;
+	}
+
+	.bin:focus-visible .wall {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 1px;
+	}
+
+	/* Where in the series the record in front is. */
+	.scrub {
+		position: absolute;
+		left: 12%;
+		right: 12%;
+		bottom: 16%;
+		height: 3px;
+		border-radius: var(--r-pill);
+		background: rgb(255 255 255 / 0.14);
+	}
+
+	.scrub::after {
+		content: '';
+		position: absolute;
+		top: -1px;
+		left: calc(var(--p) * (100% - 14px));
+		width: 14px;
+		height: 5px;
+		border-radius: var(--r-pill);
+		background: var(--c-accent);
+		transition: left var(--motion-fast) var(--motion-ease);
+	}
+
+	.name {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.name:hover strong {
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	/* The crate seen slightly from above: records stand on its floor, leaning back. */

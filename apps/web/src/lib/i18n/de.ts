@@ -13,7 +13,7 @@ export const de: Messages = {
 		search: 'Suche',
 		signOut: 'Abmelden',
 		accounts: 'Konten',
-		accountsOf: (name) => `Konten (angemeldet als ${name})`,
+		accountsOf: (name) => `${name}, Konto wechseln`,
 		switchAccount: 'Wechseln',
 		themeSystem: 'Theme: System',
 		themeLight: 'Theme: Hell',
@@ -351,7 +351,9 @@ export const de: Messages = {
 		count: (n) => `${n} Serien`,
 		books: (n) => (n === 1 ? '1 Band' : `${n} Bände`),
 		empty: 'Keine Serien in dieser Bibliothek.',
-		flipHint: 'Mit den Pfeiltasten links und rechts durch die Bände in der Kiste blättern.'
+		flipHint:
+			'Mit den Pfeiltasten durch die Bände der Kiste blättern, mit Bild auf und ab um zehn; Eingabe öffnet den vorderen Band.',
+		crateRecord: (title, series, i, n) => `${title} – ${series}, ${i} von ${n}`
 	},
 	authors: {
 		narrators: 'Sprecher:innen',

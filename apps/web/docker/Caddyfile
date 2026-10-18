@@ -10,16 +10,27 @@
 	encode zstd gzip
 
 	# Audiobookshelf API, auth, websockets and streams go to the server.
+	# Covers and author pictures are public images and may be cached as the server says.
+	@images path_regexp ^/api/(items/[^/]+/cover|authors/[^/]+/image)$
 	@abs path /api/* /auth/* /logout /status /socket.io/* /hls/* /public/* /feed/*
 	@login {
 		method POST
 		path /login
 	}
-	handle @abs {
+	handle @images {
 		reverse_proxy {$ABS_URL}
 	}
+	# Personal answers are never stored by a browser or a shared cache, whatever a proxy in
+	# front of Audiobookshelf says (seen: "public, max-age=15" on the whole API).
+	handle @abs {
+		reverse_proxy {$ABS_URL} {
+			header_down Cache-Control "no-store"
+		}
+	}
 	handle @login {
-		reverse_proxy {$ABS_URL}
+		reverse_proxy {$ABS_URL} {
+			header_down Cache-Control "no-store"
+		}
 	}
 
 	header {

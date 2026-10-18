@@ -113,15 +113,45 @@
 		text-align: center;
 	}
 
+	/* Hovered, the portrait becomes the label of a record and turns. */
 	.pic {
+		position: relative;
+		isolation: isolate;
 		display: block;
 		width: 100%;
 		margin-bottom: var(--sp-8);
-		transition: scale var(--motion-base) var(--motion-ease);
 	}
 
-	.person:hover .pic {
-		scale: 1.04;
+	.pic::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		z-index: -1;
+		border-radius: 50%;
+		background:
+			radial-gradient(circle at 32% 28%, rgb(255 255 255 / 0.12), transparent 45%),
+			repeating-radial-gradient(circle, var(--c-vinyl-a) 0 2px, var(--c-vinyl-b) 2px 4px);
+		box-shadow: 0 10px 24px -12px rgb(0 0 0 / 0.6);
+		opacity: 0;
+		scale: 0.9;
+		transition:
+			opacity var(--motion-base) var(--motion-ease),
+			scale 420ms var(--motion-out);
+	}
+
+	.pic :global(.portrait) {
+		transition: scale 420ms var(--motion-out);
+	}
+
+	.person:is(:hover, :focus-visible) .pic::before {
+		opacity: 1;
+		scale: 1;
+	}
+
+	.person:is(:hover, :focus-visible) .pic :global(.portrait) {
+		scale: 0.62;
+		box-shadow: 0 0 0 3px rgb(0 0 0 / 0.35);
+		animation: spin 6s linear 420ms infinite;
 	}
 
 	strong {
