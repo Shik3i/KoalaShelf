@@ -253,7 +253,8 @@ export const de: Messages = {
 		linerNotes: 'Klappentext & Hülle',
 		flipFront: 'Cover',
 		stereoHifi: 'Stereo · Hi-Fi Aufnahme',
-		tracklist: 'Titelliste'
+		tracklist: 'Titelliste',
+		voiceLabel: 'Stimme'
 	},
 	player: {
 		player: 'Player',

@@ -59,7 +59,7 @@
 >
 	<div class="flipper">
 		<!-- Front Side: Cover & Flip Pill -->
-		<div class="side front" aria-hidden={flipped}>
+		<div class="side front" aria-hidden={flipped} inert={flipped}>
 			<Cover {title} {author} {src} sizes="(max-width: 800px) 70vw, 300px" eager />
 			<button
 				type="button"
@@ -78,7 +78,7 @@
 		</div>
 
 		<!-- Back Side: Vintage Liner Notes / Record Sleeve Back -->
-		<div class="side back" aria-hidden={!flipped}>
+		<div class="side back" aria-hidden={!flipped} inert={!flipped}>
 			<div class="back-inner">
 				<header class="back-header">
 					<div class="vintage-top">
@@ -89,7 +89,7 @@
 					<p class="vintage-by">
 						<strong>{author}</strong>
 						{#if narrators.length}
-							<span class="narrator-line">· {t.readBy} {narrators.join(', ')}</span>
+							<span class="narrator-line">· {t.voiceLabel}: {narrators.join(', ')}</span>
 						{/if}
 					</p>
 				</header>
@@ -203,6 +203,14 @@
 		display: flex;
 		flex-direction: column;
 		border: 1px solid var(--c-line);
+	}
+
+	.sleeve-card:not(.flipped) .side.back {
+		visibility: hidden;
+	}
+
+	.sleeve-card.flipped .side.front {
+		visibility: hidden;
 	}
 
 	.flip-pill {

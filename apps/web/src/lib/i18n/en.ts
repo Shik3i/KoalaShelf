@@ -253,7 +253,8 @@ export const en = {
 		linerNotes: 'Liner notes',
 		flipFront: 'Cover',
 		stereoHifi: 'Stereo · Hi-Fi Recording',
-		tracklist: 'Tracklist'
+		tracklist: 'Tracklist',
+		voiceLabel: 'Voice'
 	},
 	player: {
 		player: 'Player',
@@ -759,7 +760,7 @@ export const en = {
 		profileOff: 'Flat',
 		profileVoice: 'Voices',
 		profileNight: 'Night',
-		profileCommute: 'Commute',
+		profileCommute: 'Transit',
 		voice: 'Clearer voices',
 		voiceHint: 'Lifts speech and cuts rumble.',
 		mono: 'Mono',
