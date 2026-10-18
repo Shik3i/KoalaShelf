@@ -759,6 +759,20 @@ export const en = {
 		crackleVolume: 'Crackle volume',
 		unavailable: 'Sound effects are not available in this app version.'
 	},
+	crateDigger: {
+		title: 'Crate Digging',
+		button: 'Crate Digging',
+		subtitle: 'Surprise me – Dig through random vinyls in your library',
+		digNew: 'Dig another crate',
+		pullSleeve: 'Pull sleeve',
+		dropNeedle: 'Drop needle (play)',
+		empty: 'No matching records in this crate.',
+		filterAll: 'All',
+		filterUnfinished: 'Unfinished only',
+		filterShort: '< 5 hrs',
+		filterLong: '> 10 hrs',
+		recordOf: (cur: number, total: number) => `Record ${cur} of ${total}`
+	},
 	format: {
 		hours: 'h',
 		minutes: 'min',

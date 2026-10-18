@@ -18,7 +18,9 @@
 	import { inSeriesOrder } from '#lib/series-order.ts';
 	import X from '@lucide/svelte/icons/x';
 	import Settings from '@lucide/svelte/icons/settings';
+	import Disc from '@lucide/svelte/icons/disc-3';
 	import GoalRing from '#lib/components/GoalRing.svelte';
+	import CrateDiggerModal from '#lib/components/CrateDiggerModal.svelte';
 	import { streak } from '#lib/export.ts';
 
 	const t = $derived(i18n.m.home);
@@ -26,6 +28,7 @@
 
 	let shelves = $state.raw<Shelf[] | null>(null);
 	let error = $state<string | null>(null);
+	let diggerOpen = $state(false);
 
 	$effect(() => {
 		const lib = session.libraryId;
@@ -163,6 +166,14 @@
 		{#if prefs.dailyGoal && today}
 			<GoalRing seconds={today.secs} goal={prefs.dailyGoal} streak={today.streak} href="/stats" />
 		{/if}
+		<button
+			class="round"
+			onclick={() => (diggerOpen = true)}
+			aria-label={i18n.m.crateDigger.button}
+			title={i18n.m.crateDigger.subtitle}
+		>
+			<Disc size={20} />
+		</button>
 		<div class="tools">
 			<a class="round" href="/settings" aria-label={i18n.m.nav.settings}>
 				<Settings size={20} />
@@ -247,6 +258,8 @@
 		{/if}
 	{/each}
 </div>
+
+<CrateDiggerModal bind:open={diggerOpen} />
 
 <style>
 	.top {

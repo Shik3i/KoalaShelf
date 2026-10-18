@@ -760,6 +760,20 @@ export const de: Messages = {
 		crackleVolume: 'Knistern-Lautstärke',
 		unavailable: 'Klang-Effekte gibt es in dieser App-Version nicht.'
 	},
+	crateDigger: {
+		title: 'Crate Digging',
+		button: 'Crate Digging',
+		subtitle: 'Überrasch mich – Stöbere durch zufällige Platten deiner Sammlung',
+		digNew: 'Neue Kiste auflegen',
+		pullSleeve: 'Hülle ansehen',
+		dropNeedle: 'Nadel aufsetzen (abspielen)',
+		empty: 'Keine passenden Platten in dieser Kiste gefunden.',
+		filterAll: 'Alle',
+		filterUnfinished: 'Nur Ungehörte',
+		filterShort: '< 5 Std.',
+		filterLong: '> 10 Std.',
+		recordOf: (cur, total) => `Platte ${cur} von ${total}`
+	},
 	format: {
 		hours: 'Std.',
 		minutes: 'Min.',

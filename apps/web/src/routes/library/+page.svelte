@@ -37,11 +37,14 @@
 	import X from '@lucide/svelte/icons/x';
 	import Check from '@lucide/svelte/icons/check';
 	import Bookmark from '@lucide/svelte/icons/bookmark-plus';
+	import Disc from '@lucide/svelte/icons/disc-3';
 	import SquareCheck from '@lucide/svelte/icons/square-check';
 	import SelectionBar from '#lib/components/SelectionBar.svelte';
+	import CrateDiggerModal from '#lib/components/CrateDiggerModal.svelte';
 
 	const PAGE = 60;
 	const t = $derived(i18n.m.library);
+	let diggerOpen = $state(false);
 
 	// All view state lives in the URL: shareable, bookmarkable, back button works.
 	const params = $derived(page.url.searchParams);
@@ -449,6 +452,15 @@
 				{query.desc ? '↓' : '↑'}
 			</button>
 		{/if}
+		<button
+			class="chip outline"
+			onclick={() => (diggerOpen = true)}
+			aria-label={i18n.m.crateDigger.button}
+			title={i18n.m.crateDigger.subtitle}
+		>
+			<Disc size={14} />
+			<span>{i18n.m.crateDigger.button}</span>
+		</button>
 		<Segmented
 			label={t.view}
 			value={layout}
@@ -661,6 +673,8 @@
 {/if}
 
 <svelte:window onkeydown={(e) => selecting && e.key === 'Escape' && endSelect()} />
+
+<CrateDiggerModal bind:open={diggerOpen} />
 
 <style>
 	/* Saved views: chip plus a small delete button. */
