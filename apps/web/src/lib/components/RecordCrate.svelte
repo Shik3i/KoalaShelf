@@ -12,6 +12,8 @@
 	import Cover from './Cover.svelte';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { unique } from '#lib/unique.ts';
+	import { haptic } from '#lib/haptics.ts';
+	import { prefs } from '#lib/prefs.svelte.ts';
 
 	let {
 		name,
@@ -55,18 +57,81 @@
 
 	let bin = $state<HTMLElement>();
 	let touchX: number | null = null;
+	let lastClientX = 0;
+	let lastTime = 0;
+	let velocity = 0;
 	let wheel = 0;
 	let swiped = false;
+	let inertiaRaf: number | null = null;
+	let atBoundary = false;
+
+	function cancelInertia() {
+		if (inertiaRaf !== null) {
+			cancelAnimationFrame(inertiaRaf);
+			inertiaRaf = null;
+		}
+	}
 
 	function push() {
+		cancelInertia();
 		open = false;
 		at = 0;
+		atBoundary = false;
 	}
 
-	function flipTo(i: number) {
+	function flipTo(i: number, triggerHaptic = true) {
 		open = true;
-		at = Math.max(0, Math.min(n - 1, i));
+		const target = Math.max(0, Math.min(n - 1, i));
+		if (target !== at) {
+			at = target;
+			atBoundary = false;
+			if (triggerHaptic) haptic.tick();
+		} else if (i !== target && !atBoundary) {
+			atBoundary = true;
+			if (triggerHaptic) haptic.boundary();
+		}
 	}
+
+	function startInertia(initialVelocity: number) {
+		cancelInertia();
+		if (prefs.motion === 'reduce') return;
+
+		let v = initialVelocity;
+		let prevTime = performance.now();
+		let distance = 0;
+		const step = 24;
+		const friction = 0.92;
+
+		function stepInertia(now: number) {
+			const dt = Math.min(now - prevTime, 32);
+			prevTime = now;
+			v *= Math.pow(friction, dt / 16);
+			distance += v * dt;
+
+			if (Math.abs(distance) >= step) {
+				const steps = Math.trunc(distance / step);
+				distance -= steps * step;
+				const prevAt = at;
+				flipTo(at + steps);
+				if (at === prevAt) {
+					v = 0; // Hit boundary
+				}
+			}
+
+			if (Math.abs(v) > 0.05 && open) {
+				inertiaRaf = requestAnimationFrame(stepInertia);
+			} else {
+				inertiaRaf = null;
+			}
+		}
+
+		inertiaRaf = requestAnimationFrame(stepInertia);
+	}
+
+	$effect(() => () => cancelInertia());
+	$effect(() => {
+		if (at >= n && n > 0) at = n - 1;
+	});
 
 	function onpointermove(e: PointerEvent) {
 		if (!bin || n < 2) return;
@@ -75,13 +140,23 @@
 			const r = bin.getBoundingClientRect();
 			flipTo(Math.floor(((e.clientX - r.left) / r.width) * n));
 		} else if (touchX !== null) {
+			const now = performance.now();
+			const dt = now - lastTime;
+			if (dt > 8) {
+				const instantV = (e.clientX - lastClientX) / dt;
+				velocity = velocity * 0.3 + instantV * 0.7;
+				lastClientX = e.clientX;
+				lastTime = now;
+			}
+
 			// Touch: every short swipe step flips one record, like thumbing through a crate.
-			const step = 22;
+			const step = 24;
 			const dx = e.clientX - touchX;
 			if (Math.abs(dx) >= step) {
 				swiped = true;
-				flipTo(at + Math.trunc(dx / step));
-				touchX = e.clientX;
+				const steps = Math.trunc(dx / step);
+				flipTo(at + steps);
+				touchX += steps * step;
 			}
 		}
 	}
@@ -149,14 +224,33 @@
 		onfocus={() => (open = true)}
 		onblur={push}
 		onpointerdown={(e) => {
-			if (e.pointerType === 'touch') touchX = e.clientX;
+			cancelInertia();
+			if (e.pointerType === 'touch') {
+				touchX = e.clientX;
+				lastClientX = e.clientX;
+				lastTime = performance.now();
+				velocity = 0;
+			}
 			swiped = false;
 		}}
-		onpointerup={() => (touchX = null)}
-		onpointercancel={() => (touchX = null)}
+		onpointerup={() => {
+			if (touchX !== null && swiped && Math.abs(velocity) > 0.22) {
+				startInertia(velocity);
+			}
+			touchX = null;
+		}}
+		onpointercancel={() => {
+			touchX = null;
+			swiped = false;
+			cancelInertia();
+		}}
 		onclick={(e) => {
 			// A swipe through the crate is browsing, not a tap on a record.
-			if (swiped) e.preventDefault();
+			if (swiped || inertiaRaf !== null) {
+				e.preventDefault();
+			} else {
+				haptic.tap();
+			}
 			swiped = false;
 		}}
 	>

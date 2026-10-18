@@ -28,6 +28,7 @@ import { queue } from '../queue.svelte.ts';
 import { isTauri } from '../platform.ts';
 import { needsGraph, SoundChain, type SoundSettings } from './sound.ts';
 import { forecast, type SleepForecast, type SleepTimer } from './sleep.ts';
+import { haptic } from '../haptics.ts';
 
 export type { SleepTimer } from './sleep.ts';
 
@@ -446,6 +447,7 @@ class Player {
 	}
 
 	toggle() {
+		haptic.tap();
 		if (this.playing) this.pause();
 		else void this.play();
 	}
@@ -465,6 +467,7 @@ class Player {
 	 * a mis-tap on the timeline should never lose the listener's place.
 	 */
 	jump(time: number) {
+		haptic.tap();
 		const from = this.currentTime;
 		this.seek(time);
 		if (Math.abs(this.currentTime - from) < JUMP_UNDO_MIN) return;
@@ -484,6 +487,7 @@ class Player {
 	}
 
 	skip(seconds: number) {
+		haptic.tick();
 		this.seek(this.currentTime + seconds);
 	}
 
@@ -732,6 +736,7 @@ class Player {
 		const t = Math.floor(time);
 		const b = await session.api.createBookmark(this.item.id, t, title);
 		this.bookmarks = [...this.bookmarks, b].sort((a, c) => a.time - c.time);
+		haptic.success();
 	}
 
 	async renameBookmark(time: number, title: string) {
