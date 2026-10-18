@@ -239,7 +239,11 @@ export const de: Messages = {
 		edition: 'Ausgabe',
 		abridged: 'Gekürzt',
 		explicit: 'Explizit',
-		added: 'Hinzugefügt'
+		added: 'Hinzugefügt',
+		linerNotes: 'Klappentext & Hülle',
+		flipFront: 'Cover',
+		stereoHifi: 'Stereo · Hi-Fi Aufnahme',
+		tracklist: 'Titelliste'
 	},
 	player: {
 		player: 'Player',

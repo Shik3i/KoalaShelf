@@ -29,6 +29,7 @@
 	import Link from '@lucide/svelte/icons/link';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import Cover from '#lib/components/Cover.svelte';
+	import LinerNotesSleeve from '#lib/components/LinerNotesSleeve.svelte';
 	import Vinyl from '#lib/components/Vinyl.svelte';
 	import BookTile from '#lib/components/BookTile.svelte';
 	import Check from '@lucide/svelte/icons/check';
@@ -257,12 +258,19 @@
 					/>
 				</div>
 				<div class="cover" style:view-transition-name="cover-{item.id}">
-					<Cover
+					<LinerNotesSleeve
 						title={v.title}
 						author={v.author}
 						src={coverSrc}
-						sizes="(max-width: 800px) 70vw, 300px"
-						eager
+						description={description}
+						chapters={item.media.chapters}
+						narrators={meta.narrators}
+						publisher={meta.publisher}
+						year={meta.publishedYear}
+						catalogId={item.id}
+						durationSec={item.media.duration}
+						format={formats[0] ?? ''}
+						onPlayChapter={(start) => playAt(start)}
 					/>
 				</div>
 			</div>

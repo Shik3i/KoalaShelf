@@ -239,7 +239,11 @@ export const en = {
 		edition: 'Edition',
 		abridged: 'Abridged',
 		explicit: 'Explicit',
-		added: 'Added'
+		added: 'Added',
+		linerNotes: 'Liner notes',
+		flipFront: 'Cover',
+		stereoHifi: 'Stereo · Hi-Fi Recording',
+		tracklist: 'Tracklist'
 	},
 	player: {
 		player: 'Player',
