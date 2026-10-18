@@ -768,6 +768,8 @@ export const en = {
 		silence: 'Skip silence',
 		silenceHint: 'Speeds through pauses longer than half a second.',
 		saved: (book: string, total: string) => `Saved ${book} in this book · ${total} in total`,
+		analogWarmth: 'Vinyl atmosphere',
+		analogWarmthHint: 'Needle drop cue and gentle analog surface crackle.',
 		needleDrop: 'Needle drop cue',
 		needleDropHint: 'Subtle vintage stylus contact sound when starting playback.',
 		vinylCrackle: 'Vinyl crackle & warmth',

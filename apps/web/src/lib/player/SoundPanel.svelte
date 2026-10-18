@@ -9,12 +9,15 @@
 	import Volume2 from '@lucide/svelte/icons/volume-2';
 	import VolumeX from '@lucide/svelte/icons/volume-x';
 
+	let { hideTitle = false }: { hideTitle?: boolean } = $props();
 	const t = $derived(i18n.m.sound);
 	const BOOSTS = [1, 1.5, 2];
 	const pct = (v: number) => `${Math.round(v * 100)} %`;
 </script>
 
-<h3 class="label">{t.title}</h3>
+{#if !hideTitle}
+	<h3 class="label">{t.title}</h3>
+{/if}
 
 {#if volumeAvailable}
 	<div class="volume">
@@ -105,6 +108,11 @@
 			</p>
 		{/if}
 	{/if}
+	<div class="divider" role="separator"></div>
+	<div class="group-header">
+		<span class="group-title">{t.analogWarmth}</span>
+		<small class="muted">{t.analogWarmthHint}</small>
+	</div>
 	<Toggle
 		label={t.needleDrop}
 		hint={t.needleDropHint}
@@ -189,5 +197,23 @@
 	.hint,
 	.saved {
 		margin: 0;
+	}
+
+	.divider {
+		height: 1px;
+		background: var(--c-line);
+		margin: var(--sp-4) 0;
+	}
+
+	.group-header {
+		display: grid;
+		gap: var(--sp-4);
+		margin-top: var(--sp-2);
+	}
+
+	.group-title {
+		font-weight: var(--fw-semibold);
+		font-size: var(--fs-14, 14px);
+		color: var(--c-ink);
 	}
 </style>

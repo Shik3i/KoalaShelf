@@ -60,6 +60,7 @@
 	const sections = $derived([
 		['appearance', t.appearance],
 		['player', t.playback],
+		['sound', i18n.m.sound.title],
 		['sleep', t.sleep],
 		['library', t.libraryHome],
 		['storage', t.storage],
@@ -355,9 +356,7 @@
 		checked={prefs.smartRewind}
 		onchange={choose('smartRewind')}
 	/>
-	<div class="sub">
-		<SoundPanel />
-	</div>
+	<div class="divider" role="separator"></div>
 	<Toggle
 		label={t.autoQueue}
 		hint={t.autoQueueHint}
@@ -371,6 +370,11 @@
 		checked={prefs.shortcuts}
 		onchange={choose('shortcuts')}
 	/>
+</section>
+
+<section class="card" id="sound" aria-labelledby="h-sound">
+	<h2 class="label" id="h-sound">{i18n.m.sound.title}</h2>
+	<SoundPanel hideTitle />
 </section>
 
 <section class="card" id="sleep" aria-labelledby="h-sleep">
@@ -644,18 +648,10 @@
 		flex-wrap: wrap;
 	}
 
-	/* Sound settings: the same panel as in the player. */
-	.sub {
-		display: grid;
-		gap: var(--sp-16);
-		padding: var(--sp-16);
-		border-radius: var(--r-card);
-		background: var(--c-bg);
-	}
-
-	.sub :global(.mute),
-	.sub :global(.seg) {
-		background: var(--c-card);
+	.divider {
+		height: 1px;
+		background: var(--c-line);
+		margin: var(--sp-4) 0;
 	}
 
 	.times {
