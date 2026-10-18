@@ -75,6 +75,12 @@
 		/>
 	</div>
 	<Toggle
+		label={t.voice}
+		hint={t.voiceHint}
+		checked={prefs.voiceBoost}
+		onchange={(on) => player.setSound('voiceBoost', on)}
+	/>
+	<Toggle
 		label={i18n.m.settings.leveling}
 		hint={i18n.m.settings.levelingHint}
 		checked={prefs.leveling}
