@@ -56,6 +56,8 @@ export interface Prefs {
 	shortcuts: boolean;
 	// Sleep timer
 	sleepFade: boolean;
+	/** Duration of the sleep fade-out in seconds. */
+	sleepFadeDuration: 10 | 30 | 60;
 	/** Seconds to go back when a timer stops playback. */
 	sleepRewind: 0 | 15 | 30;
 	/** Last smart sleep timer window, in minutes. */
@@ -112,6 +114,7 @@ export const DEFAULTS: Prefs = {
 	seriesOffer: true,
 	shortcuts: true,
 	sleepFade: true,
+	sleepFadeDuration: 30,
 	sleepRewind: 15,
 	sleepMin: 20,
 	sleepMax: 40,
@@ -133,9 +136,11 @@ export function sanitize(saved: Record<string, unknown>): Prefs {
 	const valid = (k: string, v: unknown, fallback: unknown) =>
 		k === 'defaultRate'
 			? v === 'last' || (typeof v === 'number' && v > 0)
-			: Array.isArray(fallback)
-				? Array.isArray(v)
-				: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
+			: k === 'sleepFadeDuration'
+				? v === 10 || v === 30 || v === 60
+				: Array.isArray(fallback)
+					? Array.isArray(v)
+					: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
 	return Object.fromEntries(
 		Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
 	) as unknown as Prefs;

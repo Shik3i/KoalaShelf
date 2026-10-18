@@ -861,26 +861,30 @@ class Player {
 		}
 		const left = ((s.kind === 'window' ? s.maxAt : s.endsAt) - Date.now()) / 1000;
 		this.sleepRemaining = Math.max(0, this.sleepForecast?.seconds ?? left);
+		const fadeDuration = prefs.sleepFadeDuration ?? 30;
 		if (left <= 0) {
 			this.pause();
 			a.volume = prefs.volume;
 			// Rewind a little so the listener does not miss what they fell asleep to.
 			if (prefs.sleepRewind) this.skip(-prefs.sleepRewind);
 			this.sleep = { kind: 'off' };
-		} else if (left < FADE_SECONDS && this.sleepForecast?.chapter == null) {
-			if (prefs.sleepFade) a.volume = prefs.volume * Math.max(0.05, left / FADE_SECONDS);
-			this.#warnSleep();
+		} else if (left < fadeDuration && this.sleepForecast?.chapter == null) {
+			if (prefs.sleepFade) {
+				const ratio = Math.max(0.01, left / fadeDuration);
+				a.volume = prefs.volume * Math.pow(ratio, 1.5);
+			}
+			this.#warnSleep(fadeDuration);
 		}
 	}
 
 	/** A last chance to keep listening, shortly before a timer stops playback. */
-	#warnSleep() {
+	#warnSleep(durationSeconds = 30) {
 		if (this.#sleepWarned) return;
 		this.#sleepWarned = true;
 		toasts.show(
 			i18n.m.player.sleepSoon,
 			{ label: i18n.m.player.sleepExtend(10), run: () => this.extendSleep(10) },
-			FADE_SECONDS * 1000
+			durationSeconds * 1000
 		);
 	}
 

@@ -381,6 +381,21 @@
 		checked={prefs.sleepFade}
 		onchange={choose('sleepFade')}
 	/>
+	{#if prefs.sleepFade}
+		<div class="row stacked">
+			<span>{t.sleepFadeDuration}</span>
+			<Segmented
+				size="sm"
+				label={t.sleepFadeDuration}
+				value={prefs.sleepFadeDuration}
+				options={([10, 30, 60] as const).map((s) => ({
+					value: s,
+					label: t.seconds(s)
+				}))}
+				onchange={choose('sleepFadeDuration')}
+			/>
+		</div>
+	{/if}
 	<div class="row stacked">
 		<span>{t.sleepRewind}</span>
 		<Segmented
