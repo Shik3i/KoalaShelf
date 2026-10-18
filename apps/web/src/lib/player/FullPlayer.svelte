@@ -59,6 +59,7 @@
 	/** Click counters: re-keying the icon replays its little "jump" animation. */
 	let backN = $state(0);
 	let fwdN = $state(0);
+	let scratchWasPlaying = false;
 	let bookmarkError = $state(false);
 	/** Bookmark being renamed (its time) and the draft note. */
 	let editing = $state<number | null>(null);
@@ -274,6 +275,17 @@
 						shine={progress.shine(player.item?.id)}
 						progress={player.progress}
 						marks={player.chapters.slice(1).map((c) => c.start / player.duration)}
+						interactive
+						onScratchStart={() => {
+							scratchWasPlaying = player.playing;
+							if (player.playing) player.pause();
+						}}
+						onScratch={(dt) => {
+							player.seek(player.currentTime + dt);
+						}}
+						onScratchEnd={() => {
+							if (scratchWasPlaying) void player.play();
+						}}
 					/>
 				</div>
 
