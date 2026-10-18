@@ -1,0 +1,18 @@
+# Example: your own Caddy in front of KoalaShelf. It only adds TLS for your subdomain;
+# KoalaShelf handles everything behind it (the app, Audiobookshelf's API, streams, live updates).
+
+# Caddy on the same host, KoalaShelf published on 127.0.0.1:8080 (docker-compose.yml default):
+koalashelf.example.org {
+	reverse_proxy 127.0.0.1:8080
+}
+
+# Caddy in Docker on one network with KoalaShelf (then drop the "ports" in docker-compose.yml):
+#
+# koalashelf.example.org {
+# 	reverse_proxy koalashelf:8080
+# }
+
+# Optional, once HTTPS works for the domain: tell browsers to use only HTTPS from now on.
+# Add inside the site block:
+#
+# 	header Strict-Transport-Security "max-age=31536000"

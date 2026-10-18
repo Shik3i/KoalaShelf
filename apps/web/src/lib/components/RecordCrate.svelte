@@ -98,6 +98,12 @@
 		}
 	}
 
+	/** Not passive (Svelte registers wheel handlers passively): the page must not scroll too. */
+	function wheelFlip(el: HTMLElement) {
+		el.addEventListener('wheel', onwheel, { passive: false });
+		return () => el.removeEventListener('wheel', onwheel);
+	}
+
 	function onkeydown(e: KeyboardEvent) {
 		if (n < 2) return;
 		const keys: Record<string, number> = {
@@ -138,7 +144,7 @@
 		aria-describedby={n > 1 ? `${uid}-hint` : undefined}
 		style:--n={n}
 		{onpointermove}
-		{onwheel}
+		{@attach wheelFlip}
 		{onkeydown}
 		onfocus={() => (open = true)}
 		onblur={push}

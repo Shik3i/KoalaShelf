@@ -27,7 +27,9 @@ LABEL org.opencontainers.image.title="KoalaShelf" \
       org.opencontainers.image.version="$VERSION"
 # Runs as an unprivileged user (uid/gid 10001, for tmpfs ownership). Port 8080 needs no capability, so the one Caddy's binary
 # carries is dropped (it would also stop the container under no-new-privileges).
-RUN apk add --no-cache libcap \
+# Alpine packages also get their pending security fixes at build time.
+RUN apk upgrade --no-cache \
+ && apk add --no-cache libcap \
  && setcap -r /usr/bin/caddy \
  && apk del libcap \
  && addgroup -S -g 10001 koalashelf && adduser -S -u 10001 -G koalashelf -H koalashelf \

@@ -4,7 +4,7 @@ KoalaShelf's parts are released separately, each by its own tag and workflow:
 
 | Part | Tag | Workflow | Result |
 |---|---|---|---|
-| Web (Docker image) | `web-vX.Y.Z` | [`release-web.yml`](../.github/workflows/release-web.yml) | `ghcr.io/shik3i/koalashelf` for linux/amd64 and linux/arm64, tagged `X.Y.Z`, `X.Y`, `X` (from 1.0) and `latest`; signed build provenance and SBOM attestations; a GitHub Release with `compose.yaml` and the SBOM |
+| Web (Docker image) | `web-vX.Y.Z` | [`release-web.yml`](../.github/workflows/release-web.yml) | `ghcr.io/shik3i/koalashelf` for linux/amd64 and linux/arm64, tagged `X.Y.Z`, `X.Y`, `X` (from 1.0) and `latest`; signed build provenance and SBOM attestations; a GitHub Release with `docker-compose.yml`, `.env.example`, `Caddyfile.example` and the SBOM |
 | Desktop | `desktop-vX.Y.Z` | [`release-desktop.yml`](../.github/workflows/release-desktop.yml) | Windows (.msi, setup .exe), macOS (universal .dmg) and Linux (.deb, .rpm, .AppImage) with signed build provenance, as a GitHub pre-release (not code-signed yet) |
 | Android | — | — | planned (`android-vX.Y.Z`) |
 

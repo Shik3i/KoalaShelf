@@ -51,6 +51,11 @@ export function clampRate(r: number) {
 	return Math.round(Math.min(MAX_RATE, Math.max(MIN_RATE, r)) * 100) / 100;
 }
 
+/** A stored or imported speed, checked: the audio element throws on anything but a valid number. */
+export function safeRate(v: unknown) {
+	return typeof v === 'number' && Number.isFinite(v) ? clampRate(v) : 1;
+}
+
 /** Some browsers (iOS) ignore the element volume: the hardware buttons rule there. */
 export const volumeAvailable = (() => {
 	if (typeof Audio === 'undefined') return false;
@@ -118,7 +123,7 @@ class Player {
 	buffering = $state(false);
 	/** Item whose playback was requested but has not started yet (shows a loading state). */
 	loadingId = $state<string | null>(null);
-	rate = $state<number>(storage(RATE_KEY, 1));
+	rate = $state<number>(safeRate(storage(RATE_KEY, 1)));
 	sleep = $state<SleepTimer>({ kind: 'off' });
 	/** 'retrying' while recovering (e.g. token refresh), 'fatal' once giving up. */
 	error = $state<'retrying' | 'fatal' | null>(null);
@@ -404,8 +409,9 @@ class Player {
 
 	#applyBookRate(id: string) {
 		const own = prefs.rememberRate ? bookRate(id) : null;
-		const r =
+		const wanted =
 			own ?? (prefs.defaultRate === 'last' ? storage<number>(RATE_KEY, 1) : prefs.defaultRate);
+		const r = safeRate(wanted);
 		this.rate = r;
 		if (this.#audio) this.#audio.playbackRate = r;
 	}

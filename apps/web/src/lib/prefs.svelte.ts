@@ -171,7 +171,8 @@ const BOOK_RATES = 'ks.bookRates';
 /** Speed remembered per book (e.g. a fast narrator), falls back to the global default. */
 export function bookRate(itemId: string): number | null {
 	try {
-		return JSON.parse(localStorage.getItem(BOOK_RATES) ?? '{}')[itemId] ?? null;
+		const v: unknown = JSON.parse(localStorage.getItem(BOOK_RATES) ?? '{}')[itemId];
+		return typeof v === 'number' && Number.isFinite(v) ? v : null;
 	} catch {
 		return null;
 	}

@@ -49,6 +49,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .node-version
+          # Release builds never restore caches other runs could have written (cache poisoning).
+          package-manager-cache: false
 
       - name: Version, changelog and release policy
         id: version
@@ -110,8 +112,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
-          cache-from: type=gha,scope=release-web
-          cache-to: type=gha,mode=max,scope=release-web
+          # Built from scratch: no layer cache that other runs could have written.
+          no-cache: true
           # Provenance and SBOM are published below as signed attestations instead.
           provenance: false
           sbom: false
@@ -160,7 +162,7 @@ jobs:
             echo "docker pull $IMAGE:$VERSION"
             echo '```'
             echo
-            echo "Digest: \`$DIGEST\` (linux/amd64, linux/arm64). Example setup: \`compose.yaml\` below."
+            echo "Digest: \`$DIGEST\` (linux/amd64, linux/arm64). Example setup: \`docker-compose.yml\`, \`.env.example\` and \`Caddyfile.example\` below."
             echo
             echo "Verify the signed build provenance and SBOM:"
             echo
@@ -169,7 +171,7 @@ jobs:
             echo '```'
           } > notes.md
           gh release create "$TAG" --verify-tag --title "KoalaShelf Web $VERSION" --notes-file notes.md \
-            compose.yaml sbom.spdx.json
+            docker-compose.yml .env.example Caddyfile.example sbom.spdx.json
 
       - name: Summary
         env:

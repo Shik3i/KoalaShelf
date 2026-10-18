@@ -11,13 +11,13 @@ name = "koalashelf_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.7.2", features = [] }
+tauri-build = { version = "2.7.3", features = [] }
 
 [dependencies]
-tauri = { version = "2.12.3", features = [] }
-tauri-plugin-http = "2.8.2"
+tauri = { version = "2.12.4", features = [] }
+tauri-plugin-http = "2.8.3"
 tauri-plugin-window-state = "2.5.0"
-tauri-plugin-single-instance = "2.5.3"
+tauri-plugin-single-instance = "2.5.4"
 
 [profile.release]
 codegen-units = 1

@@ -76,11 +76,27 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 
 ## Self-hosting (Docker)
 
+One small container serves the app and talks to your Audiobookshelf; your own reverse proxy only points a subdomain at it.
+
 ```bash
-docker run -d -p 8080:8080 -e ABS_URL=http://your-audiobookshelf:80 ghcr.io/shik3i/koalashelf:latest
+cp .env.example .env    # set ABS_URL: where the container reaches Audiobookshelf
+docker compose up -d    # KoalaShelf on 127.0.0.1:8080
 ```
 
-Or with Compose: [`compose.yaml`](compose.yaml) is a complete, hardened example (read-only, unprivileged, no capabilities), optionally with Audiobookshelf itself. Images for linux/amd64 and linux/arm64 are published per release (`X.Y.Z`, `X.Y`, `latest`) with signed build provenance and an SBOM:
+- [`docker-compose.yml`](docker-compose.yml): hardened (read-only, unprivileged, no capabilities), optionally with Audiobookshelf itself
+- [`.env.example`](.env.example): every setting, explained
+- [`Caddyfile.example`](Caddyfile.example): your Caddy in front (TLS, your subdomain), on the host or in Docker
+
+**Nothing to back up, no volume:** KoalaShelf stores nothing on the server. Accounts, saved servers, settings and offline downloads live in each listener's browser; progress, bookmarks and the library stay in Audiobookshelf.
+
+| Variable | Meaning |
+|---|---|
+| `ABS_URL` | Where the container reaches Audiobookshelf (Docker service, LAN address or public address) |
+| `ABS_PUBLIC_URL` | Optional: the server address prefilled in the sign-in form (defaults to the app's own address) |
+| `KOALASHELF_VERSION` | Image tag in the Compose file: `latest`, or pinned like `0.1.0` or `0.1` |
+| `KOALASHELF_BIND`, `KOALASHELF_PORT` | Where the container listens on the host (default `127.0.0.1:8080`) |
+
+Images for linux/amd64 and linux/arm64 are published per release (`X.Y.Z`, `X.Y`, `latest`) with signed build provenance and an SBOM:
 
 ```bash
 gh attestation verify oci://ghcr.io/shik3i/koalashelf:latest -R Shik3i/KoalaShelf
@@ -88,14 +104,9 @@ gh attestation verify oci://ghcr.io/shik3i/koalashelf:latest -R Shik3i/KoalaShel
 
 To build the image yourself: `docker build -f apps/web/Dockerfile -t koalashelf-web .`
 
-| Variable | Meaning |
-|---|---|
-| `ABS_URL` | Where the container reaches Audiobookshelf (internal address) |
-| `ABS_PUBLIC_URL` | Optional: the server address shown in the sign-in form (defaults to the app's own address) |
+Inside the container a small web server (Caddy) serves the app and passes the Audiobookshelf API through on the same origin, so no CORS setup is needed and the refresh token stays in an httpOnly cookie. It sends a strict Content Security Policy, blocks framing, never lets personal API answers be cached, compresses with zstd/gzip and caches hashed assets for a year.
 
-Caddy serves the app and proxies the Audiobookshelf API on the same origin, so no CORS setup is needed and the refresh token stays in an httpOnly cookie. It sends a strict Content Security Policy, blocks framing, compresses with zstd/gzip and caches hashed assets for a year. Put your usual TLS reverse proxy in front of port 8080.
-
-Serving the app from a different origin also works: add that origin to *Allowed origins* in the Audiobookshelf server settings. Requires Audiobookshelf **2.26 or newer**.
+Listeners can also add any other Audiobookshelf server in the app: add KoalaShelf's address to *Allowed origins* in that server's settings. Requires Audiobookshelf **2.26 or newer**.
 
 ## Development
 

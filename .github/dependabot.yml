@@ -7,10 +7,10 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    # Freshly published versions wait a few days (supply-chain attacks are usually caught by then).
+    # Freshly published versions wait a week (supply-chain attacks are usually caught by then).
+    # Security fixes are not delayed: they come from the security updates setting.
     cooldown:
-      default-days: 3
-      semver-major-days: 7
+      default-days: 7
     open-pull-requests-limit: 5
     ignore:
       # TypeScript 7 (native compiler) is not supported by SvelteKit, svelte-check and
@@ -32,7 +32,7 @@ updates:
       interval: weekly
       day: monday
     cooldown:
-      default-days: 3
+      default-days: 7
     groups:
       cargo-minor-patch:
         update-types: [minor, patch]
@@ -42,18 +42,24 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: docker-compose
     directory: /
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     groups:
       actions:
         patterns: ['*']

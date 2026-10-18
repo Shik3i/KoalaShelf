@@ -32,6 +32,30 @@ test.describe('player extras', () => {
 		await stopPlayer(page);
 	});
 
+	test('broken stored speeds (e.g. from an edited backup) never stop a book from playing', async ({
+		page
+	}) => {
+		const id = await itemId('Der lange Weg');
+		await page.evaluate((id) => {
+			localStorage.setItem('ks.bookRates', JSON.stringify({ [id]: 'fast' }));
+			localStorage.setItem('ks.rate', '"x"');
+			localStorage.setItem('ks.prefs', JSON.stringify({ rememberRate: true }));
+		}, id);
+		await openPlayer(page);
+		expect(await audio(page, 'playbackRate')).toBe(1);
+		// Out of range: the nearest speed the player offers.
+		await stopPlayer(page);
+		await page.evaluate(
+			(id) => localStorage.setItem('ks.bookRates', JSON.stringify({ [id]: 99 })),
+			id
+		);
+		await openPlayer(page);
+		expect(await audio(page, 'playbackRate')).toBe(3.5);
+		await page.evaluate(() => {
+			for (const k of ['ks.bookRates', 'ks.rate', 'ks.prefs']) localStorage.removeItem(k);
+		});
+	});
+
 	test('speed: fine steps, slider, quick choices, keys', async ({ page }) => {
 		const dialog = await openPlayer(page);
 		await playerCall(page, 'setRate', 1);

@@ -1,0 +1,45 @@
+# KoalaShelf: one small container that serves the app and talks to your Audiobookshelf.
+# Your own reverse proxy (TLS, your domain) only points a subdomain at it: see Caddyfile.example.
+#
+#   cp .env.example .env      set ABS_URL (and optionally ABS_PUBLIC_URL)
+#   docker compose up -d
+#
+# Nothing to back up: KoalaShelf stores nothing on the server. Accounts, saved servers,
+# settings and offline downloads live in each listener's browser; progress, bookmarks and
+# the library stay in Audiobookshelf. So there is no volume, and updates lose nothing.
+# Verify the image: gh attestation verify oci://ghcr.io/shik3i/koalashelf:latest -R Shik3i/KoalaShelf
+
+services:
+  koalashelf:
+    # Pin a version (e.g. 0.1.0 or 0.1) for predictable updates; latest is the newest release.
+    image: ghcr.io/shik3i/koalashelf:${KOALASHELF_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      # Where the container reaches Audiobookshelf: a service on the same Docker network,
+      # an address in your LAN, or its public address.
+      ABS_URL: ${ABS_URL:-http://audiobookshelf:80}
+      # Optional: the address your listeners know Audiobookshelf by, prefilled at sign-in.
+      ABS_PUBLIC_URL: ${ABS_PUBLIC_URL:-}
+    ports:
+      # Only reachable from this host by default: your reverse proxy adds TLS in front.
+      # (If the proxy runs in Docker, put both on one network and drop the port instead.)
+      - '${KOALASHELF_BIND:-127.0.0.1}:${KOALASHELF_PORT:-8080}:8080'
+    # Hardening: unprivileged, read-only, no capabilities. The internal web server keeps its
+    # small working state in memory, owned by the image's user (10001).
+    read_only: true
+    tmpfs:
+      - /config:uid=10001,gid=10001
+      - /data:uid=10001,gid=10001
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # No Audiobookshelf yet? This starts one next to KoalaShelf (ABS_URL's default points at it).
+  # audiobookshelf:
+  #   image: ghcr.io/advplyr/audiobookshelf:2.37.1
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./audiobooks:/audiobooks
+  #     - ./abs/config:/config
+  #     - ./abs/metadata:/metadata

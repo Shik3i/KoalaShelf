@@ -183,6 +183,23 @@ export class AbsClient {
 		if (exp !== null && exp - Date.now() / 1000 < marginS) await this.refresh();
 	}
 
+	/** A token that still looked expired right after renewing it: the device clock runs ahead. */
+	private skewedToken: string | null = null;
+
+	/**
+	 * Renews an access token about to expire before using it, instead of failing one request
+	 * with a 401 first. With a device clock far ahead every token looks expired: then it stops
+	 * trying (the auth rate limit also covers refreshes) and relies on the server's 401s.
+	 */
+	private async renewSoon() {
+		const token = this.tokens.accessToken;
+		const exp = tokenExpiry(token);
+		if (exp === null || token === this.skewedToken || exp - Date.now() / 1000 > 15) return;
+		await this.refresh();
+		const next = tokenExpiry(this.tokens.accessToken);
+		if (next !== null && next - Date.now() / 1000 <= 15) this.skewedToken = this.tokens.accessToken;
+	}
+
 	/** Rotates tokens. Concurrent callers share one in-flight refresh. */
 	refresh(): Promise<boolean> {
 		this.refreshing ??= (async () => {
@@ -230,6 +247,7 @@ export class AbsClient {
 				body: body !== undefined ? JSON.stringify(body) : undefined
 			});
 
+		await this.renewSoon();
 		let res = await send();
 		if (res.status === 401) {
 			if (await this.refresh()) res = await send();
@@ -597,6 +615,7 @@ export class AbsClient {
 				credentials: 'omit',
 				headers: { Authorization: `Bearer ${this.tokens.accessToken}` }
 			});
+		await this.renewSoon();
 		let res = await send();
 		if (res.status === 401 && (await this.refresh())) res = await send();
 		if (!res.ok) throw new AbsError(res.status, res.statusText);
