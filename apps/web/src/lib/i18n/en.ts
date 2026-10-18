@@ -135,8 +135,12 @@ export const en = {
 		length: 'Length',
 		lengths: {
 			lt2: 'Under 2 h',
+			lt4: 'Under 4 h',
 			'2-6': '2–6 h',
+			'4-8': '4–8 h',
+			lt8: 'Under 8 h',
 			'6-12': '6–12 h',
+			'8-16': '8–16 h',
 			'12-24': '12–24 h',
 			gt24: 'Over 24 h'
 		},

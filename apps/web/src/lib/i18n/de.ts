@@ -135,8 +135,12 @@ export const de: Messages = {
 		length: 'Länge',
 		lengths: {
 			lt2: 'Unter 2 Std.',
+			lt4: 'Unter 4 Std.',
 			'2-6': '2–6 Std.',
+			'4-8': '4–8 Std.',
+			lt8: 'Unter 8 Std.',
 			'6-12': '6–12 Std.',
+			'8-16': '8–16 Std.',
 			'12-24': '12–24 Std.',
 			gt24: 'Über 24 Std.'
 		},

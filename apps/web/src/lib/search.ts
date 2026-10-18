@@ -1,6 +1,6 @@
-// Search across one or all libraries, recent searches and match highlighting.
-import type { SearchResult } from '@koalashelf/abs-client';
+import type { SearchResult, LibraryItem } from '@koalashelf/abs-client';
 import { scoped, session } from './session.svelte.ts';
+import { parseDurationQuery } from './library-query.ts';
 
 export interface Found extends SearchResult {
 	/** Library name per book id (only when searching several libraries). */
@@ -19,21 +19,44 @@ const empty = (): Found => ({
 
 /** Server search in the current library, or in every library at once (merged). */
 export async function search(query: string, all: boolean, limit: number, signal?: AbortSignal) {
+	const { minSeconds, maxSeconds, cleanQuery } = parseDurationQuery(query);
+	const hasDuration = minSeconds !== undefined || maxSeconds !== undefined;
+	const searchQuery = cleanQuery || query;
 	const libs = all
 		? session.libraries
 		: session.libraries.filter((l) => l.id === session.libraryId);
 	const results = await Promise.all(
-		libs.map((l) => session.api.search(l.id, query, limit, signal).then((r) => ({ l, r })))
+		libs.map((l) =>
+			(cleanQuery || !hasDuration
+				? session.api.search(l.id, searchQuery, limit, signal)
+				: session.api.libraryItems(l.id, { limit, sort: 'addedAt' }, signal).then((p) => ({
+						book: p.results.map((item) => ({ libraryItem: item as unknown as LibraryItem })),
+						series: [],
+						authors: [],
+						narrators: [],
+						tags: [],
+						genres: []
+				  }))
+			).then((r) => ({ l, r }))
+		)
 	);
 	const out = empty();
 	for (const { l, r } of results) {
-		out.book.push(...r.book);
+		const filteredBooks = hasDuration
+			? r.book.filter((b) => {
+					const dur = b.libraryItem?.media?.duration ?? 0;
+					if (minSeconds !== undefined && dur < minSeconds) return false;
+					if (maxSeconds !== undefined && dur >= maxSeconds) return false;
+					return true;
+			  })
+			: r.book;
+		out.book.push(...filteredBooks);
 		out.series.push(...r.series);
 		out.authors.push(...r.authors);
 		out.narrators.push(...r.narrators);
 		out.tags.push(...r.tags);
 		out.genres.push(...r.genres);
-		if (all) for (const b of r.book) out.libraryOf.set(b.libraryItem.id, l.name);
+		if (all) for (const b of filteredBooks) out.libraryOf.set(b.libraryItem.id, l.name);
 	}
 	// The same narrator, genre or tag can come from two libraries: count them once.
 	const merge = <T extends { name: string }>(list: T[], add: (a: T, b: T) => T) => [

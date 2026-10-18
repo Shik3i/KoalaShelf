@@ -17,12 +17,57 @@ export type Status = '' | 'in-progress' | 'not-started' | 'finished';
 /** Duration ranges in hours. */
 export const LENGTHS = {
 	lt2: [0, 2],
+	lt4: [0, 4],
 	'2-6': [2, 6],
+	'4-8': [4, 8],
+	lt8: [0, 8],
 	'6-12': [6, 12],
+	'8-16': [8, 16],
 	'12-24': [12, 24],
 	gt24: [24, Infinity]
 } as const;
 export type Length = keyof typeof LENGTHS;
+
+export interface DurationFilter {
+	minSeconds?: number;
+	maxSeconds?: number;
+	cleanQuery: string;
+}
+
+/** Parses natural duration expressions like "unter 8 stunden", "<4h", ">10h", "4-8h" from search queries. */
+export function parseDurationQuery(raw: string): DurationFilter {
+	let text = raw.trim();
+	let minHours: number | undefined;
+	let maxHours: number | undefined;
+
+	// Range: "4-8h", "4 bis 8 stunden", "4 to 8 hours"
+	const rangeMatch = text.match(/(?:^|\s)(\d+(?:[.,]\d+)?)\s*(?:-|–|bis|to)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i);
+	if (rangeMatch) {
+		minHours = parseFloat(rangeMatch[1].replace(',', '.'));
+		maxHours = parseFloat(rangeMatch[2].replace(',', '.'));
+		text = text.replace(rangeMatch[0], ' ').trim();
+	}
+
+	// Under / less than: "<8h", "< 8", "unter 8 stunden", "unter 4", "nur unter 8h", "under 8 hours"
+	const underMatch = text.match(/(?:^|\s)(?:(?:nur|only)\s+)?(?:<|unter|under|weniger\s+als|less\s+than)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i);
+	if (underMatch) {
+		maxHours = parseFloat(underMatch[1].replace(',', '.'));
+		text = text.replace(underMatch[0], ' ').trim();
+	}
+
+	// Over / more than: ">12h", "> 10", "über 10 stunden", "mehr als 8 stunden", "over 10 hours"
+	const overMatch = text.match(/(?:^|\s)(?:(?:nur|only)\s+)?(?:>|über|ueber|over|mehr\s+als|more\s+than)\s*(\d+(?:[.,]\d+)?)\s*(?:h|std|stunden|hours|hrs)?(?:\s|$)/i);
+	if (overMatch) {
+		minHours = parseFloat(overMatch[1].replace(',', '.'));
+		text = text.replace(overMatch[0], ' ').trim();
+	}
+
+	return {
+		minSeconds: minHours !== undefined ? minHours * 3600 : undefined,
+		maxSeconds: maxHours !== undefined ? maxHours * 3600 : undefined,
+		cleanQuery: text.replace(/\s+/g, ' ').trim()
+	};
+}
 
 export const SORTS = {
 	title: { key: 'media.metadata.title', desc: false },
@@ -195,6 +240,8 @@ export async function runSet(
 	// Base list in the requested order: the most selective single-value filter, else everything.
 	const baseFacet = f.find((x) => x.filters.length === 1);
 	const rest = f.filter((x) => x !== baseFacet);
+	const dur = parseDurationQuery(q.q);
+	const textSearch = dur.cleanQuery;
 	const [base, restSets, text] = await Promise.all([
 		api
 			.libraryItems(
@@ -209,16 +256,18 @@ export async function runSet(
 				return new Set(sets.flatMap((s) => [...s]));
 			})
 		),
-		q.q ? textIds(api, libraryId, q.q, signal) : Promise.resolve(null)
+		textSearch ? textIds(api, libraryId, textSearch, signal) : Promise.resolve(null)
 	]);
-	const [lo, hi] = q.length ? LENGTHS[q.length] : [0, Infinity];
+	const [loPreset, hiPreset] = q.length ? LENGTHS[q.length] : [0, Infinity];
+	const minSec = Math.max(loPreset * 3600, dur.minSeconds ?? 0);
+	const maxSec = Math.min(hiPreset * 3600, dur.maxSeconds ?? Infinity);
 	const status = q.status ? STATUS_LOCAL[q.status] : null;
 	return base.filter(
 		(i) =>
 			restSets.every((s) => s.has(i.id)) &&
 			(!text || text.has(i.id)) &&
 			(!status || statusOf(i.id) === status) &&
-			i.media.duration >= lo * 3600 &&
-			i.media.duration < hi * 3600
+			i.media.duration >= minSec &&
+			i.media.duration < maxSec
 	);
 }

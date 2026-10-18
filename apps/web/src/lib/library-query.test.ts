@@ -45,4 +45,39 @@ describe('library query', () => {
 	it('counts active filters', () => {
 		expect(activeCount(q('genre=A&genre=B&author=x&status=finished&q=z&length=lt2'))).toBe(6);
 	});
+
+	it('supports new duration ranges like lt4, lt8, 4-8', () => {
+		expect(q('length=lt4').length).toBe('lt4');
+		expect(q('length=lt8').length).toBe('lt8');
+		expect(q('length=4-8').length).toBe('4-8');
+		expect(q('length=8-16').length).toBe('8-16');
+	});
+});
+
+describe('parseDurationQuery', () => {
+	it('parses natural language under expressions', async () => {
+		const { parseDurationQuery } = await import('./library-query.ts');
+		const res1 = parseDurationQuery('unter 8 stunden');
+		expect(res1.maxSeconds).toBe(8 * 3600);
+		expect(res1.cleanQuery).toBe('');
+
+		const res2 = parseDurationQuery('harry potter <4h');
+		expect(res2.maxSeconds).toBe(4 * 3600);
+		expect(res2.cleanQuery).toBe('harry potter');
+
+		const res3 = parseDurationQuery('nur unter 8 std');
+		expect(res3.maxSeconds).toBe(8 * 3600);
+	});
+
+	it('parses over and range expressions', async () => {
+		const { parseDurationQuery } = await import('./library-query.ts');
+		const res1 = parseDurationQuery('sci-fi >12h');
+		expect(res1.minSeconds).toBe(12 * 3600);
+		expect(res1.cleanQuery).toBe('sci-fi');
+
+		const res2 = parseDurationQuery('4-8h');
+		expect(res2.minSeconds).toBe(4 * 3600);
+		expect(res2.maxSeconds).toBe(8 * 3600);
+		expect(res2.cleanQuery).toBe('');
+	});
 });
