@@ -1,10 +1,21 @@
-import type { SearchResult, LibraryItem } from '@koalashelf/abs-client';
+import type { SearchResult, LibraryItem, Chapter } from '@koalashelf/abs-client';
 import { scoped, session } from './session.svelte.ts';
 import { parseDurationQuery } from './library-query.ts';
+import { coverSrc, view } from './items.ts';
+
+export interface FoundChapter {
+	bookId: string;
+	bookTitle: string;
+	author: string;
+	cover: ((w: number) => string) | null;
+	chapter: Chapter;
+}
 
 export interface Found extends SearchResult {
 	/** Library name per book id (only when searching several libraries). */
 	libraryOf: Map<string, string>;
+	/** Matching chapters when chapter search is enabled. */
+	chapters: FoundChapter[];
 }
 
 const empty = (): Found => ({
@@ -14,11 +25,18 @@ const empty = (): Found => ({
 	narrators: [],
 	tags: [],
 	genres: [],
-	libraryOf: new Map()
+	libraryOf: new Map(),
+	chapters: []
 });
 
 /** Server search in the current library, or in every library at once (merged). */
-export async function search(query: string, all: boolean, limit: number, signal?: AbortSignal) {
+export async function search(
+	query: string,
+	all: boolean,
+	limit: number,
+	signal?: AbortSignal,
+	includeChapters: boolean = false
+) {
 	const { minSeconds, maxSeconds, cleanQuery } = parseDurationQuery(query);
 	const hasDuration = minSeconds !== undefined || maxSeconds !== undefined;
 	const searchQuery = cleanQuery || query;
@@ -58,6 +76,27 @@ export async function search(query: string, all: boolean, limit: number, signal?
 		out.genres.push(...r.genres);
 		if (all) for (const b of filteredBooks) out.libraryOf.set(b.libraryItem.id, l.name);
 	}
+
+	if (includeChapters && searchQuery.length >= 2) {
+		const lower = searchQuery.toLowerCase();
+		for (const b of out.book) {
+			const item = b.libraryItem;
+			const chapters = (item?.media as { chapters?: Chapter[] })?.chapters ?? [];
+			const v = view(item);
+			for (const ch of chapters) {
+				if (ch.title && ch.title.toLowerCase().includes(lower)) {
+					out.chapters.push({
+						bookId: item.id,
+						bookTitle: v.title,
+						author: v.author,
+						cover: coverSrc(item),
+						chapter: ch
+					});
+				}
+			}
+		}
+	}
+
 	// The same narrator, genre or tag can come from two libraries: count them once.
 	const merge = <T extends { name: string }>(list: T[], add: (a: T, b: T) => T) => [
 		...list
@@ -73,13 +112,14 @@ export async function search(query: string, all: boolean, limit: number, signal?
 	return out;
 }
 
-export const isEmpty = (r: SearchResult) =>
+export const isEmpty = (r: SearchResult | Found) =>
 	!r.book.length &&
 	!r.series.length &&
 	!r.authors.length &&
 	!r.narrators.length &&
 	!r.genres.length &&
-	!r.tags.length;
+	!r.tags.length &&
+	!('chapters' in r && r.chapters.length);
 
 // --- Recent searches (this device only) -------------------------------------------
 

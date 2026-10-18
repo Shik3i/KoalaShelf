@@ -67,6 +67,12 @@ export const en = {
 		failed: 'Download failed. Try again.',
 		empty: 'Nothing downloaded yet. Download books from their page to listen offline.',
 		usage: (used: string, free: string) => `${used} used · ${free} free on this device`,
+		storageRadar: 'Storage Radar',
+		audiobooksUsed: 'Audiobooks',
+		otherUsed: 'Other data',
+		freeSpace: 'Free space',
+		cleanFinished: (n: number) => `Clean ${n} finished ${n === 1 ? 'book' : 'books'}`,
+		cleaned: (n: number) => `Cleaned ${n} finished ${n === 1 ? 'book' : 'books'} from device`,
 		unsupported: 'This browser cannot store downloads.',
 		offlineHint: 'Offline: only downloaded books can be played.'
 	},
@@ -385,6 +391,9 @@ export const en = {
 		series: 'Series',
 		authors: 'Authors',
 		narrators: 'Narrators',
+		chapters: 'Chapters',
+		searchChapters: 'Search chapters',
+		searchChaptersHint: 'Also search chapter names in audiobooks',
 		nothing: (q: string) => `Nothing found for “${q}”.`,
 		hint: 'Search across your library.',
 		clear: 'Clear search'
@@ -636,6 +645,8 @@ export const en = {
 		narrator: 'Voice of the year',
 		longest: 'Longest book finished',
 		share: 'Share as image',
+		shareStory: 'Story Card (9:16)',
+		sharePost: 'Post Card (4:5)',
 		cardTitle: (y: number) => `My ${y} in audiobooks`,
 		cardFooter: 'Listened with KoalaShelf',
 		cardFailed: 'The picture could not be made.'

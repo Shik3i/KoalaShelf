@@ -40,12 +40,12 @@
 
 	/** The year as a picture: shared on phones, saved elsewhere. */
 	let drawing = $state(false);
-	async function shareCard() {
+	async function shareCard(cardFormat: 'story' | 'post' = 'story') {
 		if (!data) return;
 		drawing = true;
 		try {
-			const blob = await renderYearCard(year, data, covers);
-			const file = new File([blob], `koalashelf-${year}.png`, { type: 'image/png' });
+			const blob = await renderYearCard(year, data, covers, cardFormat);
+			const file = new File([blob], `koalashelf-${year}-${cardFormat}.png`, { type: 'image/png' });
 			if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] }))
 				await navigator.share({ files: [file], title: t.cardTitle(year) }).catch(() => undefined);
 			else saveFile(file.name, blob);
@@ -66,9 +66,9 @@
 	<div class="head">
 		<h2 id="yr-title">{t.title(year)}</h2>
 		{#if data?.totalListeningTime}
-			<button class="btn ghost sm" class:is-loading={drawing} onclick={shareCard}>
+			<button class="btn ghost sm" class:is-loading={drawing} onclick={() => shareCard('story')} title={t.shareStory}>
 				<ImageDown size={16} aria-hidden="true" />
-				{t.share}
+				<span>{t.shareStory}</span>
 			</button>
 		{/if}
 		{#if options.length > 1}

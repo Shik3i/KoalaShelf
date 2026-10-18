@@ -14,17 +14,22 @@
 		search,
 		type Found
 	} from '#lib/search.ts';
+	import { clock } from '#lib/format.ts';
+	import { player } from '#lib/player/player.svelte.ts';
+	import { haptic } from '#lib/haptics.ts';
 	import Cover from '#lib/components/Cover.svelte';
 	import Highlight from '#lib/components/Highlight.svelte';
 	import Segmented from '#lib/components/Segmented.svelte';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import History from '@lucide/svelte/icons/history';
+	import Play from '@lucide/svelte/icons/play';
 	import X from '@lucide/svelte/icons/x';
 
 	const t = $derived(i18n.m.search);
 
 	let q = $state(page.url.searchParams.get('q') ?? '');
 	let all = $state(page.url.searchParams.get('in') === 'all');
+	let searchChapters = $state(page.url.searchParams.get('chapters') === '1');
 	let result = $state.raw<Found | null>(null);
 	let busy = $state(false);
 	let recent = $state(recentSearches());
@@ -33,6 +38,7 @@
 	$effect(() => {
 		const query = q.trim();
 		const everywhere = all;
+		const withChapters = searchChapters;
 		if (!session.libraryId || query.length < 2) {
 			result = null;
 			return;
@@ -40,12 +46,13 @@
 		const ctrl = new AbortController();
 		const timer = setTimeout(async () => {
 			busy = true;
-			goto(`?q=${encodeURIComponent(query)}${everywhere ? '&in=all' : ''}`, {
-				replace: true,
-				reset: false
-			});
+			const params = new URLSearchParams();
+			params.set('q', query);
+			if (everywhere) params.set('in', 'all');
+			if (withChapters) params.set('chapters', '1');
+			goto(`?${params.toString()}`, { replace: true, reset: false });
 			try {
-				result = await search(query, everywhere, 24, ctrl.signal);
+				result = await search(query, everywhere, 24, ctrl.signal, withChapters);
 				recent = rememberSearch(query);
 			} catch {
 				/* aborted or failed: keep the previous result */
@@ -95,6 +102,17 @@
 	</div>
 {/if}
 
+<div class="search-options">
+	<label class="chapter-toggle">
+		<input
+			type="checkbox"
+			checked={searchChapters}
+			onchange={(e) => (searchChapters = e.currentTarget.checked)}
+		/>
+		<span>{t.searchChapters}</span>
+	</label>
+</div>
+
 {#if !result && !busy}
 	{#if recent.length && query.length < 2}
 		<section class="recent" aria-labelledby="recent-title">
@@ -124,6 +142,31 @@
 {/if}
 
 {#if result}
+	{#if result.chapters?.length}
+		<h2 class="label">{t.chapters}</h2>
+		<div class="chapter-results">
+			{#each result.chapters as c (c.bookId + '-' + c.chapter.id)}
+				<button
+					class="chapter-item"
+					onclick={() => {
+						haptic.tick();
+						void player.play(c.bookId).then(() => player.seek(c.chapter.start));
+					}}
+				>
+					<div class="c">
+						<Cover title={c.bookTitle} author={c.author} src={c.cover} sizes="48px" />
+					</div>
+					<div class="meta">
+						<strong><Highlight text={c.chapter.title} {query} /></strong>
+						<span class="muted">{c.bookTitle} · {clock(c.chapter.start)}</span>
+					</div>
+					<div class="play-btn-circle" title={i18n.m.player.play} aria-label={i18n.m.player.play}>
+						<Play size={14} fill="currentColor" />
+					</div>
+				</button>
+			{/each}
+		</div>
+	{/if}
 	{#if result.book.length}
 		<h2 class="label">{t.books}</h2>
 		<div class="books">
@@ -342,5 +385,68 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--sp-8);
+	}
+
+	.search-options {
+		display: flex;
+		align-items: center;
+		margin: calc(-1 * var(--sp-16)) 0 var(--sp-20);
+		padding: 0 var(--sp-8);
+	}
+
+	.chapter-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-8);
+		cursor: pointer;
+		font-size: var(--fs-13);
+		color: var(--c-muted);
+		user-select: none;
+	}
+
+	.chapter-toggle input {
+		accent-color: var(--c-accent);
+		cursor: pointer;
+	}
+
+	.chapter-toggle:hover {
+		color: var(--c-ink);
+	}
+
+	.chapter-results {
+		display: grid;
+		gap: var(--sp-8);
+		margin-bottom: var(--sp-24);
+	}
+
+	.chapter-item {
+		display: grid;
+		grid-template-columns: 48px minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--sp-12);
+		padding: var(--sp-8);
+		border: 0;
+		border-radius: var(--r-card);
+		background: var(--c-card);
+		color: var(--c-ink);
+		text-align: left;
+		cursor: pointer;
+		transition: background 0.15s ease;
+		width: 100%;
+	}
+
+	.chapter-item:hover {
+		background: var(--c-bg);
+	}
+
+	.play-btn-circle {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--c-accent);
+		color: var(--c-on-accent);
+		margin-right: var(--sp-4);
 	}
 </style>

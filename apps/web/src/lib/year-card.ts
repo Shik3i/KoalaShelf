@@ -38,7 +38,17 @@ function fit(ctx: CanvasRenderingContext2D, text: string, max: number) {
 	return `${s.trimEnd()}…`;
 }
 
-export async function renderYearCard(year: number, data: YearStats, covers: LibraryItem[]) {
+export type CardFormat = 'story' | 'post';
+
+export async function renderYearCard(
+	year: number,
+	data: YearStats,
+	covers: LibraryItem[],
+	cardFormat: CardFormat = 'story'
+) {
+	const isStory = cardFormat === 'story';
+	const W = 1080;
+	const H = isStory ? 1920 : 1350;
 	const t = i18n.m.yearReview;
 	const css = getComputedStyle(document.documentElement);
 	const v = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
@@ -67,6 +77,21 @@ export async function renderYearCard(year: number, data: YearStats, covers: Libr
 		/* a color the canvas cannot parse: no glow */
 	}
 	ctx.globalAlpha = 1;
+
+	// In Story format, add a subtle warm bottom vignette for vinyl warmth
+	if (isStory) {
+		try {
+			const bottomGlow = ctx.createRadialGradient(W * 0.85, H, 50, W * 0.85, H, W * 0.9);
+			bottomGlow.addColorStop(0, accent);
+			bottomGlow.addColorStop(1, 'transparent');
+			ctx.globalAlpha = 0.25;
+			ctx.fillStyle = bottomGlow;
+			ctx.fillRect(0, 0, W, H);
+			ctx.globalAlpha = 1;
+		} catch {
+			/* ignore */
+		}
+	}
 
 	// A record in the corner.
 	ctx.save();
@@ -129,7 +154,7 @@ export async function renderYearCard(year: number, data: YearStats, covers: Libr
 		[t.topGenres, data.topGenres[0]?.genre],
 		[t.narrator, data.mostListenedNarrator?.name]
 	];
-	y = Math.max(900, y - 140 + 46 + 90);
+	y = isStory ? 1120 : Math.max(900, y - 140 + 46 + 90);
 	for (const [label, value] of facts) {
 		if (!value) continue;
 		ctx.font = `700 26px ${body}`;
@@ -156,7 +181,7 @@ export async function renderYearCard(year: number, data: YearStats, covers: Libr
 		const col = i % 2;
 		const row = Math.floor(i / 2);
 		const x = W - pad - size * 2 - 24 + col * (size + 24);
-		const yy = 860 + row * (size + 24) - (col ? 40 : 0);
+		const yy = (isStory ? 1100 : 860) + row * (size + 24) - (col ? 40 : 0);
 		ctx.save();
 		ctx.shadowColor = 'rgba(0,0,0,0.5)';
 		ctx.shadowBlur = 30;

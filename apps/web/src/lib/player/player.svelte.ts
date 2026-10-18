@@ -29,6 +29,7 @@ import { isTauri } from '../platform.ts';
 import { needsGraph, SoundChain, type SoundSettings } from './sound.ts';
 import { forecast, type SleepForecast, type SleepTimer } from './sleep.ts';
 import { haptic } from '../haptics.ts';
+import { clearBadge, setBadge } from '../badge.ts';
 
 export type { SleepTimer } from './sleep.ts';
 
@@ -843,6 +844,7 @@ class Player {
 		if (this.chapter?.id !== this.#metaChapter) {
 			this.#updateMediaSession();
 			this.#positionState();
+			this.#updateBadge();
 		}
 	}
 
@@ -1053,6 +1055,7 @@ class Player {
 
 	/** Closes the playback session for an account change; its last book stays remembered. */
 	async leave() {
+		clearBadge();
 		const closing = this.#close();
 		this.item = null;
 		this.chapters = [];
@@ -1111,6 +1114,15 @@ class Player {
 		} catch {
 			/* ignore */
 		}
+	}
+
+	#updateBadge() {
+		if (!this.item || !this.chapters.length) {
+			clearBadge();
+			return;
+		}
+		const remaining = Math.max(0, this.chapters.length - (this.chapter?.id ?? 0) - 1);
+		setBadge(remaining);
 	}
 }
 

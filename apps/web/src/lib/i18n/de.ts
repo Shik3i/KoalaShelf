@@ -66,6 +66,12 @@ export const de: Messages = {
 		empty:
 			'Noch nichts heruntergeladen. Lade Bücher auf ihrer Seite herunter, um offline zu hören.',
 		usage: (used, free) => `${used} belegt · ${free} frei auf diesem Gerät`,
+		storageRadar: 'Speicher-Radar',
+		audiobooksUsed: 'Hörbücher',
+		otherUsed: 'Sonstige Daten',
+		freeSpace: 'Freier Speicher',
+		cleanFinished: (n) => `${n} fertige ${n === 1 ? 'Titel' : 'Titel'} bereinigen`,
+		cleaned: (n) => `${n} fertige ${n === 1 ? 'Titel' : 'Titel'} vom Gerät gelöscht`,
 		unsupported: 'Dieser Browser kann keine Downloads speichern.',
 		offlineHint: 'Offline: Nur heruntergeladene Bücher lassen sich abspielen.'
 	},
@@ -385,6 +391,9 @@ export const de: Messages = {
 		series: 'Serien',
 		authors: 'Autor:innen',
 		narrators: 'Sprecher:innen',
+		chapters: 'Kapitel',
+		searchChapters: 'Kapitel durchsuchen',
+		searchChaptersHint: 'Auch alle einzelnen Kapitelnamen in Hörbüchern durchsuchen',
 		nothing: (q) => `Nichts gefunden für „${q}“.`,
 		hint: 'Durchsuche deine Bibliothek.',
 		clear: 'Suche leeren'
@@ -638,6 +647,8 @@ export const de: Messages = {
 		narrator: 'Stimme des Jahres',
 		longest: 'Längstes beendetes Buch',
 		share: 'Als Bild teilen',
+		shareStory: 'Story-Card (9:16)',
+		sharePost: 'Post-Bild (4:5)',
 		cardTitle: (y) => `Mein Hörbuchjahr ${y}`,
 		cardFooter: 'Gehört mit KoalaShelf',
 		cardFailed: 'Das Bild konnte nicht erstellt werden.'
