@@ -12,6 +12,7 @@ on:
   push:
     tags:
       - 'web-v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
 
 permissions:
@@ -59,7 +60,7 @@ jobs:
         run: |
           node scripts/release.mjs policy
           version=$(node -p "require('./apps/web/package.json').version")
-          if [ "$PUBLISH" = true ]; then node scripts/release.mjs version "$TAG"; fi
+          if [ "$PUBLISH" = true ]; then node scripts/release.mjs version "$TAG" web; fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Security gate (release commit is main, CodeQL green, no open alerts)

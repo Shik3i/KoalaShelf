@@ -1,14 +1,13 @@
 # Releasing
 
-KoalaShelf's parts are released separately, each by its own tag and workflow:
+KoalaShelf can be released using a unified version tag (`vX.Y.Z`, building web, desktop, and mobile), or component-specific tags (`web-vX.Y.Z` or `desktop-vX.Y.Z`). Each release takes its notes from its section in CHANGELOG.md; see below.
 
 | Part | Tag | Workflow | Result |
 |---|---|---|---|
-| Web (Docker image) | `web-vX.Y.Z` | [`release-web.yml`](../.github/workflows/release-web.yml) | `ghcr.io/shik3i/koalashelf` for linux/amd64 and linux/arm64, tagged `X.Y.Z`, `X.Y`, `X` (from 1.0) and `latest`; signed build provenance and SBOM attestations; a GitHub Release with `docker-compose.yml`, `.env.example`, `Caddyfile.example` and the SBOM |
-| Desktop | `desktop-vX.Y.Z` | [`release-desktop.yml`](../.github/workflows/release-desktop.yml) | Windows (.msi, setup .exe), macOS (universal .dmg) and Linux (.deb, .rpm, .AppImage) with signed build provenance, as a GitHub pre-release (not code-signed yet) |
-| Android | — | — | planned (`android-vX.Y.Z`) |
-
-A tag of one part never starts another part's workflow.
+| Unified | `vX.Y.Z` | All release workflows | Builds all release artifacts with matching versions |
+| Web (Docker image) | `web-vX.Y.Z` or `vX.Y.Z` | [`release-web.yml`](../.github/workflows/release-web.yml) | `ghcr.io/shik3i/koalashelf` for linux/amd64 and linux/arm64, tagged `X.Y.Z`, `X.Y`, `X` (from 1.0) and `latest`; signed build provenance and SBOM attestations; a GitHub Release with `docker-compose.yml`, `.env.example`, `Caddyfile.example` and the SBOM |
+| Desktop | `desktop-vX.Y.Z` or `vX.Y.Z` | [`release-desktop.yml`](../.github/workflows/release-desktop.yml) | Windows (.msi, setup .exe), macOS (universal .dmg) and Linux (.deb, .rpm, .AppImage) with signed build provenance, as a GitHub pre-release (not code-signed yet) |
+| Android | `app-vX.Y.Z` or `vX.Y.Z` | — | planned |
 
 ## Steps
 

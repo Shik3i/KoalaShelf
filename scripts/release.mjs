@@ -52,11 +52,11 @@ export function policyErrors(workflows, dockerfiles) {
 	return errors;
 }
 
-/** "web-v1.2.3" -> { component: 'web', version: '1.2.3' } (or throws). */
-export function parseTag(tag) {
-	const m = /^(web|desktop)-v(\d+\.\d+\.\d+)$/.exec(tag ?? '');
-	if (!m) throw new Error(`Not a release tag: ${tag} (expected web-vX.Y.Z or desktop-vX.Y.Z)`);
-	return { component: m[1], version: m[2] };
+/** "web-v1.2.3", "desktop-v1.2.3" or "v1.2.3" -> { component: 'web', version: '1.2.3' } (or throws). */
+export function parseTag(tag, expectedComponent = 'web') {
+	const m = /^(?:(web|desktop)-)?v(\d+\.\d+\.\d+)$/.exec(tag ?? '');
+	if (!m) throw new Error(`Not a release tag: ${tag} (expected [web|desktop-]vX.Y.Z)`);
+	return { component: m[1] ?? expectedComponent, version: m[2] };
 }
 
 export function versionErrors(component, version, readFile = read) {
@@ -133,7 +133,7 @@ async function main([command, ...args]) {
 		return console.log('Release policy: ok');
 	}
 	if (command === 'version') {
-		const { component, version } = parseTag(args[0]);
+		const { component, version } = parseTag(args[0], args[1]);
 		const errors = versionErrors(component, version);
 		try {
 			releaseNotes(read('CHANGELOG.md'), component, version);

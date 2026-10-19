@@ -32,9 +32,10 @@ test('policy: only release workflows publish; CodeQL stays read-only; no untrust
 test('tags name the component and a semver version', () => {
 	assert.deepEqual(parseTag('web-v0.1.0'), { component: 'web', version: '0.1.0' });
 	assert.deepEqual(parseTag('desktop-v1.2.3'), { component: 'desktop', version: '1.2.3' });
-	assert.throws(() => parseTag('v0.1.0'));
+	assert.deepEqual(parseTag('v0.1.0', 'web'), { component: 'web', version: '0.1.0' });
+	assert.deepEqual(parseTag('v1.2.3', 'desktop'), { component: 'desktop', version: '1.2.3' });
 	assert.throws(() => parseTag('web-v0.1'));
-	assert.throws(() => parseTag('android-v1.0.0'));
+	assert.throws(() => parseTag('invalid-tag'));
 });
 
 test('every version file must carry the tagged version', () => {

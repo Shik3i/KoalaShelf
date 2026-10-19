@@ -1,6 +1,12 @@
 # Changelog
 
-KoalaShelf's parts are released separately: **Web** (the Docker image with the web app, tags `web-vX.Y.Z`) and **Desktop** (installers, tags `desktop-vX.Y.Z`). Each release takes its notes from its section here; see [docs/releasing.md](docs/releasing.md).
+## Desktop 0.1.0
+
+The first release: a fast, private client for Audiobookshelf as a native desktop app for Windows, macOS and Linux (built with Tauri).
+
+- Native desktop window with system integration and saved window position
+- Full parity with KoalaShelf web player, offline support and library features
+- Unsigned pre-release installers for Windows (.msi, setup .exe), macOS (universal .dmg) and Linux (.deb, .rpm, .AppImage) with signed provenance attestations
 
 ## Web 0.1.0
 
