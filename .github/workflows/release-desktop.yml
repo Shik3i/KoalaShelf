@@ -153,6 +153,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           version="${TAG#desktop-v}"
+          version="${version#v}"
           {
             node scripts/release.mjs notes desktop "$version"
             echo

@@ -52,6 +52,7 @@ test('every version file must carry the tagged version', () => {
 test('release notes come from the matching changelog section', () => {
 	const log = '# Changelog\n\n## Web 0.2.0 — 2026-11-01\n\n- B\n\n## Desktop 0.1.0\n\n- D\n\n## Web 0.1.0\n\n- A\n';
 	assert.equal(releaseNotes(log, 'web', '0.2.0'), '- B');
+	assert.equal(releaseNotes(log, 'desktop', parseTag('v0.1.0', 'desktop').version), '- D');
 	assert.equal(releaseNotes(log, 'web', '0.1.0'), '- A');
 	assert.throws(() => releaseNotes(log, 'web', '0.3.0'));
 });
