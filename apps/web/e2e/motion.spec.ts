@@ -6,8 +6,8 @@ import { itemId } from './helpers.ts';
 test('the navigation highlight glides to the current page and sits under it', async ({ page }) => {
 	await page.goto('/library');
 	const nav = page.getByRole('navigation', { name: 'Main navigation' });
-	await nav.getByRole('link', { name: 'Statistics' }).click();
-	await expect(page).toHaveURL(/\/stats/);
+	await nav.getByRole('link', { name: 'Settings' }).click();
+	await expect(page).toHaveURL(/\/settings/);
 	const current = nav.locator('[aria-current="page"]');
 	await expect
 		.poll(async () => {

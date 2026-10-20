@@ -24,6 +24,8 @@ export const de: Messages = {
 		stats: 'Statistik',
 		downloads: 'Downloads',
 		history: 'Verlauf',
+		discover: 'Entdecken',
+		myLibrary: 'Mediathek',
 		more: 'Mehr',
 		skip: 'Zum Inhalt springen'
 	},
@@ -505,6 +507,11 @@ export const de: Messages = {
 		moveUp: (name) => `${name} nach oben`,
 		moveDown: (name) => `${name} nach unten`,
 		storage: 'Downloads & Speicher',
+		statsTitle: 'Statistik',
+		statsHeading: 'Hörstatistik & Jahresrückblick',
+		statsDesc:
+			'Detaillierte Einblicke in deine Hörgewohnheiten, Streak, meistgehörte Bücher und den Jahresrückblick.',
+		openStats: 'Statistik öffnen',
 		downloadsSummary: (n, size) => `${n} ${n === 1 ? 'Buch' : 'Bücher'} auf diesem Gerät · ${size}`,
 		manageDownloads: 'Downloads verwalten',
 		removeAll: 'Alle Downloads entfernen',

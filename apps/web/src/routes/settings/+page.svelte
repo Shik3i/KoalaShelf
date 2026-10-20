@@ -24,6 +24,7 @@
 	import ChevronUp from '@lucide/svelte/icons/chevron-up';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Check from '@lucide/svelte/icons/check';
+	import ChartColumn from '@lucide/svelte/icons/chart-column';
 
 	const t = $derived(i18n.m.settings);
 	const home = $derived(i18n.m.home);
@@ -64,6 +65,7 @@
 		['sleep', t.sleep],
 		['library', t.libraryHome],
 		['storage', t.storage],
+		['stats', t.statsTitle],
 		['account', t.account]
 	] as const);
 
@@ -579,6 +581,20 @@
 		{:else}
 			<button class="btn ghost" onclick={() => (confirming = 'reset')}>{t.reset}</button>
 		{/if}
+	</div>
+</section>
+
+<section class="card" id="stats" aria-labelledby="h-stats">
+	<h2 class="label" id="h-stats">{t.statsTitle}</h2>
+	<div class="row">
+		<div>
+			<strong>{t.statsHeading}</strong>
+			<p class="desc">{t.statsDesc}</p>
+		</div>
+		<a href="/stats" class="btn primary">
+			<ChartColumn size={18} aria-hidden="true" />
+			{t.openStats}
+		</a>
 	</div>
 </section>
 

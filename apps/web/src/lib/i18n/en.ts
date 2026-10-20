@@ -26,6 +26,8 @@ export const en = {
 		stats: 'Statistics',
 		downloads: 'Downloads',
 		history: 'History',
+		discover: 'Discover',
+		myLibrary: 'My Library',
 		more: 'More',
 		skip: 'Skip to content'
 	},
@@ -505,6 +507,11 @@ export const en = {
 		moveUp: (name: string) => `Move ${name} up`,
 		moveDown: (name: string) => `Move ${name} down`,
 		storage: 'Downloads & storage',
+		statsTitle: 'Statistics',
+		statsHeading: 'Listening stats & year review',
+		statsDesc:
+			'Detailed insights into your listening habits, streak, top audiobooks, and year in review.',
+		openStats: 'Open statistics',
 		downloadsSummary: (n: number, size: string) =>
 			`${n} ${n === 1 ? 'book' : 'books'} on this device · ${size}`,
 		manageDownloads: 'Manage downloads',

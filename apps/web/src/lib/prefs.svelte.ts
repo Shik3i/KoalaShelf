@@ -86,6 +86,8 @@ export interface Prefs {
 	// Downloads
 	/** Delete a downloaded book from this device once it is finished. */
 	removeFinished: boolean;
+	/** Collapsed state of navigation groups in the sidebar. */
+	navCollapsed: { discover?: boolean; library?: boolean };
 }
 
 export const DEFAULTS: Prefs = {
@@ -133,7 +135,8 @@ export const DEFAULTS: Prefs = {
 	shelfOrder: [],
 	savedViews: [],
 	dailyGoal: 0,
-	removeFinished: false
+	removeFinished: false,
+	navCollapsed: {}
 };
 
 /** Only known keys with a plausible type survive (older versions, hand edits, imports). */
@@ -145,9 +148,11 @@ export function sanitize(saved: Record<string, unknown>): Prefs {
 				? v === 'off' || v === 'voice' || v === 'night' || v === 'commute'
 				: k === 'sleepFadeDuration'
 					? v === 10 || v === 30 || v === 60
-					: Array.isArray(fallback)
-						? Array.isArray(v)
-						: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
+					: k === 'navCollapsed'
+						? typeof v === 'object' && v !== null
+						: Array.isArray(fallback)
+							? Array.isArray(v)
+							: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
 	return Object.fromEntries(
 		Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
 	) as unknown as Prefs;

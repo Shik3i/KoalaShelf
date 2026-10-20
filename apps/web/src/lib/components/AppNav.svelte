@@ -19,9 +19,10 @@
 	import BookmarkIcon from '@lucide/svelte/icons/bookmark';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import Settings from '@lucide/svelte/icons/settings';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import { afterNavigate } from '$app/navigation';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
-	import LocaleSwitch from './LocaleSwitch.svelte';
+	import { prefs } from '#lib/prefs.svelte.ts';
 	import { dur } from '#lib/motion.ts';
 	import AccountSwitcher from './AccountSwitcher.svelte';
 	import Avatar from './Avatar.svelte';
@@ -32,20 +33,74 @@
 	let switcher = $state(false);
 
 	const t = $derived(i18n.m.nav);
-	const items = $derived([
+
+	const primaryItems = $derived([
 		{ href: '/', label: t.home, icon: House, tab: true },
 		{ href: '/library', label: t.library, icon: LibraryBig, tab: true },
-		{ href: '/series', label: t.series, icon: Layers, tab: false },
-		{ href: '/authors', label: t.authors, icon: Users, tab: false },
-		{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
-		{ href: '/playlists', label: t.playlists, icon: ListMusic, tab: false },
-		{ href: '/bookmarks', label: t.bookmarks, icon: BookmarkIcon, tab: false },
-		{ href: '/history', label: t.history, icon: History, tab: false },
-		{ href: '/stats', label: t.stats, icon: ChartColumn, tab: false },
-		{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
-		{ href: '/search', label: t.search, icon: Search, tab: true },
-		{ href: '/settings', label: t.settings, icon: Settings, tab: false }
+		{ href: '/search', label: t.search, icon: Search, tab: true }
 	]);
+
+	const discoverItems = $derived([
+		{ href: '/series', label: t.series, icon: Layers, tab: false },
+		{ href: '/authors', label: t.authors, icon: Users, tab: false }
+	]);
+
+	const libraryItems = $derived([
+		{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
+		{ href: '/history', label: t.history, icon: History, tab: false },
+		{ href: '/bookmarks', label: t.bookmarks, icon: BookmarkIcon, tab: false },
+		{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
+		{ href: '/playlists', label: t.playlists, icon: ListMusic, tab: false }
+	]);
+
+	const settingsItem = $derived({
+		href: '/settings',
+		label: t.settings,
+		icon: Settings,
+		tab: false
+	});
+
+	const tabItems = $derived([
+		{ href: '/', label: t.home, icon: House },
+		{ href: '/library', label: t.library, icon: LibraryBig },
+		{ href: '/downloads', label: t.downloads, icon: Download },
+		{ href: '/search', label: t.search, icon: Search }
+	]);
+
+	const extra = $derived([
+		...discoverItems,
+		{ href: '/history', label: t.history, icon: History },
+		{ href: '/bookmarks', label: t.bookmarks, icon: BookmarkIcon },
+		{ href: '/collections', label: t.collections, icon: FolderHeart },
+		{ href: '/playlists', label: t.playlists, icon: ListMusic },
+		{ href: '/stats', label: t.stats, icon: ChartColumn },
+		settingsItem
+	]);
+
+	const collapsed = $derived({
+		discover: prefs.navCollapsed.discover ?? false,
+		library: prefs.navCollapsed.library ?? false
+	});
+
+	function toggleGroup(group: 'discover' | 'library') {
+		prefs.set('navCollapsed', {
+			...prefs.navCollapsed,
+			[group]: !collapsed[group]
+		});
+	}
+
+	const active = (href: string) =>
+		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
+
+	// Auto-expand a collapsed section if one of its items is currently visited.
+	$effect(() => {
+		if (discoverItems.some((i) => active(i.href)) && collapsed.discover) {
+			prefs.set('navCollapsed', { ...prefs.navCollapsed, discover: false });
+		}
+		if (libraryItems.some((i) => active(i.href)) && collapsed.library) {
+			prefs.set('navCollapsed', { ...prefs.navCollapsed, library: false });
+		}
+	});
 
 	/** Shortcut hint for the quick search (⌘ on Apple devices). */
 	const modKey = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
@@ -59,10 +114,12 @@
 			const cur = nav.querySelector<HTMLElement>('[aria-current="page"], button.current');
 			nav.style.setProperty('--pill-on', cur ? '1' : '0');
 			if (!cur) return;
-			nav.style.setProperty('--pill-x', `${cur.offsetLeft}px`);
-			nav.style.setProperty('--pill-y', `${cur.offsetTop}px`);
-			nav.style.setProperty('--pill-w', `${cur.offsetWidth}px`);
-			nav.style.setProperty('--pill-h', `${cur.offsetHeight}px`);
+			const navRect = nav.getBoundingClientRect();
+			const curRect = cur.getBoundingClientRect();
+			nav.style.setProperty('--pill-x', `${curRect.left - navRect.left}px`);
+			nav.style.setProperty('--pill-y', `${curRect.top - navRect.top}px`);
+			nav.style.setProperty('--pill-w', `${curRect.width}px`);
+			nav.style.setProperty('--pill-h', `${curRect.height}px`);
 		};
 		const watch = new MutationObserver(place);
 		watch.observe(nav, {
@@ -79,11 +136,6 @@
 		};
 	}
 
-	const active = (href: string) =>
-		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
-
-	// Phones: pages beyond the tab bar live in a "More" sheet.
-	const extra = $derived(items.filter((i) => !i.tab));
 	const moreActive = $derived(extra.some((i) => active(i.href)));
 	let sheet = $state<HTMLDialogElement>();
 	let closing = $state(false);
@@ -112,13 +164,70 @@
 	</a>
 	<nav aria-label={t.main} {@attach glide}>
 		<span class="pill" aria-hidden="true"></span>
-		{#each items as item (item.href)}
-			<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
-				<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-				{item.label}
-				{#if item.href === '/search'}<kbd class="hint" aria-hidden="true">{modKey} K</kbd>{/if}
+		<div class="nav-group">
+			{#each primaryItems as item (item.href)}
+				<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+					<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
+					{item.label}
+					{#if item.href === '/search'}<kbd class="hint" aria-hidden="true">{modKey} K</kbd>{/if}
+				</a>
+			{/each}
+		</div>
+
+		<div class="nav-section">
+			<button
+				type="button"
+				class="nav-header"
+				onclick={() => toggleGroup('discover')}
+				aria-expanded={!collapsed.discover}
+			>
+				<span>{t.discover}</span>
+				<span class="chevron" class:collapsed={collapsed.discover}>
+					<ChevronDown size={14} aria-hidden="true" />
+				</span>
+			</button>
+			{#if !collapsed.discover}
+				<div class="nav-group">
+					{#each discoverItems as item (item.href)}
+						<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+							<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
+							{item.label}
+						</a>
+					{/each}
+				</div>
+			{/if}
+		</div>
+
+		<div class="nav-section">
+			<button
+				type="button"
+				class="nav-header"
+				onclick={() => toggleGroup('library')}
+				aria-expanded={!collapsed.library}
+			>
+				<span>{t.myLibrary}</span>
+				<span class="chevron" class:collapsed={collapsed.library}>
+					<ChevronDown size={14} aria-hidden="true" />
+				</span>
+			</button>
+			{#if !collapsed.library}
+				<div class="nav-group">
+					{#each libraryItems as item (item.href)}
+						<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+							<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
+							{item.label}
+						</a>
+					{/each}
+				</div>
+			{/if}
+		</div>
+
+		<div class="nav-group system">
+			<a href={settingsItem.href} aria-current={active(settingsItem.href) ? 'page' : undefined}>
+				<settingsItem.icon size={18} strokeWidth={2.2} aria-hidden="true" />
+				{settingsItem.label}
 			</a>
-		{/each}
+		</div>
 	</nav>
 
 	<div class="profile">
@@ -135,7 +244,6 @@
 				</select>
 			</label>
 		{/if}
-		<LocaleSwitch />
 		<div class="me">
 			<button
 				class="who"
@@ -166,7 +274,7 @@
 
 <nav class="tabs" aria-label={t.main} {@attach glide}>
 	<span class="pill" aria-hidden="true"></span>
-	{#each items.filter((i) => i.tab) as item (item.href)}
+	{#each tabItems as item (item.href)}
 		<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
 			<item.icon size={22} strokeWidth={2} aria-hidden="true" />
 			<span>{item.label}</span>
@@ -345,6 +453,57 @@
 
 	.side nav a[aria-current='page'] {
 		color: var(--c-sel-ink);
+	}
+
+	.nav-section {
+		display: grid;
+		gap: var(--sp-4);
+		margin-top: var(--sp-8);
+	}
+
+	.nav-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		padding: var(--sp-6) var(--sp-12);
+		border: 0;
+		border-radius: var(--r-card);
+		background: none;
+		color: var(--c-muted);
+		font-size: var(--fs-12);
+		font-weight: var(--fw-bold);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		cursor: pointer;
+		user-select: none;
+		transition: color var(--motion-fast) var(--motion-ease);
+	}
+
+	.nav-header:hover {
+		color: var(--c-ink);
+	}
+
+	.nav-header .chevron {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: transform var(--motion-fast) var(--motion-ease);
+	}
+
+	.nav-header .chevron.collapsed {
+		transform: rotate(-90deg);
+	}
+
+	.nav-group {
+		display: grid;
+		gap: var(--sp-4);
+	}
+
+	.nav-group.system {
+		margin-top: var(--sp-8);
+		padding-top: var(--sp-8);
+		border-top: 1px solid var(--c-line);
 	}
 
 	.side nav {
