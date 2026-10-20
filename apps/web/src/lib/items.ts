@@ -1,5 +1,5 @@
 import type { LibraryItem, LibraryItemMinified } from '@koalashelf/abs-client';
-import { session } from './session.svelte';
+import { session } from './session.svelte.ts';
 
 type AnyItem = LibraryItem | LibraryItemMinified;
 

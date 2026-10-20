@@ -2,6 +2,7 @@
 	import Vinyl from './Vinyl.svelte';
 	import { placeRecord } from '#lib/motion.ts';
 	import { haptic } from '#lib/haptics.ts';
+	import { i18n } from '#lib/i18n/index.svelte.ts';
 
 	interface Props {
 		title: string;
@@ -115,8 +116,11 @@
 			class:interactive
 			class:scratching={isScratching}
 			role={interactive ? 'slider' : undefined}
-			aria-label={interactive ? 'Platte drehen / DJ Scratch' : undefined}
+			aria-label={interactive ? i18n.m.player.turntableScratch : undefined}
+			aria-valuemin={interactive ? 0 : undefined}
+			aria-valuemax={interactive ? 100 : undefined}
 			aria-valuenow={interactive ? Math.round(progress * 100) : undefined}
+			aria-valuetext={interactive ? `${Math.round(progress * 100)}%` : undefined}
 			tabindex={interactive ? 0 : undefined}
 			bind:this={platterEl}
 			onpointerdown={onPointerDown}

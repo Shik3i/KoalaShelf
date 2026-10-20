@@ -94,8 +94,9 @@ export class SoundChain {
 	}
 
 	attach(audio: HTMLAudioElement) {
-		if (this.#ctx) return;
-		const ctx = new AudioContext({ latencyHint: 'playback' });
+		if (this.#source) return;
+		const ctx = this.#ctx ?? new AudioContext({ latencyHint: 'playback' });
+		this.#ctx = ctx;
 		// Mixing to one channel: an explicit single-channel node downmixes, later nodes upmix.
 		const mono = ctx.createGain();
 		mono.channelCount = 1;
@@ -120,7 +121,6 @@ export class SoundChain {
 		c.ratio.value = 5;
 		c.attack.value = 0.005;
 		c.release.value = 0.3;
-		this.#ctx = ctx;
 		this.#source = ctx.createMediaElementSource(audio);
 		this.#mono = mono;
 		this.#highpass = highpass;
@@ -145,9 +145,19 @@ export class SoundChain {
 	}
 
 	/** Plays a subtle authentic 1.2s vintage stylus needle drop sound cue. */
-	playNeedleDrop() {
-		const ctx = this.#ctx;
-		if (!ctx || ctx.state === 'suspended') return;
+	async playNeedleDrop() {
+		let ctx = this.#ctx;
+		if (!ctx) {
+			try {
+				ctx = new AudioContext({ latencyHint: 'playback' });
+				this.#ctx = ctx;
+			} catch {
+				return;
+			}
+		}
+		if (ctx.state === 'suspended') {
+			await ctx.resume().catch(() => undefined);
+		}
 		try {
 			const now = ctx.currentTime;
 			const duration = 1.2;

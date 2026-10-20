@@ -1,6 +1,6 @@
 import { SvelteMap } from 'svelte/reactivity';
 import type { MediaProgress } from '@koalashelf/abs-client';
-import { session } from './session.svelte';
+import { session } from './session.svelte.ts';
 
 /** Reactive media progress of the signed-in user, keyed by library item id. */
 class ProgressStore {

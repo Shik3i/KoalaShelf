@@ -59,21 +59,12 @@
 	);
 	const meta = $derived(item?.media.metadata);
 	const p = $derived(item ? progress.get(item.id) : undefined);
-	const isFinished = $derived(
-		(p?.isFinished ?? false) || (item?.userMediaProgress?.isFinished ?? false)
-	);
+	const effectiveProgress = $derived(p ?? item?.userMediaProgress);
+	const isFinished = $derived(effectiveProgress?.isFinished ?? false);
 	const isCurrent = $derived(!!item && player.item?.id === item.id && !isFinished);
-	const position = $derived(
-		isCurrent ? player.currentTime : (p?.currentTime ?? item?.userMediaProgress?.currentTime ?? 0)
-	);
+	const position = $derived(isCurrent ? player.currentTime : (effectiveProgress?.currentTime ?? 0));
 	const pct = $derived(
-		item
-			? isFinished
-				? 1
-				: isCurrent
-					? player.progress
-					: (p?.progress ?? item.userMediaProgress?.progress ?? 0)
-			: 0
+		item ? (isFinished ? 1 : isCurrent ? player.progress : (effectiveProgress?.progress ?? 0)) : 0
 	);
 	const marks = $derived(
 		item ? item.media.chapters.slice(1).map((c) => c.start / item.media.duration) : []

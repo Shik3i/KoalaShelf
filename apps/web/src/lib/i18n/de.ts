@@ -293,6 +293,7 @@ export const de: Messages = {
 		autoSleepStarted: 'Nachtzeit: Sleep-Timer gestartet',
 		sleepSoon: 'Stoppt in wenigen Sekunden',
 		sleepExtend: (m) => `+${m} Min.`,
+		turntableScratch: 'Platte drehen / DJ-Scratch',
 		sleepExtendLabel: 'Mehr Zeit',
 		autoSleepOn: 'Startet nachts von selbst · ändern',
 		autoSleepOff: 'Nachts automatisch einen Timer starten',

@@ -293,6 +293,7 @@ export const en = {
 		autoSleepStarted: 'Night time: sleep timer started',
 		sleepSoon: 'Stopping in a few seconds',
 		sleepExtend: (m: number) => `+${m} min`,
+		turntableScratch: 'Spin vinyl / DJ scratch',
 		sleepExtendLabel: 'More time',
 		autoSleepOn: 'Starts by itself at night · change',
 		autoSleepOff: 'Start a timer by itself at night',

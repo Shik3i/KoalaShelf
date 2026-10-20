@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsGraph, NO_SOUND } from './sound.ts';
+import { needsGraph, NO_SOUND, SoundChain } from './sound.ts';
 
 describe('SoundChain needsGraph', () => {
 	it('returns false for default no-sound configuration', () => {
@@ -28,5 +28,18 @@ describe('SoundChain needsGraph', () => {
 	it('returns true when mono or silence is enabled', () => {
 		expect(needsGraph({ ...NO_SOUND, mono: true })).toBe(true);
 		expect(needsGraph({ ...NO_SOUND, silence: true })).toBe(true);
+	});
+});
+
+describe('SoundChain instance', () => {
+	it('instantiates and provides initial state', () => {
+		const chain = new SoundChain();
+		expect(chain.attached).toBe(false);
+		expect(chain.output).toBe(null);
+	});
+
+	it('safely handles playNeedleDrop without throwing', async () => {
+		const chain = new SoundChain();
+		await expect(chain.playNeedleDrop()).resolves.not.toThrow();
 	});
 });

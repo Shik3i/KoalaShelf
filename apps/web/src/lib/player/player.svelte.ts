@@ -260,7 +260,7 @@ class Player {
 				this.sleepPausedLeft = null;
 				void this.#sound.resume();
 				this.#sound.setPlaybackState(true);
-				if (prefs.needleDrop) this.#sound.playNeedleDrop();
+				if (prefs.needleDrop) void this.#sound.playNeedleDrop();
 				this.#positionState();
 			});
 			a.addEventListener('pause', () => {
@@ -385,11 +385,9 @@ class Player {
 		this.item = item;
 		this.chapters = item.media.chapters;
 		this.duration = item.media.duration;
-		const isFinished =
-			progress.get(id)?.isFinished || (item.userMediaProgress?.isFinished ?? false);
-		const known = isFinished
-			? 0
-			: (progress.get(id)?.currentTime ?? item.userMediaProgress?.currentTime ?? 0);
+		const effective = progress.get(id) ?? item.userMediaProgress;
+		const isFinished = effective?.isFinished ?? false;
+		const known = isFinished ? 0 : (effective?.currentTime ?? 0);
 		let start = preset ?? known;
 		if (start >= this.duration - 2) start = 0;
 		this.currentTime = start;
@@ -438,6 +436,7 @@ class Player {
 	/** audio.play() can be refused (autoplay policy); never leave a spinner behind. */
 	async #start() {
 		this.#autoSleep();
+		if (this.#audio && this.sleep.kind === 'off') this.#audio.volume = prefs.volume;
 		try {
 			await this.#sound.resume();
 			await this.audio.play();
@@ -869,9 +868,17 @@ class Player {
 		const s = this.sleep;
 		if (!a || s.kind === 'off') return;
 		if (s.kind === 'chapter') {
-			if (this.chapter && this.currentTime >= this.chapter.end - 0.4) {
-				this.pause();
-				this.sleep = { kind: 'off' };
+			if (this.chapter) {
+				const timeLeft = (this.chapter.end - this.currentTime) / this.rate;
+				const fadeDuration = prefs.sleepFadeDuration ?? 30;
+				if (this.currentTime >= this.chapter.end - 0.4) {
+					this.pause();
+					a.volume = prefs.volume;
+					this.sleep = { kind: 'off' };
+				} else if (prefs.sleepFade && timeLeft < fadeDuration) {
+					const ratio = Math.max(0.01, timeLeft / fadeDuration);
+					a.volume = prefs.volume * Math.pow(ratio, 1.5);
+				}
 			}
 			return;
 		}

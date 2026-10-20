@@ -108,7 +108,8 @@
 	});
 
 	/** Shortcut hint for the quick search (⌘ on Apple devices). */
-	const modKey = /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
+	const modKey =
+		typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
 
 	/**
 	 * The highlight is one element that glides to the current entry (CSS does the motion),
@@ -129,6 +130,7 @@
 		const watch = new MutationObserver(place);
 		watch.observe(nav, {
 			subtree: true,
+			childList: true,
 			attributes: true,
 			attributeFilter: ['aria-current', 'class']
 		});
