@@ -89,7 +89,11 @@ export const de: Messages = {
 		weekdays: 'Nach Wochentag',
 		less: 'weniger',
 		more: 'mehr',
-		empty: 'Noch keine Hörsitzungen.'
+		empty: 'Noch keine Hörsitzungen.',
+		recentActivity: 'Neueste Hör-Aktivitäten',
+		recentActivityHint: 'Wann du welches Buch gehört und wo du aufgehört hast',
+		viewAllHistory: 'Gesamten Verlauf ansehen',
+		lastListened: 'Zuletzt gehört'
 	},
 	signin: {
 		title: 'Anmelden',
@@ -603,7 +607,8 @@ export const de: Messages = {
 		loading: 'Lade …',
 		noLibrary: 'Auf diesem Server gibt es für dein Konto keine Hörbuch-Bibliothek.',
 		offline:
-			'Du bist offline. Wiedergabe und Aktualisierung laufen weiter, sobald die Verbindung zurück ist.'
+			'Du bist offline. Wiedergabe und Aktualisierung laufen weiter, sobald die Verbindung zurück ist.',
+		justNow: 'gerade eben'
 	},
 	author: {
 		label: 'Autor:in',

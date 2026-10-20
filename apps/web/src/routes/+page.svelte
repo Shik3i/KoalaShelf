@@ -7,7 +7,7 @@
 	import { player } from '#lib/player/player.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { coverSrc, view } from '#lib/items.ts';
-	import { clock, duration } from '#lib/format.ts';
+	import { clock, duration, relativeTime } from '#lib/format.ts';
 	import Turntable from '#lib/components/Turntable.svelte';
 	import Crate, { type CrateEntry } from '#lib/components/Crate.svelte';
 	import RecordCrate, { type CrateRecord } from '#lib/components/RecordCrate.svelte';
@@ -229,6 +229,14 @@
 				{Math.round(heroPct * 100)} % · {i18n.m.book.remaining(
 					duration(Math.max(0, heroView.duration - heroPos))
 				)}
+				{#if heroProgress?.lastUpdate}
+					<span
+						class="last-heard"
+						title={new Date(heroProgress.lastUpdate).toLocaleString(i18n.tag)}
+					>
+						· {i18n.m.stats.lastListened}: {relativeTime(heroProgress.lastUpdate)}
+					</span>
+				{/if}
 			</p>
 			<button
 				class="btn primary big"

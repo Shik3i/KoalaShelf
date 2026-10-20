@@ -25,6 +25,26 @@ export function span(seconds: number) {
 	return seconds < 60 ? `${Math.round(seconds)} ${i18n.m.format.seconds}` : duration(seconds);
 }
 
+/**
+ * Formats a timestamp into a friendly, relative time string:
+ * "gerade eben", "vor 5 Min.", "vor 2 Std.", "gestern", "vor 3 Tagen" or medium date.
+ */
+export function relativeTime(timestamp: number | null | undefined): string {
+	if (!timestamp) return '';
+	const diffMs = timestamp - Date.now();
+	const diffSec = Math.round(diffMs / 1000);
+	const diffMin = Math.round(diffSec / 60);
+	const diffHour = Math.round(diffMin / 60);
+	const diffDay = Math.round(diffHour / 24);
+
+	if (Math.abs(diffSec) < 60) return i18n.m.common.justNow;
+	const rtf = new Intl.RelativeTimeFormat(i18n.tag, { numeric: 'auto' });
+	if (Math.abs(diffMin) < 60) return rtf.format(diffMin, 'minute');
+	if (Math.abs(diffHour) < 24) return rtf.format(diffHour, 'hour');
+	if (Math.abs(diffDay) < 30) return rtf.format(diffDay, 'day');
+	return new Intl.DateTimeFormat(i18n.tag, { dateStyle: 'medium' }).format(new Date(timestamp));
+}
+
 export function bytes(n: number) {
 	const units = ['B', 'KB', 'MB', 'GB', 'TB'];
 	let i = 0;

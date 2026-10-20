@@ -90,7 +90,11 @@ export const en = {
 		weekdays: 'By weekday',
 		less: 'less',
 		more: 'more',
-		empty: 'No listening sessions yet.'
+		empty: 'No listening sessions yet.',
+		recentActivity: 'Recent listening activity',
+		recentActivityHint: 'When and where you started and stopped listening',
+		viewAllHistory: 'View full history',
+		lastListened: 'Last listened'
 	},
 	signin: {
 		title: 'Sign in',
@@ -603,7 +607,8 @@ export const en = {
 			'Something in the data from your server tripped it up. Everything else keeps working; try again, or reload the app.',
 		loading: 'Loading …',
 		noLibrary: 'There is no audiobook library on this server for your account.',
-		offline: 'You are offline. Playback and updates resume once the connection is back.'
+		offline: 'You are offline. Playback and updates resume once the connection is back.',
+		justNow: 'just now'
 	},
 	author: {
 		label: 'Author',

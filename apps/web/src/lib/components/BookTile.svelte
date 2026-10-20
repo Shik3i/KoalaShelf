@@ -5,6 +5,7 @@
 	import { player } from '#lib/player/player.svelte.ts';
 	import { prefs } from '#lib/prefs.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
+	import { clock, relativeTime } from '#lib/format.ts';
 	import Cover from './Cover.svelte';
 	import Check from '@lucide/svelte/icons/check';
 
@@ -35,6 +36,29 @@
 			? item.collapsedSeries
 			: undefined
 	);
+
+	const effective = $derived(
+		p ?? ('userMediaProgress' in item ? item.userMediaProgress : undefined)
+	);
+	const tooltip = $derived.by(() => {
+		if (group) return `${group.name} · ${i18n.m.library.seriesBooks(group.numBooks)}`;
+		const base = `${v.title} · ${v.author}`;
+		if (!effective) return base;
+		if (effective.isFinished) {
+			const when = effective.finishedAt || effective.lastUpdate;
+			const timeStr = when ? ` (${relativeTime(when)})` : '';
+			return `${base}\n✓ ${i18n.m.library.done}${timeStr}`;
+		}
+		if (effective.progress > 0 || effective.currentTime > 0) {
+			const timeStr = effective.lastUpdate ? ` (${relativeTime(effective.lastUpdate)})` : '';
+			const pctStr = `${Math.round(effective.progress * 100)}%`;
+			const posStr = effective.duration
+				? ` · ${clock(effective.currentTime)} / ${clock(effective.duration)}`
+				: ` · ${clock(effective.currentTime)}`;
+			return `${base}\n${i18n.m.stats.lastListened}${timeStr}: ${pctStr}${posStr}`;
+		}
+		return base;
+	});
 </script>
 
 {#snippet body()}
@@ -74,6 +98,7 @@
 		class="tile pick rise"
 		style:--i={index % 60}
 		aria-pressed={selected}
+		title={tooltip}
 		onclick={() => onselect?.(item.id)}
 	>
 		<span class="check" aria-hidden="true"
@@ -87,6 +112,7 @@
 		style:--i={index % 60}
 		class:group
 		class:muted-group={selecting}
+		title={tooltip}
 		href={group ? `/library?series=${group.id}` : `/book/${item.id}`}
 	>
 		{@render body()}

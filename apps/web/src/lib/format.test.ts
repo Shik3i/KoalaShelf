@@ -1,10 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('./i18n/index.svelte.ts', () => ({
-	i18n: { tag: 'de-DE', m: { format: { hours: 'Std.', minutes: 'Min.' } } }
+	i18n: {
+		tag: 'de-DE',
+		m: {
+			format: { hours: 'Std.', minutes: 'Min.' },
+			common: { justNow: 'gerade eben' }
+		}
+	}
 }));
 
-const { bytes, clock, duration, speed } = await import('./format.ts');
+const { bytes, clock, duration, speed, relativeTime } = await import('./format.ts');
 
 describe('format', () => {
 	it('clock', () => {
@@ -19,5 +25,12 @@ describe('format', () => {
 	it('bytes and speed', () => {
 		expect(bytes(1_500_000)).toBe('1,5 MB');
 		expect(speed(1.2)).toBe('1,2×');
+	});
+	it('relativeTime', () => {
+		const now = Date.now();
+		expect(relativeTime(now - 10_000)).toBe('gerade eben');
+		expect(relativeTime(now - 300_000)).toBe('vor 5 Minuten');
+		expect(relativeTime(now - 7_200_000)).toBe('vor 2 Stunden');
+		expect(relativeTime(null)).toBe('');
 	});
 });

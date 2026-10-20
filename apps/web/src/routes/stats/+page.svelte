@@ -1,16 +1,17 @@
 <script lang="ts">
 	/* eslint-disable svelte/prefer-svelte-reactivity -- local date math inside $derived, not state */
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import type { LibraryItem, ListeningStats } from '@koalashelf/abs-client';
+	import type { LibraryItem, ListeningStats, ListeningSession } from '@koalashelf/abs-client';
 	import { coverSrc } from '#lib/items.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
-	import { duration } from '#lib/format.ts';
+	import { duration, span } from '#lib/format.ts';
 	import Cover from '#lib/components/Cover.svelte';
 	import CountUp from '#lib/components/CountUp.svelte';
 	import YearReview from '#lib/components/YearReview.svelte';
 	import LibraryFacts from '#lib/components/LibraryFacts.svelte';
 	import GoalRing from '#lib/components/GoalRing.svelte';
+	import SessionRow, { meaningful } from '#lib/components/SessionRow.svelte';
 	import { prefs } from '#lib/prefs.svelte.ts';
 	import { streak as streakOf } from '#lib/export.ts';
 
@@ -19,6 +20,8 @@
 	let error = $state<string | null>(null);
 	/** Items of the top list (stats carry no cover info; avoids requests for missing covers). */
 	let topItems = $state.raw<Map<string, LibraryItem>>(new Map());
+	let recentSessions = $state.raw<ListeningSession[]>([]);
+	let recentItems = $state.raw<Map<string, LibraryItem>>(new Map());
 
 	$effect(() => {
 		if (!session.client) return;
@@ -36,6 +39,19 @@
 				}
 			})
 			.catch((e) => (error = (e as Error).message));
+
+		session.api
+			.listeningSessions(0, 10)
+			.then(async (r) => {
+				const fresh = r.sessions.filter(meaningful).slice(0, 8);
+				recentSessions = fresh;
+				const ids = [...new Set(fresh.map((s) => s.libraryItemId))];
+				if (ids.length) {
+					const items = await session.api.items(ids).catch(() => []);
+					recentItems = new Map(items.map((i) => [i.id, i]));
+				}
+			})
+			.catch(() => undefined);
 	});
 
 	const key = (d: Date) =>
@@ -102,6 +118,35 @@
 		[...new Set(Object.keys(stats?.days ?? {}).map((d) => +d.slice(0, 4)))].sort((a, b) => b - a)
 	);
 	const dateFmt = $derived(new Intl.DateTimeFormat(i18n.tag, { dateStyle: 'medium' }));
+
+	const recentDays = $derived.by(() => {
+		const today = new Date();
+		const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+		const fmt = new Intl.DateTimeFormat(i18n.locale, {
+			weekday: 'long',
+			day: 'numeric',
+			month: 'long'
+		});
+		const groups: { date: string; label: string; total: number; list: ListeningSession[] }[] = [];
+		for (const s of recentSessions) {
+			const when = new Date(s.startedAt);
+			const date = key(when);
+			let g = groups.at(-1);
+			if (g?.date !== date) {
+				const label =
+					date === key(today)
+						? i18n.m.history.today
+						: date === key(yesterday)
+							? i18n.m.history.yesterday
+							: fmt.format(when);
+				g = { date, label, total: 0, list: [] };
+				groups.push(g);
+			}
+			g.total += s.timeListening;
+			g.list.push(s);
+		}
+		return groups;
+	});
 </script>
 
 <svelte:head><title>{t.title} · KoalaShelf</title></svelte:head>
@@ -260,6 +305,37 @@
 				</ol>
 			</section>
 		</div>
+
+		{#if recentSessions.length > 0}
+			<section class="card block activity-card">
+				<div class="activity-head">
+					<div>
+						<h2 class="label">{t.recentActivity}</h2>
+						<p class="muted activity-hint">{t.recentActivityHint}</p>
+					</div>
+					<a href="/history" class="btn ghost sm">
+						<span>{t.viewAllHistory}</span>
+						<span aria-hidden="true">→</span>
+					</a>
+				</div>
+
+				<div class="activity-days">
+					{#each recentDays as d (d.date)}
+						<div class="activity-day">
+							<div class="day-header">
+								<span class="day-label">{d.label}</span>
+								<span class="day-total muted tabular">{span(d.total)}</span>
+							</div>
+							<ul class="session-list">
+								{#each d.list as s (s.id)}
+									<SessionRow {s} withBook item={recentItems.get(s.libraryItemId)} />
+								{/each}
+							</ul>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
 	{/if}
 {/if}
 
@@ -597,6 +673,62 @@
 	.empty {
 		padding: var(--sp-48) 0;
 		text-align: center;
+	}
+
+	.activity-card {
+		margin-bottom: var(--sp-16);
+	}
+
+	.activity-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--sp-16);
+		flex-wrap: wrap;
+	}
+
+	.activity-hint {
+		margin: var(--sp-4) 0 0;
+		font-size: var(--fs-13);
+	}
+
+	.activity-days {
+		display: grid;
+		gap: var(--sp-20);
+	}
+
+	.activity-day {
+		display: grid;
+		gap: var(--sp-8);
+	}
+
+	.day-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		padding-inline: var(--sp-4);
+	}
+
+	.day-label {
+		font-size: var(--fs-14);
+		font-weight: var(--fw-semibold);
+	}
+
+	.day-total {
+		font-size: var(--fs-13);
+	}
+
+	.session-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: var(--sp-8);
+	}
+
+	.session-list :global(.session) {
+		background: var(--c-bg);
+		border: 1px solid color-mix(in oklab, var(--c-ink) 8%, transparent);
 	}
 
 	@container page (max-width: 760px) {
