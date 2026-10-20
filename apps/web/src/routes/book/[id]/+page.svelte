@@ -130,7 +130,12 @@
 	async function resetProgress() {
 		if (!item || !p) return;
 		const progressId = p.id;
-		const before = { currentTime: p.currentTime, progress: p.progress, isFinished: p.isFinished };
+		const before = { ...p };
+		const beforeUpdate = {
+			currentTime: p.currentTime,
+			progress: p.progress,
+			isFinished: p.isFinished
+		};
 		if (isCurrent) player.pause();
 		if (item.userMediaProgress) item.userMediaProgress = undefined;
 		progress.remove(item.id);
@@ -140,9 +145,9 @@
 		toasts.show(t.progressReset, {
 			label: i18n.m.toast.undo,
 			run: () => {
-				if (item) item.userMediaProgress = before as any;
+				if (item) item.userMediaProgress = before;
 				void session.api
-					.updateProgress(item.id, before)
+					.updateProgress(item.id, beforeUpdate)
 					.then(() => progress.load(true))
 					.then(() => isCurrent && player.seek(before.currentTime));
 			}
