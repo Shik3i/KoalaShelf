@@ -129,10 +129,11 @@
 	/** Forget the progress (as if never started); undo writes the old state back. */
 	async function resetProgress() {
 		if (!item || !p) return;
+		const progressId = p.id;
 		const before = { currentTime: p.currentTime, progress: p.progress, isFinished: p.isFinished };
 		if (isCurrent) player.pause();
 		progress.remove(item.id);
-		await session.api.removeProgress(p.id);
+		await session.api.removeProgress(progressId);
 		if (isCurrent) player.seek(0);
 		await progress.load(true);
 		toasts.show(t.progressReset, {
