@@ -27,7 +27,9 @@ export const de: Messages = {
 		discover: 'Entdecken',
 		personal: 'Persönlich',
 		more: 'Mehr',
-		skip: 'Zum Inhalt springen'
+		skip: 'Zum Inhalt springen',
+		collapseNav: 'Seitenleiste einklappen',
+		expandNav: 'Seitenleiste ausklappen'
 	},
 	collections: {
 		title: 'Sammlungen',

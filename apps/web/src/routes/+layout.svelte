@@ -49,6 +49,9 @@
 		d.text = prefs.textSize;
 		d.motion = prefs.motion;
 		d.cover = prefs.coverSize;
+		const width = prefs.sidebarCollapsed ? 68 : (prefs.sidebarWidth ?? 240);
+		document.documentElement.style.setProperty('--layout-sidebar', `${width}px`);
+		d.sidebarCollapsed = prefs.sidebarCollapsed ? 'true' : 'false';
 	});
 
 	// The listener's own accent color, in readable light and dark variants.
@@ -220,6 +223,14 @@
 		grid-template-columns: var(--layout-sidebar) 1fr;
 		min-height: 100dvh;
 		background: var(--c-bg);
+		transition: grid-template-columns var(--motion-fast) var(--motion-ease);
+	}
+
+	:global(html.is-resizing) .shell,
+	:global(html.is-resizing) :global(*) {
+		user-select: none !important;
+		cursor: col-resize !important;
+		transition: none !important;
 	}
 
 	main {

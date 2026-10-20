@@ -92,6 +92,11 @@
 		box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.55);
 		view-transition-name: mini-player;
 		overflow: hidden;
+		transition: left var(--motion-fast) var(--motion-ease);
+	}
+
+	:global(html.is-resizing) .mini {
+		transition: none !important;
 	}
 
 	/* Read-only progress line along the top edge; seeking happens in the full player. */

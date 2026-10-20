@@ -20,6 +20,10 @@
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import Settings from '@lucide/svelte/icons/settings';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronsUpDown from '@lucide/svelte/icons/chevrons-up-down';
+	import Check from '@lucide/svelte/icons/check';
+	import PanelLeftClose from '@lucide/svelte/icons/panel-left-close';
+	import PanelLeftOpen from '@lucide/svelte/icons/panel-left-open';
 	import { afterNavigate } from '$app/navigation';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { prefs } from '#lib/prefs.svelte.ts';
@@ -157,49 +161,231 @@
 		}, dur(200));
 	}
 
-	afterNavigate(() => closeSheet());
+	let libOpen = $state(false);
+	let libPickerEl = $state<HTMLElement>();
+	let libTriggerEl = $state<HTMLButtonElement>();
+	let dropdownTop = $state(0);
+
+	function toggleLibOpen() {
+		if (!libOpen && libTriggerEl) {
+			const r = libTriggerEl.getBoundingClientRect();
+			dropdownTop = r.top;
+		}
+		libOpen = !libOpen;
+	}
+
+	function onWindowPointer(e: PointerEvent) {
+		if (libOpen && libPickerEl && !libPickerEl.contains(e.target as Node)) {
+			libOpen = false;
+		}
+	}
+
+	function onWindowKey(e: KeyboardEvent) {
+		if (e.key === 'Escape' && libOpen) {
+			libOpen = false;
+		}
+	}
+
+	afterNavigate(() => {
+		closeSheet();
+		libOpen = false;
+	});
+
+	function startResize(e: PointerEvent) {
+		if (e.button !== 0) return;
+		e.preventDefault();
+		document.documentElement.classList.add('is-resizing');
+
+		const onPointerMove = (ev: PointerEvent) => {
+			const clientX = ev.clientX;
+			if (clientX < 140) {
+				if (!prefs.sidebarCollapsed) {
+					prefs.set('sidebarCollapsed', true);
+				}
+			} else {
+				if (prefs.sidebarCollapsed) {
+					prefs.set('sidebarCollapsed', false);
+				}
+				const clamped = Math.max(180, Math.min(380, clientX));
+				prefs.set('sidebarWidth', clamped);
+			}
+		};
+
+		const onPointerUp = () => {
+			document.documentElement.classList.remove('is-resizing');
+			window.removeEventListener('pointermove', onPointerMove);
+			window.removeEventListener('pointerup', onPointerUp);
+			window.removeEventListener('pointercancel', onPointerUp);
+		};
+
+		window.addEventListener('pointermove', onPointerMove);
+		window.addEventListener('pointerup', onPointerUp);
+		window.addEventListener('pointercancel', onPointerUp);
+	}
+
+	function resetSidebar() {
+		prefs.set('sidebarCollapsed', false);
+		prefs.set('sidebarWidth', 240);
+	}
+
+	function handleResizeKey(e: KeyboardEvent) {
+		if (e.key === 'ArrowLeft') {
+			e.preventDefault();
+			if (prefs.sidebarWidth <= 190) {
+				prefs.set('sidebarCollapsed', true);
+			} else {
+				prefs.set('sidebarWidth', Math.max(180, prefs.sidebarWidth - 16));
+			}
+		} else if (e.key === 'ArrowRight') {
+			e.preventDefault();
+			if (prefs.sidebarCollapsed) {
+				prefs.set('sidebarCollapsed', false);
+				prefs.set('sidebarWidth', 200);
+			} else {
+				prefs.set('sidebarWidth', Math.min(380, prefs.sidebarWidth + 16));
+			}
+		} else if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			prefs.set('sidebarCollapsed', !prefs.sidebarCollapsed);
+		}
+	}
 
 	const themeLabel = $derived(
 		({ system: t.themeSystem, light: t.themeLight, dark: t.themeDark } as const)[theme.choice]
 	);
 </script>
 
-<aside class="side">
-	<a class="brand" href="/" aria-label="KoalaShelf – {t.home}">
-		<img src="/favicon.svg" alt="" width="28" height="28" />
-		<span class="display">KoalaShelf</span>
-	</a>
+<svelte:window onpointerdown={onWindowPointer} onkeydown={onWindowKey} />
+
+<aside class="side" class:collapsed={prefs.sidebarCollapsed}>
+	<button
+		type="button"
+		class="resize-handle"
+		aria-label="Resize sidebar"
+		onpointerdown={startResize}
+		ondblclick={resetSidebar}
+		onkeydown={handleResizeKey}
+	></button>
+
+	<div class="side-header" class:collapsed={prefs.sidebarCollapsed}>
+		<a class="brand" href="/" aria-label="KoalaShelf – {t.home}" title="KoalaShelf">
+			<img src="/favicon.svg" alt="" width="26" height="26" />
+			{#if !prefs.sidebarCollapsed}
+				<span class="display">KoalaShelf</span>
+			{/if}
+		</a>
+		<button
+			type="button"
+			class="collapse-btn"
+			onclick={() => prefs.set('sidebarCollapsed', !prefs.sidebarCollapsed)}
+			title={prefs.sidebarCollapsed ? t.expandNav : t.collapseNav}
+			aria-label={prefs.sidebarCollapsed ? t.expandNav : t.collapseNav}
+		>
+			{#if prefs.sidebarCollapsed}
+				<PanelLeftOpen size={18} />
+			{:else}
+				<PanelLeftClose size={18} />
+			{/if}
+		</button>
+	</div>
+
+	{#if session.libraries.length > 1}
+		<div class="lib-picker" class:collapsed={prefs.sidebarCollapsed} bind:this={libPickerEl}>
+			<button
+				bind:this={libTriggerEl}
+				type="button"
+				class="lib-trigger"
+				onclick={toggleLibOpen}
+				aria-expanded={libOpen}
+				aria-haspopup="listbox"
+				title={session.library?.name ?? t.library}
+			>
+				<LibraryBig size={18} class="lib-icon" aria-hidden="true" />
+				{#if !prefs.sidebarCollapsed}
+					<span class="lib-name">{session.library?.name ?? t.library}</span>
+					<span class="lib-chevron"><ChevronsUpDown size={14} aria-hidden="true" /></span>
+				{/if}
+			</button>
+			{#if libOpen}
+				<div
+					class="lib-dropdown"
+					role="listbox"
+					aria-label={t.library}
+					style:--dropdown-top="{dropdownTop}px"
+				>
+					<div class="lib-dropdown-header">{t.library}</div>
+					{#each session.libraries as lib (lib.id)}
+						{@const isSelected = lib.id === session.libraryId}
+						<button
+							type="button"
+							role="option"
+							aria-selected={isSelected}
+							class="lib-opt"
+							class:selected={isSelected}
+							onclick={() => {
+								session.selectLibrary(lib.id);
+								libOpen = false;
+							}}
+						>
+							<LibraryBig size={16} aria-hidden="true" />
+							<span class="lib-opt-name">{lib.name}</span>
+							{#if isSelected}
+								<span class="lib-opt-check"><Check size={16} aria-hidden="true" /></span>
+							{/if}
+						</button>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
+
 	<nav aria-label={t.main} {@attach glide}>
 		<span class="pill" aria-hidden="true"></span>
 		<div class="nav-group">
 			{#each primaryItems as item (item.href)}
-				<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+				<a
+					href={item.href}
+					aria-current={active(item.href) ? 'page' : undefined}
+					title={prefs.sidebarCollapsed ? item.label : undefined}
+				>
 					<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-					{item.label}
-					{#if item.href === '/search'}<kbd class="hint" aria-hidden="true">{modKey} K</kbd>{/if}
+					{#if !prefs.sidebarCollapsed}
+						<span class="nav-text">{item.label}</span>
+						{#if item.href === '/search'}<kbd class="hint" aria-hidden="true">{modKey} K</kbd>{/if}
+					{/if}
 				</a>
 			{/each}
 		</div>
 
 		{#if discoverItems.length > 0}
 			<div class="nav-section">
-				<button
-					type="button"
-					class="nav-header"
-					onclick={() => toggleGroup('discover')}
-					aria-expanded={!collapsed.discover}
-				>
-					<span>{t.discover}</span>
-					<span class="chevron" class:collapsed={collapsed.discover}>
-						<ChevronDown size={14} aria-hidden="true" />
-					</span>
-				</button>
-				{#if !collapsed.discover}
+				{#if !prefs.sidebarCollapsed}
+					<button
+						type="button"
+						class="nav-header"
+						onclick={() => toggleGroup('discover')}
+						aria-expanded={!collapsed.discover}
+					>
+						<span>{t.discover}</span>
+						<span class="chevron" class:collapsed={collapsed.discover}>
+							<ChevronDown size={14} aria-hidden="true" />
+						</span>
+					</button>
+				{:else}
+					<div class="nav-divider" role="separator" aria-hidden="true"></div>
+				{/if}
+				{#if prefs.sidebarCollapsed || !collapsed.discover}
 					<div class="nav-group">
 						{#each discoverItems as item (item.href)}
-							<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+							<a
+								href={item.href}
+								aria-current={active(item.href) ? 'page' : undefined}
+								title={prefs.sidebarCollapsed ? item.label : undefined}
+							>
 								<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-								{item.label}
+								{#if !prefs.sidebarCollapsed}
+									<span class="nav-text">{item.label}</span>
+								{/if}
 							</a>
 						{/each}
 					</div>
@@ -209,23 +395,33 @@
 
 		{#if personalItems.length > 0}
 			<div class="nav-section">
-				<button
-					type="button"
-					class="nav-header"
-					onclick={() => toggleGroup('library')}
-					aria-expanded={!collapsed.library}
-				>
-					<span>{t.personal}</span>
-					<span class="chevron" class:collapsed={collapsed.library}>
-						<ChevronDown size={14} aria-hidden="true" />
-					</span>
-				</button>
-				{#if !collapsed.library}
+				{#if !prefs.sidebarCollapsed}
+					<button
+						type="button"
+						class="nav-header"
+						onclick={() => toggleGroup('library')}
+						aria-expanded={!collapsed.library}
+					>
+						<span>{t.personal}</span>
+						<span class="chevron" class:collapsed={collapsed.library}>
+							<ChevronDown size={14} aria-hidden="true" />
+						</span>
+					</button>
+				{:else}
+					<div class="nav-divider" role="separator" aria-hidden="true"></div>
+				{/if}
+				{#if prefs.sidebarCollapsed || !collapsed.library}
 					<div class="nav-group">
 						{#each personalItems as item (item.href)}
-							<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+							<a
+								href={item.href}
+								aria-current={active(item.href) ? 'page' : undefined}
+								title={prefs.sidebarCollapsed ? item.label : undefined}
+							>
 								<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-								{item.label}
+								{#if !prefs.sidebarCollapsed}
+									<span class="nav-text">{item.label}</span>
+								{/if}
 							</a>
 						{/each}
 					</div>
@@ -234,27 +430,20 @@
 		{/if}
 
 		<div class="nav-group system">
-			<a href={settingsItem.href} aria-current={active(settingsItem.href) ? 'page' : undefined}>
+			<a
+				href={settingsItem.href}
+				aria-current={active(settingsItem.href) ? 'page' : undefined}
+				title={prefs.sidebarCollapsed ? settingsItem.label : undefined}
+			>
 				<settingsItem.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-				{settingsItem.label}
+				{#if !prefs.sidebarCollapsed}
+					<span class="nav-text">{settingsItem.label}</span>
+				{/if}
 			</a>
 		</div>
 	</nav>
 
-	<div class="profile">
-		{#if session.libraries.length > 1}
-			<label class="field">
-				<span class="label">{t.library}</span>
-				<select
-					value={session.libraryId}
-					onchange={(e) => session.selectLibrary(e.currentTarget.value)}
-				>
-					{#each session.libraries as lib (lib.id)}
-						<option value={lib.id}>{lib.name}</option>
-					{/each}
-				</select>
-			</label>
-		{/if}
+	<div class="profile" class:collapsed={prefs.sidebarCollapsed}>
 		<div class="me">
 			<button
 				class="who"
@@ -264,7 +453,9 @@
 				aria-label={t.accountsOf(session.user?.username ?? '')}
 			>
 				<Avatar name={session.user?.username ?? '?'} size={28} />
-				<span class="name">{session.user?.username}</span>
+				{#if !prefs.sidebarCollapsed}
+					<span class="name">{session.user?.username}</span>
+				{/if}
 			</button>
 			<button class="icon" onclick={() => theme.cycle()} title={themeLabel} aria-label={themeLabel}>
 				{#if theme.choice === 'light'}<Sun size={18} />{:else if theme.choice === 'dark'}<Moon
@@ -338,17 +529,29 @@
 		{/each}
 	</nav>
 	{#if session.libraries.length > 1}
-		<label class="field">
-			<span class="label">{t.library}</span>
-			<select
-				value={session.libraryId}
-				onchange={(e) => session.selectLibrary(e.currentTarget.value)}
-			>
+		<div class="sheet-libraries">
+			<div class="sheet-section-title">{t.library}</div>
+			<div class="sheet-lib-list">
 				{#each session.libraries as lib (lib.id)}
-					<option value={lib.id}>{lib.name}</option>
+					{@const isSelected = lib.id === session.libraryId}
+					<button
+						type="button"
+						class="sheet-lib-btn"
+						class:selected={isSelected}
+						onclick={() => {
+							session.selectLibrary(lib.id);
+							closeSheet();
+						}}
+					>
+						<LibraryBig size={18} aria-hidden="true" />
+						<span class="sheet-lib-name">{lib.name}</span>
+						{#if isSelected}
+							<span class="sheet-lib-check"><Check size={18} aria-hidden="true" /></span>
+						{/if}
+					</button>
 				{/each}
-			</select>
-		</label>
+			</div>
+		</div>
 	{/if}
 </dialog>
 
@@ -401,13 +604,258 @@
 		height: 100dvh;
 		display: flex;
 		flex-direction: column;
-		gap: var(--sp-24);
-		padding: var(--sp-24) var(--sp-12);
+		gap: var(--sp-16);
+		padding: var(--sp-20) var(--sp-12);
 		background: var(--c-panel);
 		border-right: 1px solid var(--c-line);
 		overflow-y: auto;
 		overscroll-behavior: contain;
 		scrollbar-width: thin;
+	}
+
+	.resize-handle {
+		position: absolute;
+		top: 0;
+		right: -4px;
+		bottom: 0;
+		width: 8px;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		cursor: col-resize;
+		z-index: 25;
+		touch-action: none;
+	}
+
+	.resize-handle::after {
+		content: '';
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 3px;
+		width: 2px;
+		background: transparent;
+		transition: background var(--motion-fast) var(--motion-ease);
+	}
+
+	.resize-handle:hover::after,
+	:global(html.is-resizing) .resize-handle::after {
+		background: var(--c-accent);
+	}
+
+	.resize-handle:focus-visible {
+		outline: none;
+	}
+
+	.resize-handle:focus-visible::after {
+		background: var(--c-accent);
+	}
+
+	.side-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		min-height: 36px;
+		gap: var(--sp-8);
+		padding-inline: var(--sp-4);
+	}
+
+	.side-header.collapsed {
+		flex-direction: column;
+		justify-content: center;
+		gap: var(--sp-12);
+		padding-inline: 0;
+	}
+
+	.collapse-btn {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border: 0;
+		border-radius: var(--r-card);
+		background: transparent;
+		color: var(--c-muted);
+		cursor: pointer;
+		transition:
+			background var(--motion-fast) var(--motion-ease),
+			color var(--motion-fast) var(--motion-ease);
+	}
+
+	.collapse-btn:hover {
+		background: color-mix(in oklab, var(--c-ctrl) 10%, transparent);
+		color: var(--c-ink);
+	}
+
+	.lib-picker {
+		position: relative;
+		margin-bottom: var(--sp-4);
+	}
+
+	.lib-trigger {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-8);
+		width: 100%;
+		min-height: 38px;
+		padding: var(--sp-6) var(--sp-10);
+		border: 1px solid var(--c-line);
+		border-radius: var(--r-card);
+		background: var(--c-card);
+		color: var(--c-ink);
+		font: inherit;
+		font-size: var(--fs-13);
+		font-weight: var(--fw-semibold);
+		text-align: left;
+		cursor: pointer;
+		transition:
+			border-color var(--motion-fast) var(--motion-ease),
+			background var(--motion-fast) var(--motion-ease);
+	}
+
+	.lib-trigger:hover {
+		border-color: color-mix(in oklab, var(--c-ink) 25%, var(--c-line));
+		background: color-mix(in oklab, var(--c-card) 92%, var(--c-ink));
+	}
+
+	.lib-name {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.lib-chevron {
+		color: var(--c-muted);
+		flex: none;
+	}
+
+	.lib-dropdown {
+		position: absolute;
+		top: calc(100% + var(--sp-4));
+		left: 0;
+		right: 0;
+		z-index: 50;
+		padding: var(--sp-4);
+		border: 1px solid var(--c-line);
+		border-radius: var(--r-card);
+		background: var(--c-panel);
+		box-shadow: 0 12px 32px -8px rgb(0 0 0 / 0.45);
+		display: grid;
+		gap: 2px;
+	}
+
+	.lib-dropdown-header {
+		padding: var(--sp-4) var(--sp-8);
+		font-size: var(--fs-11);
+		font-weight: var(--fw-bold);
+		color: var(--c-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.lib-opt {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-8);
+		width: 100%;
+		padding: var(--sp-8) var(--sp-10);
+		border: 0;
+		border-radius: var(--r-card);
+		background: none;
+		color: var(--c-ink);
+		font: inherit;
+		font-size: var(--fs-13);
+		text-align: left;
+		cursor: pointer;
+		transition: background var(--motion-fast) var(--motion-ease);
+	}
+
+	.lib-opt:hover {
+		background: color-mix(in oklab, var(--c-ctrl) 12%, transparent);
+	}
+
+	.lib-opt.selected {
+		font-weight: var(--fw-bold);
+		color: var(--c-accent);
+	}
+
+	.lib-opt-name {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.lib-opt-check {
+		color: var(--c-accent);
+		flex: none;
+	}
+
+	.side.collapsed {
+		padding: var(--sp-20) var(--sp-8);
+		align-items: stretch;
+	}
+
+	.side.collapsed .brand {
+		justify-content: center;
+		padding: 0;
+	}
+
+	.side.collapsed nav a {
+		justify-content: center;
+		padding: 0;
+		width: 44px;
+		min-height: 40px;
+		margin-inline: auto;
+	}
+
+	.side.collapsed .nav-divider {
+		height: 1px;
+		margin: var(--sp-8) var(--sp-4);
+		background: var(--c-line);
+		border: 0;
+	}
+
+	.side.collapsed .nav-group.system {
+		margin-top: var(--sp-8);
+		padding-top: var(--sp-8);
+		border-top: 1px solid var(--c-line);
+	}
+
+	.side.collapsed .lib-picker {
+		display: flex;
+		justify-content: center;
+	}
+
+	.side.collapsed .lib-trigger {
+		width: 44px;
+		height: 40px;
+		padding: 0;
+		justify-content: center;
+	}
+
+	.side.collapsed .lib-dropdown {
+		position: fixed;
+		left: calc(var(--layout-sidebar) + 8px);
+		top: var(--dropdown-top, 80px);
+		right: auto;
+		width: 220px;
+	}
+
+	.side.collapsed .profile .me {
+		flex-direction: column;
+		background: transparent;
+		padding: var(--sp-4) 0;
+		gap: var(--sp-8);
+	}
+
+	.side.collapsed .who {
+		justify-content: center;
+		padding: 0;
 	}
 
 	@media (max-height: 600px) {
@@ -753,5 +1201,60 @@
 	.sheet nav a[aria-current='page'] {
 		background: var(--c-sel);
 		color: var(--c-sel-ink);
+	}
+
+	.sheet-libraries {
+		display: grid;
+		gap: var(--sp-8);
+	}
+
+	.sheet-section-title {
+		font-size: var(--fs-12);
+		font-weight: var(--fw-bold);
+		color: var(--c-muted);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.sheet-lib-list {
+		display: grid;
+		gap: var(--sp-6);
+	}
+
+	.sheet-lib-btn {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-12);
+		width: 100%;
+		min-height: 44px;
+		padding: var(--sp-8) var(--sp-12);
+		border: 1px solid var(--c-line);
+		border-radius: var(--r-card);
+		background: var(--c-card);
+		color: var(--c-ink);
+		font: inherit;
+		font-size: var(--fs-14);
+		font-weight: var(--fw-semibold);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.sheet-lib-btn.selected {
+		border-color: var(--c-accent);
+		background: color-mix(in oklab, var(--c-accent) 12%, var(--c-card));
+		color: var(--c-accent);
+	}
+
+	.sheet-lib-name {
+		flex: 1;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.sheet-lib-check {
+		flex: none;
+		color: var(--c-accent);
 	}
 </style>

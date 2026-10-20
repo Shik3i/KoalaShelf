@@ -29,7 +29,9 @@ export const en = {
 		discover: 'Discover',
 		personal: 'Personal',
 		more: 'More',
-		skip: 'Skip to content'
+		skip: 'Skip to content',
+		collapseNav: 'Collapse sidebar',
+		expandNav: 'Expand sidebar'
 	},
 	collections: {
 		title: 'Collections',

@@ -100,6 +100,10 @@ export interface Prefs {
 	navCollapsed: { discover?: boolean; library?: boolean };
 	/** Hrefs of navigation items hidden by the listener (e.g. '/playlists'). */
 	navHidden: string[];
+	/** Width of the resizable sidebar in desktop mode in pixels (180–380, default 240). */
+	sidebarWidth: number;
+	/** Whether the desktop sidebar is collapsed to icon-only mode (~68px). */
+	sidebarCollapsed: boolean;
 }
 
 export const DEFAULTS: Prefs = {
@@ -149,7 +153,9 @@ export const DEFAULTS: Prefs = {
 	dailyGoal: 0,
 	removeFinished: false,
 	navCollapsed: {},
-	navHidden: []
+	navHidden: [],
+	sidebarWidth: 240,
+	sidebarCollapsed: false
 };
 
 /** Only known keys with a plausible type survive (older versions, hand edits, imports). */
@@ -163,13 +169,18 @@ export function sanitize(saved: Record<string, unknown>): Prefs {
 					? (FONTS as readonly unknown[]).includes(v)
 					: k === 'sleepFadeDuration'
 						? v === 10 || v === 30 || v === 60
-						: k === 'navCollapsed'
-							? typeof v === 'object' && v !== null
-							: k === 'navHidden'
-								? Array.isArray(v) && v.every((x) => typeof x === 'string')
-								: Array.isArray(fallback)
-									? Array.isArray(v)
-									: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
+						: k === 'sidebarWidth'
+							? typeof v === 'number' && Number.isFinite(v) && v >= 160 && v <= 450
+							: k === 'sidebarCollapsed'
+								? typeof v === 'boolean'
+								: k === 'navCollapsed'
+									? typeof v === 'object' && v !== null
+									: k === 'navHidden'
+										? Array.isArray(v) && v.every((x) => typeof x === 'string')
+										: Array.isArray(fallback)
+											? Array.isArray(v)
+											: typeof v === typeof fallback &&
+												(typeof v !== 'number' || Number.isFinite(v));
 	return Object.fromEntries(
 		Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
 	) as unknown as Prefs;

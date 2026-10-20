@@ -11,6 +11,13 @@ try {
 	set('text', p.textSize);
 	set('motion', p.motion);
 	set('cover', p.coverSize);
+	if (p.sidebarCollapsed) {
+		root.style.setProperty('--layout-sidebar', '68px');
+		root.dataset.sidebarCollapsed = 'true';
+	} else if (typeof p.sidebarWidth === 'number' && p.sidebarWidth >= 160 && p.sidebarWidth <= 450) {
+		root.style.setProperty('--layout-sidebar', p.sidebarWidth + 'px');
+		root.dataset.sidebarCollapsed = 'false';
+	}
 	// The listener's own accent (variants computed by src/lib/accent.ts; same rules as there).
 	if (p.accent === 'custom') {
 		const c = JSON.parse(localStorage.getItem('ks.accentCustom') || 'null');
