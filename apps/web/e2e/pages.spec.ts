@@ -141,6 +141,10 @@ test.describe('pages', () => {
 		);
 		// Back to defaults for the following tests.
 		await page.getByRole('button', { name: 'EN', exact: true }).click();
+		await page.evaluate(() => {
+			localStorage.removeItem('ks.locale');
+			localStorage.removeItem('ks.prefs');
+		});
 		await page
 			.getByRole('group', { name: 'Theme' })
 			.getByRole('button', { name: 'System', exact: true })

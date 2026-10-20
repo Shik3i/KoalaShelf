@@ -211,6 +211,14 @@
 	async function toggleFinished() {
 		if (!item) return;
 		const done = !p?.isFinished;
+		const cur = progress.get(item.id);
+		if (cur) {
+			cur.isFinished = done;
+			if (!done) {
+				cur.currentTime = 0;
+				cur.progress = 0;
+			}
+		}
 		await session.api.updateProgress(item.id, {
 			isFinished: done,
 			...(done ? {} : { currentTime: 0, progress: 0 })

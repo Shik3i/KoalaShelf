@@ -154,8 +154,8 @@ test.describe('appearance', () => {
 
 	test('easy-to-read and system fonts', async ({ page }) => {
 		await page.goto('/settings');
-		await page.locator('input[name="font"][value="atkinson"]').click();
-		await expect(page.locator('html')).toHaveAttribute('data-font', 'atkinson');
+		await page.locator('input[name="font"][value="readable"]').click();
+		await expect(page.locator('html')).toHaveAttribute('data-font', 'readable');
 		const family = () => page.evaluate(() => getComputedStyle(document.body).fontFamily);
 		expect(await family()).toContain('Atkinson Hyperlegible Next');
 		await page.waitForFunction(() =>
