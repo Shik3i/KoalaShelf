@@ -82,6 +82,8 @@
 	});
 
 	const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+	let hoveredDay = $state<{ label: string; v: number } | null>(null);
+	const maxWeekdaySecs = $derived(Math.max(0, ...WEEKDAYS.map((d) => stats?.dayOfWeek[d] ?? 0)));
 	const weekdays = $derived.by(() => {
 		const fmt = new Intl.DateTimeFormat(i18n.tag, { weekday: 'short' });
 		const values = WEEKDAYS.map((d) => stats?.dayOfWeek[d] ?? 0);
@@ -198,15 +200,41 @@
 		</section>
 
 		<div class="split">
-			<section class="card block">
-				<h2 class="label">{t.weekdays}</h2>
-				<div class="bars">
-					{#each weekdays as d, i (d.label)}
-						<div class="bar" title={duration(d.v)}>
-							<span style:--h={d.pct} style:--i={i}></span>
-							<small class="muted">{d.label}</small>
-						</div>
-					{/each}
+			<section class="card block weekday-card">
+				<div class="card-head">
+					<h2 class="label">{t.weekdays}</h2>
+					{#if hoveredDay}
+						<span class="badge-day tabular">{hoveredDay.label}: {duration(hoveredDay.v)}</span>
+					{:else if maxWeekdaySecs > 0}
+						<span class="max-badge muted tabular">{duration(maxWeekdaySecs)} max</span>
+					{/if}
+				</div>
+				<div class="chart-wrap">
+					<div class="chart-ceiling" aria-hidden="true"></div>
+					<div class="bars" role="region" aria-label={t.weekdays}>
+						{#each weekdays as d, i (d.label)}
+							<div
+								class="bar-col"
+								role="img"
+								aria-label="{d.label}: {duration(d.v)}"
+								title="{d.label}: {duration(d.v)}"
+								onmouseenter={() => (hoveredDay = d)}
+								onmouseleave={() => (hoveredDay = null)}
+							>
+								{#if d.v > 0}
+									<span class="fill" style:--h={d.pct} style:--i={i}></span>
+								{:else}
+									<span class="zero-dot" aria-hidden="true"></span>
+								{/if}
+							</div>
+						{/each}
+					</div>
+					<div class="axis-line" aria-hidden="true"></div>
+					<div class="axis-labels">
+						{#each weekdays as d (d.label)}
+							<small class="muted" class:peak={d.pct === 1 && d.v > 0}>{d.label}</small>
+						{/each}
+					</div>
 				</div>
 			</section>
 
@@ -405,28 +433,76 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: var(--sp-16);
+		margin-bottom: var(--sp-16);
+	}
+
+	.split > .block {
+		margin-bottom: 0;
+	}
+
+	.weekday-card {
+		display: flex;
+		flex-direction: column;
+		min-height: 280px;
+	}
+
+	.card-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--sp-8);
+	}
+
+	.max-badge,
+	.badge-day {
+		font-size: var(--fs-12);
+	}
+
+	.badge-day {
+		color: var(--c-accent);
+		font-weight: var(--fw-semibold);
+	}
+
+	.chart-wrap {
+		position: relative;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 200px;
+		margin-top: var(--sp-16);
+	}
+
+	.chart-ceiling {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		border-top: 1px dashed color-mix(in oklab, var(--c-ink) 12%, transparent);
+		pointer-events: none;
 	}
 
 	.bars {
+		flex: 1;
 		display: grid;
 		grid-template-columns: repeat(7, 1fr);
 		gap: var(--sp-8);
 		align-items: end;
-		height: 160px;
+		min-height: 160px;
 	}
 
-	.bar {
-		display: grid;
-		grid-template-rows: 1fr auto;
-		justify-items: center;
-		gap: var(--sp-4);
+	.bar-col {
 		height: 100%;
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		align-items: center;
+		cursor: default;
+		outline: none;
 	}
 
-	.bar span {
-		align-self: end;
+	.bar-col .fill {
 		width: 100%;
-		max-width: 36px;
+		max-width: 42px;
 		height: calc(max(var(--h), 0.02) * 100%);
 		border-radius: 6px 6px 2px 2px;
 		background: var(--c-accent);
@@ -434,16 +510,59 @@
 		transform-origin: bottom;
 		animation: meter 700ms var(--motion-out) both;
 		animation-delay: calc(var(--i, 0) * 60ms + 150ms);
+		transition: filter var(--dur-fast);
+	}
+
+	.bar-col:hover .fill {
+		filter: brightness(1.18);
+	}
+
+	.zero-dot {
+		width: 8px;
+		height: 2px;
+		border-radius: 1px;
+		background: color-mix(in oklab, var(--c-ink) 20%, transparent);
+	}
+
+	.axis-line {
+		height: 1px;
+		background: color-mix(in oklab, var(--c-ink) 15%, transparent);
+		margin: 0;
+	}
+
+	.axis-labels {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: var(--sp-8);
+		text-align: center;
+		padding-top: var(--sp-8);
+	}
+
+	.axis-labels small {
+		font-size: var(--fs-12);
+	}
+
+	.axis-labels small.peak {
+		color: var(--c-ink);
+		font-weight: var(--fw-semibold);
+	}
+
+	@media (forced-colors: active) {
+		.bar-col .fill {
+			background: Highlight;
+		}
+
+		.axis-line,
+		.chart-ceiling {
+			border-color: CanvasText;
+			background: CanvasText;
+		}
 	}
 
 	@keyframes meter {
 		from {
 			scale: 1 0;
 		}
-	}
-
-	.bar small {
-		font-size: var(--fs-12);
 	}
 
 	.top {
