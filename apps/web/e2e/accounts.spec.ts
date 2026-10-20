@@ -154,16 +154,15 @@ test.describe('appearance', () => {
 
 	test('easy-to-read and system fonts', async ({ page }) => {
 		await page.goto('/settings');
-		const fonts = page.getByRole('group', { name: 'Font' });
-		await fonts.getByRole('button', { name: 'Easy to read' }).click();
-		await expect(page.locator('html')).toHaveAttribute('data-font', 'readable');
+		await page.locator('input[name="font"][value="atkinson"]').click();
+		await expect(page.locator('html')).toHaveAttribute('data-font', 'atkinson');
 		const family = () => page.evaluate(() => getComputedStyle(document.body).fontFamily);
 		expect(await family()).toContain('Atkinson Hyperlegible Next');
 		await page.waitForFunction(() =>
 			document.fonts.check('16px "Atkinson Hyperlegible Next Variable"')
 		);
 		if (dir) await page.screenshot({ path: `${dir}/settings-font-readable.png` });
-		await fonts.getByRole('button', { name: 'System' }).click();
+		await page.locator('input[name="font"][value="system"]').click();
 		expect(await family()).toContain('system-ui');
 		await page.reload();
 		await expect(page.locator('html')).toHaveAttribute('data-font', 'system');

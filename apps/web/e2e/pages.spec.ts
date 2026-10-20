@@ -130,7 +130,7 @@ test.describe('pages', () => {
 		await page.getByRole('button', { name: 'Light', exact: true }).click();
 		await expect(page.locator('html')).toHaveClass(/th-light/);
 		await page.getByRole('button', { name: '15 s' }).first().click();
-		await page.getByRole('button', { name: 'DE' }).first().click();
+		await page.getByRole('button', { name: 'DE', exact: true }).click();
 		await expect(page.getByRole('heading', { name: 'Einstellungen' })).toBeVisible();
 		await expect(page.locator('html')).toHaveAttribute('lang', 'de');
 		await page.reload();
@@ -140,7 +140,7 @@ test.describe('pages', () => {
 			15
 		);
 		// Back to defaults for the following tests.
-		await page.getByRole('button', { name: 'EN' }).first().click();
+		await page.getByRole('button', { name: 'EN', exact: true }).click();
 		await page
 			.getByRole('group', { name: 'Theme' })
 			.getByRole('button', { name: 'System', exact: true })

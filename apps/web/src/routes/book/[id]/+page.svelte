@@ -131,6 +131,7 @@
 		if (!item || !p) return;
 		const before = { currentTime: p.currentTime, progress: p.progress, isFinished: p.isFinished };
 		if (isCurrent) player.pause();
+		progress.remove(item.id);
 		await session.api.removeProgress(p.id);
 		if (isCurrent) player.seek(0);
 		await progress.load(true);

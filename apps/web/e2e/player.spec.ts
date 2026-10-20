@@ -196,6 +196,7 @@ test.describe('player', () => {
 	});
 
 	test('mark finished / not finished from the book page', async ({ page }) => {
+		await unfinished(await itemId('Kleine Eulen'));
 		await openBook(page, 'Kleine Eulen');
 		await page.getByRole('button', { name: 'Mark as finished' }).click();
 		await expect(page.getByRole('button', { name: 'Mark as not finished' })).toBeVisible();
