@@ -1,5 +1,14 @@
 # Changelog
 
+## Android 0.1.1
+
+The initial release of the native Android client for KoalaShelf with vinyl aesthetic, background media playback and full Audiobookshelf library integration:
+
+- **Audio Playback**: Media3 background playback with lock screen media notifications, hardware play/pause/skip support, playback speed control, sleep timer, smart rewind, voice boost and equalizer audio processing.
+- **Library & Search**: Multi-library browsing, series, authors, and narrators views, live search with instant filtering, book details with scrollable summary and chapter navigation.
+- **Vinyl Design System**: Custom vinyl record spinning disc artwork, interactive scrubber, accent color theming, and responsive layouts.
+- **Hardening & Security**: Optimized release builds with R8 code shrinking and ProGuard optimization, disabled plaintext backup, and native audio resource lifecycle management.
+
 ## Web 0.1.1
 
 A focused release improving navigation, customization, connection reliability, and browser testing:

@@ -69,7 +69,10 @@ import { chromium } from '@playwright/test';
 		await route.fulfill({
 			status: 200,
 			contentType: 'application/json',
-			body: JSON.stringify({ user: { id: 'tester', username: 'Tester' }, userDefaultLibraryId: 'lib-1' })
+			body: JSON.stringify({
+				user: { id: 'tester', username: 'Tester' },
+				userDefaultLibraryId: 'lib-1'
+			})
 		});
 	});
 
@@ -133,7 +136,8 @@ import { chromium } from '@playwright/test';
 	await page.waitForTimeout(200);
 	isExpanded = await personalHeader.getAttribute('aria-expanded');
 	console.log('After click aria-expanded:', isExpanded);
-	if (isExpanded !== 'false') throw new Error('Group failed to collapse! aria-expanded is not false.');
+	if (isExpanded !== 'false')
+		throw new Error('Group failed to collapse! aria-expanded is not false.');
 
 	const downloadsLink = await page.$('aside.side nav a[href="/downloads"]');
 	console.log('Downloads link in DOM after collapse:', !!downloadsLink);
@@ -146,10 +150,14 @@ import { chromium } from '@playwright/test';
 	await page.waitForTimeout(200);
 	isExpanded = await personalHeader.getAttribute('aria-expanded');
 	console.log('After 2nd click aria-expanded:', isExpanded);
-	if (isExpanded !== 'true') throw new Error('Group failed to re-expand! aria-expanded is not true.');
+	if (isExpanded !== 'true')
+		throw new Error('Group failed to re-expand! aria-expanded is not true.');
 
 	const downloadsLinkReopened = await page.$('aside.side nav a[href="/downloads"]');
-	console.log('Downloads link visible after re-expand:', downloadsLinkReopened ? await downloadsLinkReopened.isVisible() : false);
+	console.log(
+		'Downloads link visible after re-expand:',
+		downloadsLinkReopened ? await downloadsLinkReopened.isVisible() : false
+	);
 	if (!downloadsLinkReopened) {
 		throw new Error('Downloads link should be visible after re-expansion!');
 	}
@@ -166,9 +174,7 @@ import { chromium } from '@playwright/test';
 	let sidebarWidth = await page.evaluate(() =>
 		getComputedStyle(document.documentElement).getPropertyValue('--layout-sidebar').trim()
 	);
-	let dataCollapsed = await page.evaluate(
-		() => document.documentElement.dataset.sidebarCollapsed
-	);
+	let dataCollapsed = await page.evaluate(() => document.documentElement.dataset.sidebarCollapsed);
 	console.log('Collapsed state: width =', sidebarWidth, 'data-sidebar-collapsed =', dataCollapsed);
 	if (sidebarWidth !== '68px' || dataCollapsed !== 'true') {
 		throw new Error(`Expected 68px and dataset true, got ${sidebarWidth} and ${dataCollapsed}`);
@@ -180,10 +186,13 @@ import { chromium } from '@playwright/test';
 	sidebarWidth = await page.evaluate(() =>
 		getComputedStyle(document.documentElement).getPropertyValue('--layout-sidebar').trim()
 	);
-	dataCollapsed = await page.evaluate(
-		() => document.documentElement.dataset.sidebarCollapsed
+	dataCollapsed = await page.evaluate(() => document.documentElement.dataset.sidebarCollapsed);
+	console.log(
+		'Re-expanded state: width =',
+		sidebarWidth,
+		'data-sidebar-collapsed =',
+		dataCollapsed
 	);
-	console.log('Re-expanded state: width =', sidebarWidth, 'data-sidebar-collapsed =', dataCollapsed);
 	if (sidebarWidth !== '240px' || dataCollapsed !== 'false') {
 		throw new Error(`Expected 240px and dataset false, got ${sidebarWidth} and ${dataCollapsed}`);
 	}
@@ -205,13 +214,17 @@ import { chromium } from '@playwright/test';
 	console.log('Element at point:', elAtPoint);
 
 	// Check if handle has listeners or triggers
-	const hasResizingClassBefore = await page.evaluate(() => document.documentElement.classList.contains('is-resizing'));
+	const hasResizingClassBefore = await page.evaluate(() =>
+		document.documentElement.classList.contains('is-resizing')
+	);
 	console.log('is-resizing before mousedown:', hasResizingClassBefore);
 
 	// Drag resize handle from 240px to 310px
 	await page.mouse.move(box.x + box.width / 2, box.y + 100);
 	await page.mouse.down();
-	const hasResizingClassDown = await page.evaluate(() => document.documentElement.classList.contains('is-resizing'));
+	const hasResizingClassDown = await page.evaluate(() =>
+		document.documentElement.classList.contains('is-resizing')
+	);
 	console.log('is-resizing after mousedown:', hasResizingClassDown);
 
 	await page.mouse.move(310, box.y + 100);
