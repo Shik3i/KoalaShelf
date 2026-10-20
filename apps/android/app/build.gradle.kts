@@ -26,6 +26,24 @@ android {
                 keyAlias = System.getenv("KEY_ALIAS")
                 keyPassword = System.getenv("KEY_PASSWORD")
             } else {
+                val debugKeystore = file(System.getProperty("user.home") + "/.android/debug.keystore")
+                if (!debugKeystore.exists()) {
+                    try {
+                        debugKeystore.parentFile?.mkdirs()
+                        val process = ProcessBuilder(
+                            "keytool", "-genkey", "-v",
+                            "-keystore", debugKeystore.absolutePath,
+                            "-storepass", "android",
+                            "-alias", "androiddebugkey",
+                            "-keypass", "android",
+                            "-keyalg", "RSA",
+                            "-keysize", "2048",
+                            "-validity", "10000",
+                            "-dname", "CN=Android Debug,O=Android,C=US"
+                        ).start()
+                        process.waitFor()
+                    } catch (_: Exception) {}
+                }
                 initWith(getByName("debug"))
             }
         }

@@ -59,6 +59,10 @@ jobs:
         working-directory: apps/android
         run: |
           chmod +x gradlew
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            mkdir -p "$HOME/.android"
+            keytool -genkey -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
           ./gradlew :app:assembleRelease
       - name: Publish GitHub Release
         env:
