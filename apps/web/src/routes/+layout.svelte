@@ -136,7 +136,9 @@
 	// Smooth page changes via the View Transitions API (skipped when unsupported or reduced motion).
 	onNavigate((nav) => {
 		if (!document.startViewTransition || reducedMotion()) return;
-		if (nav.from?.url.pathname === nav.to?.url.pathname) return;
+		const fromPath = nav.from?.url?.pathname;
+		const toPath = nav.to?.url?.pathname;
+		if (!fromPath || !toPath || fromPath === toPath) return;
 		return new Promise((resolve) => {
 			document.startViewTransition(async () => {
 				resolve();

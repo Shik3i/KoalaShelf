@@ -37,7 +37,7 @@ class ProgressStore {
 				session.canUpdate = me.type !== 'guest' && me.permissions?.update === true;
 				session.canDelete = me.type !== 'guest' && me.permissions?.delete === true;
 				this.byItem.clear();
-				for (const p of me.mediaProgress) {
+				for (const p of me.mediaProgress ?? []) {
 					if (p.episodeId) continue;
 					// A server can list a book twice (e.g. a late sync after its progress was reset):
 					// the most recent entry is the true state.

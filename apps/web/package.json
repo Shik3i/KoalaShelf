@@ -16,6 +16,7 @@
 		"test:unit": "vitest",
 		"test": "npm run test:unit -- --run",
 		"icons": "node scripts/icons.mjs",
+		"test:verify": "node scripts/verify-browser.mjs",
 		"test:e2e": "playwright test"
 	},
 	"devDependencies": {

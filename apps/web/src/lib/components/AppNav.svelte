@@ -181,7 +181,9 @@
 	afterNavigate((nav) => {
 		closeSheet();
 		libOpen = false;
-		if (nav.from && nav.from.url.pathname !== nav.to?.url.pathname) {
+		const fromPath = nav.from?.url?.pathname;
+		const toPath = nav.to?.url?.pathname;
+		if (fromPath && toPath && fromPath !== toPath) {
 			if (discoverItems.some((i) => active(i.href)) && collapsed.discover) {
 				prefs.set('navCollapsed', { ...prefs.navCollapsed, discover: false });
 			}
@@ -602,6 +604,7 @@
 		position: sticky;
 		top: 0;
 		height: 100dvh;
+		z-index: 10;
 		display: flex;
 		flex-direction: column;
 		gap: var(--sp-16);
@@ -616,14 +619,15 @@
 	.resize-handle {
 		position: absolute;
 		top: 0;
-		right: -4px;
+		right: 0;
 		bottom: 0;
-		width: 8px;
+		width: 10px;
+		margin: 0;
 		padding: 0;
 		border: 0;
 		background: transparent;
 		cursor: col-resize;
-		z-index: 25;
+		z-index: 50;
 		touch-action: none;
 	}
 
@@ -632,8 +636,8 @@
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		left: 3px;
-		width: 2px;
+		right: 0;
+		width: 3px;
 		background: transparent;
 		transition: background var(--motion-fast) var(--motion-ease);
 	}
