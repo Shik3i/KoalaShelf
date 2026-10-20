@@ -1,5 +1,22 @@
 # Changelog
 
+## Web 0.1.1
+
+A focused release improving navigation, customization, connection reliability, and browser testing:
+
+- **Sidebar Navigation**:
+  - Structured, responsive layout with collapsible visual groups (Main, Discover, Personal) with persisted state
+  - Icon-only collapse toggle (68px) and draggable resize handle (180px–380px) with double-click reset
+  - Modernized library switcher dropdown in the navigation header
+  - Cleaner layout moving language toggle and listening stats into Settings
+- **Connection & Streaming**:
+  - Switched Caddy upstream transport to HTTP/1.1 for API, auth, and image routes, fixing WebSocket upgrade loops and 502 Bad Gateway errors
+  - Improved progress store and view transition null-safety
+- **Privacy & Customization**:
+  - Self-hosted, local-first typography options (Inter, Atkinson Hyperlegible, JetBrains Mono, Fraunces, Literata, Gloock, OpenDyslexic) with zero third-party web resource requests
+- **Automated Verification**:
+  - In-browser end-to-end verification suite via Playwright with automatic console and network error detection
+
 ## Desktop 0.1.0
 
 The first release: a fast, private client for Audiobookshelf as a native desktop app for Windows, macOS and Linux (built with Tauri).
