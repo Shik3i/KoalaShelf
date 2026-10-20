@@ -438,8 +438,25 @@ export const en = {
 			'Made a little lighter or darker where needed, so text stays readable in both themes.',
 		font: 'Font',
 		fontHint:
-			'Easy to read: Atkinson Hyperlegible, designed for people with low vision. System: your device’s font, nothing to download.',
-		fonts: { standard: 'Standard', readable: 'Easy to read', system: 'System' },
+			'All fonts are bundled and served strictly locally – zero third-party webfont calls, zero trackers.',
+		fonts: {
+			standard: 'Standard',
+			literary: 'Literary',
+			vintage: 'Vintage Vinyl',
+			readable: 'Easy read',
+			dyslexic: 'Dyslexia',
+			mono: 'Typewriter',
+			system: 'System'
+		},
+		fontDescriptions: {
+			standard: 'Gloock & Manrope – Record shop aesthetic',
+			literary: 'Literata – Classic book serif crafted for reading',
+			vintage: 'Fraunces – 70s vinyl flair with analog warmth',
+			readable: 'Atkinson Hyperlegible – Braille Institute low-vision design',
+			dyslexic: 'OpenDyslexic – Weighted letters to prevent swapping',
+			mono: 'JetBrains Mono – Technical archive & studio note look',
+			system: 'System – Native device font with 0 KB download'
+		},
 		accents: {
 			vinyl: 'Vinyl',
 			ocean: 'Ocean',

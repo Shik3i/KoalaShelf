@@ -68,6 +68,22 @@ test.describe('customization', () => {
 		expect(await page.evaluate(() => document.documentElement.dataset.accent)).toBe('vinyl');
 	});
 
+	test('appearance: font choices apply immediately and update dataset.font', async ({ page }) => {
+		await openSettings(page);
+		await page.getByRole('radio', { name: 'Literary' }).check();
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.dataset.font))
+			.toBe('literary');
+		await page.getByRole('radio', { name: 'Vintage Vinyl' }).check();
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.dataset.font))
+			.toBe('vintage');
+		await page.getByRole('radio', { name: 'Standard' }).check();
+		await expect
+			.poll(() => page.evaluate(() => document.documentElement.dataset.font))
+			.toBe('standard');
+	});
+
 	test('accent presets keep text contrast in both themes', async ({ page }) => {
 		await page.goto('/');
 		// Styles are in place once the app has rendered (dev mode injects CSS from JS).

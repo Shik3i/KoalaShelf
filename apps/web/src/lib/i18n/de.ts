@@ -436,10 +436,27 @@ export const de: Messages = {
 		customOk: 'In beiden Themes so lesbar, wie sie ist.',
 		customAdjusted:
 			'Wo nötig etwas heller oder dunkler gemacht, damit Text in beiden Themes lesbar bleibt.',
-		font: 'Schrift',
+		font: 'Schriftart',
 		fontHint:
-			'Gut lesbar: Atkinson Hyperlegible, entwickelt für Menschen mit Sehschwäche. System: die Schrift deines Geräts, nichts wird geladen.',
-		fonts: { standard: 'Standard', readable: 'Gut lesbar', system: 'System' },
+			'Alle Schriftarten werden vollständig lokal ausgeliefert – keine Webfonts von Drittanbietern, keine Tracker.',
+		fonts: {
+			standard: 'Standard',
+			literary: 'Literarisch',
+			vintage: 'Vintage Vinyl',
+			readable: 'Gut lesbar',
+			dyslexic: 'Legasthenie',
+			mono: 'Schreibmaschine',
+			system: 'System'
+		},
+		fontDescriptions: {
+			standard: 'Gloock & Manrope – Plattenladen-Ästhetik',
+			literary: 'Literata – Klassische Buch-Serife für langes Lesen',
+			vintage: 'Fraunces – 70er-Jahre-Vinyl-Flair mit analoger Wärme',
+			readable: 'Atkinson Hyperlegible – Vom Braille Institute für Sehschwäche',
+			dyslexic: 'OpenDyslexic – Beschwerte Buchstaben gegen Vertauschen',
+			mono: 'JetBrains Mono – Technischer Archiv- & Notizen-Look',
+			system: 'System – Native Geräteschriftart ohne Extra-Download'
+		},
 		accents: {
 			vinyl: 'Vinyl',
 			ocean: 'Ozean',

@@ -46,8 +46,12 @@
 	},
 	"dependencies": {
 		"@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
+		"@fontsource-variable/fraunces": "^5.3.0",
+		"@fontsource-variable/jetbrains-mono": "^5.3.0",
+		"@fontsource-variable/literata": "^5.3.0",
 		"@fontsource-variable/manrope": "^5.3.0",
 		"@fontsource/gloock": "^5.3.0",
+		"@fontsource/opendyslexic": "^5.3.0",
 		"@koalashelf/abs-client": "workspace:*",
 		"@koalashelf/design-tokens": "workspace:*",
 		"@lucide/svelte": "^1.57.0",

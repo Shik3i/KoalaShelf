@@ -5,6 +5,16 @@ const KEY = 'ks.prefs';
 
 export const SKIP_STEPS = [10, 15, 30, 45, 60] as const;
 export const TEXT_SIZES = { sm: 0.9375, md: 1, lg: 1.125, xl: 1.25 } as const;
+export const FONTS = [
+	'standard',
+	'literary',
+	'vintage',
+	'readable',
+	'dyslexic',
+	'mono',
+	'system'
+] as const;
+export type FontChoice = (typeof FONTS)[number];
 
 export type SoundProfile = 'off' | 'voice' | 'night' | 'commute';
 
@@ -14,8 +24,8 @@ export interface Prefs {
 	accent: AccentName | 'custom';
 	customAccent: string;
 	textSize: keyof typeof TEXT_SIZES;
-	/** Standard (Manrope and Gloock), easy to read (Atkinson Hyperlegible) or the system font. */
-	font: 'standard' | 'readable' | 'system';
+	/** Standard, literary, vintage, readable, dyslexic, monospace or system font. */
+	font: FontChoice;
 	/** Follow the system setting, or reduce / keep animations regardless of it. */
 	motion: 'system' | 'reduce' | 'full';
 	/** The record turns while playing. */
@@ -149,15 +159,17 @@ export function sanitize(saved: Record<string, unknown>): Prefs {
 			? v === 'last' || (typeof v === 'number' && v > 0)
 			: k === 'soundProfile'
 				? v === 'off' || v === 'voice' || v === 'night' || v === 'commute'
-				: k === 'sleepFadeDuration'
-					? v === 10 || v === 30 || v === 60
-					: k === 'navCollapsed'
-						? typeof v === 'object' && v !== null
-						: k === 'navHidden'
-							? Array.isArray(v) && v.every((x) => typeof x === 'string')
-							: Array.isArray(fallback)
-								? Array.isArray(v)
-								: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
+				: k === 'font'
+					? (FONTS as readonly unknown[]).includes(v)
+					: k === 'sleepFadeDuration'
+						? v === 10 || v === 30 || v === 60
+						: k === 'navCollapsed'
+							? typeof v === 'object' && v !== null
+							: k === 'navHidden'
+								? Array.isArray(v) && v.every((x) => typeof x === 'string')
+								: Array.isArray(fallback)
+									? Array.isArray(v)
+									: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
 	return Object.fromEntries(
 		Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
 	) as unknown as Prefs;

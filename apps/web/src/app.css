@@ -1,8 +1,12 @@
 @import '@koalashelf/design-tokens/tokens.css';
 @import '@fontsource/gloock/400.css';
 @import '@fontsource-variable/manrope/wght.css';
-/* Only downloaded when chosen (Settings > Appearance > Font): fonts load on first use. */
 @import '@fontsource-variable/atkinson-hyperlegible-next/wght.css';
+@import '@fontsource-variable/literata/wght.css';
+@import '@fontsource-variable/fraunces/wght.css';
+@import '@fontsource-variable/jetbrains-mono/wght.css';
+@import '@fontsource/opendyslexic/400.css';
+@import '@fontsource/opendyslexic/700.css';
 
 *,
 *::before,
@@ -37,11 +41,34 @@ html {
 	font-size: 125%;
 }
 
-/* Settings > Appearance > Font. "Readable": Atkinson Hyperlegible Next, made for low vision,
-   for text and headings alike; "System": the device's own font, nothing downloaded. */
+/* Settings > Appearance > Font. All webfonts are bundled and served strictly locally. */
 :root[data-font='readable'] {
 	--font-text: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
 	--font-display: 'Atkinson Hyperlegible Next Variable', system-ui, sans-serif;
+	--fw-display: 700;
+}
+
+:root[data-font='literary'] {
+	--font-text: 'Literata Variable', Georgia, serif;
+	--font-display: 'Literata Variable', Georgia, serif;
+	--fw-display: 700;
+}
+
+:root[data-font='vintage'] {
+	--font-text: 'Fraunces Variable', Georgia, serif;
+	--font-display: 'Fraunces Variable', Georgia, serif;
+	--fw-display: 700;
+}
+
+:root[data-font='mono'] {
+	--font-text: 'JetBrains Mono Variable', monospace;
+	--font-display: 'JetBrains Mono Variable', monospace;
+	--fw-display: 700;
+}
+
+:root[data-font='dyslexic'] {
+	--font-text: 'OpenDyslexic', sans-serif;
+	--font-display: 'OpenDyslexic', sans-serif;
 	--fw-display: 700;
 }
 

@@ -5,7 +5,14 @@
 	import { session, presetServer } from '#lib/session.svelte.ts';
 	import { theme, type ThemeChoice } from '#lib/theme.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
-	import { prefs, SKIP_STEPS, TEXT_SIZES, type Prefs } from '#lib/prefs.svelte.ts';
+	import {
+		prefs,
+		FONTS,
+		SKIP_STEPS,
+		TEXT_SIZES,
+		type Prefs,
+		type FontChoice
+	} from '#lib/prefs.svelte.ts';
 	import { player, RATES } from '#lib/player/player.svelte.ts';
 	import SoundPanel from '#lib/player/SoundPanel.svelte';
 	import { exportSettings, importSettings, justImported } from '#lib/backup.ts';
@@ -51,6 +58,26 @@
 		'listen-again': home.listenAgain
 	});
 	const order = $derived(shelfOrder());
+
+	function fontStyle(f: FontChoice): string {
+		switch (f) {
+			case 'literary':
+				return "'Literata Variable', Georgia, serif";
+			case 'vintage':
+				return "'Fraunces Variable', Georgia, serif";
+			case 'mono':
+				return "'JetBrains Mono Variable', monospace";
+			case 'dyslexic':
+				return "'OpenDyslexic', sans-serif";
+			case 'readable':
+				return "'Atkinson Hyperlegible Next Variable', system-ui, sans-serif";
+			case 'system':
+				return 'system-ui, -apple-system, sans-serif';
+			case 'standard':
+			default:
+				return "'Gloock', 'Manrope Variable', sans-serif";
+		}
+	}
 
 	/** Typed shorthand for a segmented setting. */
 	const choose =
@@ -226,22 +253,33 @@
 			</div>
 		{/if}
 	</fieldset>
-	<div class="row stacked">
-		<span class="stack">
-			{t.font}
-			<small class="muted">{t.fontHint}</small>
-		</span>
-		<Segmented
-			size="sm"
-			label={t.font}
-			value={prefs.font}
-			options={(['standard', 'readable', 'system'] as const).map((f) => ({
-				value: f,
-				label: t.fonts[f]
-			}))}
-			onchange={choose('font')}
-		/>
-	</div>
+	<fieldset class="row stacked">
+		<legend>{t.font}</legend>
+		<small class="muted">{t.fontHint}</small>
+		<div class="font-grid">
+			{#each FONTS as f (f)}
+				<label class="font-card" class:active={prefs.font === f}>
+					<input
+						type="radio"
+						name="font"
+						value={f}
+						checked={prefs.font === f}
+						onchange={() => prefs.set('font', f)}
+					/>
+					<div class="font-card-head">
+						<span class="font-name" style:font-family={fontStyle(f)}>{t.fonts[f]}</span>
+						<span class="font-check" aria-hidden="true">
+							{#if prefs.font === f}<Check size={14} strokeWidth={3} />{/if}
+						</span>
+					</div>
+					<span class="font-desc">{t.fontDescriptions[f]}</span>
+					<span class="font-sample" style:font-family={fontStyle(f)} aria-hidden="true">
+						Aa Bb Gg 123 · Hörgenuss ohne Grenzen
+					</span>
+				</label>
+			{/each}
+		</div>
+	</fieldset>
 	<div class="row stacked">
 		<span class="stack">
 			{t.textSize}
@@ -871,6 +909,92 @@
 		display: grid;
 		gap: var(--sp-8);
 		margin-top: var(--sp-4);
+	}
+
+	.font-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+		gap: var(--sp-12);
+		margin-top: var(--sp-8);
+	}
+
+	.font-card {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		gap: var(--sp-6);
+		padding: var(--sp-12) var(--sp-16);
+		border-radius: var(--r-card);
+		background: var(--c-bg);
+		border: 1px solid var(--c-line);
+		cursor: pointer;
+		transition:
+			border-color var(--motion-fast) var(--motion-ease),
+			background var(--motion-fast) var(--motion-ease);
+	}
+
+	.font-card:hover {
+		border-color: color-mix(in oklab, var(--c-muted) 50%, var(--c-line));
+	}
+
+	.font-card.active {
+		border-color: var(--c-accent);
+		background: color-mix(in oklab, var(--c-accent) 6%, var(--c-bg));
+	}
+
+	.font-card input {
+		position: absolute;
+		opacity: 0;
+		inset: 0;
+		margin: 0;
+		cursor: pointer;
+	}
+
+	.font-card:has(input:focus-visible) {
+		outline: 2px solid var(--c-accent);
+		outline-offset: 2px;
+	}
+
+	.font-card-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.font-name {
+		font-weight: var(--fw-bold);
+		font-size: var(--fs-16);
+		color: var(--c-ink);
+	}
+
+	.font-check {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		border: 1px solid var(--c-line);
+		color: var(--c-accent);
+	}
+
+	.font-card.active .font-check {
+		border-color: var(--c-accent);
+		background: color-mix(in oklab, var(--c-accent) 15%, transparent);
+	}
+
+	.font-desc {
+		font-size: var(--fs-12);
+		color: var(--c-muted);
+		line-height: 1.35;
+	}
+
+	.font-sample {
+		margin-top: var(--sp-4);
+		font-size: var(--fs-14);
+		color: var(--c-ink);
+		letter-spacing: -0.01em;
+		opacity: 0.9;
 	}
 
 	.previews {
