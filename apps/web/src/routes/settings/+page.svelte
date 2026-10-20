@@ -89,6 +89,28 @@
 	const downloaded = $derived([...downloads.books.values()]);
 	const downloadedSize = $derived(downloaded.reduce((s, b) => s + b.size, 0));
 
+	const navToggleItems = $derived([
+		{ href: '/series', label: i18n.m.nav.series },
+		{ href: '/authors', label: i18n.m.nav.authors },
+		{ href: '/downloads', label: i18n.m.nav.downloads },
+		{ href: '/history', label: i18n.m.nav.history },
+		{ href: '/bookmarks', label: i18n.m.nav.bookmarks },
+		{ href: '/collections', label: i18n.m.nav.collections },
+		{ href: '/playlists', label: i18n.m.nav.playlists }
+	]);
+
+	function setNavItemVisible(href: string, visible: boolean) {
+		const current = prefs.navHidden;
+		if (visible) {
+			prefs.set(
+				'navHidden',
+				current.filter((h) => h !== href)
+			);
+		} else if (!current.includes(href)) {
+			prefs.set('navHidden', [...current, href]);
+		}
+	}
+
 	/** "22:00" <-> minutes after midnight. */
 	const hhmm = (m: number) =>
 		`${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -264,6 +286,19 @@
 			onchange={choose('coverSize')}
 		/>
 	</div>
+	<fieldset class="row stacked">
+		<legend>{t.navItems}</legend>
+		<small class="muted">{t.navItemsHint}</small>
+		<div class="nav-toggles">
+			{#each navToggleItems as item (item.href)}
+				<Toggle
+					label={item.label}
+					checked={!prefs.navHidden.includes(item.href)}
+					onchange={(on) => setNavItemVisible(item.href, on)}
+				/>
+			{/each}
+		</div>
+	</fieldset>
 </section>
 
 <section class="card" id="player" aria-labelledby="h-player">
@@ -830,6 +865,12 @@
 	.own-color small {
 		flex-basis: 100%;
 		font-size: var(--fs-13);
+	}
+
+	.nav-toggles {
+		display: grid;
+		gap: var(--sp-8);
+		margin-top: var(--sp-4);
 	}
 
 	.previews {

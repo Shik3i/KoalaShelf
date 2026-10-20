@@ -27,7 +27,7 @@ export const en = {
 		downloads: 'Downloads',
 		history: 'History',
 		discover: 'Discover',
-		myLibrary: 'My Library',
+		personal: 'Personal',
 		more: 'More',
 		skip: 'Skip to content'
 	},
@@ -458,6 +458,8 @@ export const en = {
 		spinHint: 'The record turns while a book plays.',
 		coverSize: 'Cover size',
 		coverSizes: { sm: 'Small', md: 'Medium', lg: 'Large' },
+		navItems: 'Sidebar navigation',
+		navItemsHint: 'Choose which menu items are visible in the navigation.',
 		scope: 'Timeline shows',
 		scopes: { book: 'Whole book', chapter: 'Current chapter' },
 		clock: 'Big clock',

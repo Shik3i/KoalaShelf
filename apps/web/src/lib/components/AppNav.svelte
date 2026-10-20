@@ -40,18 +40,24 @@
 		{ href: '/search', label: t.search, icon: Search, tab: true }
 	]);
 
-	const discoverItems = $derived([
-		{ href: '/series', label: t.series, icon: Layers, tab: false },
-		{ href: '/authors', label: t.authors, icon: Users, tab: false }
-	]);
+	const isVisible = (href: string) => !prefs.navHidden.includes(href);
 
-	const libraryItems = $derived([
-		{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
-		{ href: '/history', label: t.history, icon: History, tab: false },
-		{ href: '/bookmarks', label: t.bookmarks, icon: BookmarkIcon, tab: false },
-		{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
-		{ href: '/playlists', label: t.playlists, icon: ListMusic, tab: false }
-	]);
+	const discoverItems = $derived(
+		[
+			{ href: '/series', label: t.series, icon: Layers, tab: false },
+			{ href: '/authors', label: t.authors, icon: Users, tab: false }
+		].filter((i) => isVisible(i.href))
+	);
+
+	const personalItems = $derived(
+		[
+			{ href: '/downloads', label: t.downloads, icon: Download, tab: true },
+			{ href: '/history', label: t.history, icon: History, tab: false },
+			{ href: '/bookmarks', label: t.bookmarks, icon: BookmarkIcon, tab: false },
+			{ href: '/collections', label: t.collections, icon: FolderHeart, tab: false },
+			{ href: '/playlists', label: t.playlists, icon: ListMusic, tab: false }
+		].filter((i) => isVisible(i.href))
+	);
 
 	const settingsItem = $derived({
 		href: '/settings',
@@ -67,15 +73,14 @@
 		{ href: '/search', label: t.search, icon: Search }
 	]);
 
-	const extra = $derived([
-		...discoverItems,
-		{ href: '/history', label: t.history, icon: History },
-		{ href: '/bookmarks', label: t.bookmarks, icon: BookmarkIcon },
-		{ href: '/collections', label: t.collections, icon: FolderHeart },
-		{ href: '/playlists', label: t.playlists, icon: ListMusic },
-		{ href: '/stats', label: t.stats, icon: ChartColumn },
-		settingsItem
-	]);
+	const extra = $derived(
+		[
+			...discoverItems,
+			...personalItems.filter((i) => !i.tab),
+			{ href: '/stats', label: t.stats, icon: ChartColumn },
+			settingsItem
+		].filter((i) => isVisible(i.href))
+	);
 
 	const collapsed = $derived({
 		discover: prefs.navCollapsed.discover ?? false,
@@ -97,7 +102,7 @@
 		if (discoverItems.some((i) => active(i.href)) && collapsed.discover) {
 			prefs.set('navCollapsed', { ...prefs.navCollapsed, discover: false });
 		}
-		if (libraryItems.some((i) => active(i.href)) && collapsed.library) {
+		if (personalItems.some((i) => active(i.href)) && collapsed.library) {
 			prefs.set('navCollapsed', { ...prefs.navCollapsed, library: false });
 		}
 	});
@@ -174,53 +179,57 @@
 			{/each}
 		</div>
 
-		<div class="nav-section">
-			<button
-				type="button"
-				class="nav-header"
-				onclick={() => toggleGroup('discover')}
-				aria-expanded={!collapsed.discover}
-			>
-				<span>{t.discover}</span>
-				<span class="chevron" class:collapsed={collapsed.discover}>
-					<ChevronDown size={14} aria-hidden="true" />
-				</span>
-			</button>
-			{#if !collapsed.discover}
-				<div class="nav-group">
-					{#each discoverItems as item (item.href)}
-						<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
-							<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-							{item.label}
-						</a>
-					{/each}
-				</div>
-			{/if}
-		</div>
+		{#if discoverItems.length > 0}
+			<div class="nav-section">
+				<button
+					type="button"
+					class="nav-header"
+					onclick={() => toggleGroup('discover')}
+					aria-expanded={!collapsed.discover}
+				>
+					<span>{t.discover}</span>
+					<span class="chevron" class:collapsed={collapsed.discover}>
+						<ChevronDown size={14} aria-hidden="true" />
+					</span>
+				</button>
+				{#if !collapsed.discover}
+					<div class="nav-group">
+						{#each discoverItems as item (item.href)}
+							<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+								<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
+								{item.label}
+							</a>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
 
-		<div class="nav-section">
-			<button
-				type="button"
-				class="nav-header"
-				onclick={() => toggleGroup('library')}
-				aria-expanded={!collapsed.library}
-			>
-				<span>{t.myLibrary}</span>
-				<span class="chevron" class:collapsed={collapsed.library}>
-					<ChevronDown size={14} aria-hidden="true" />
-				</span>
-			</button>
-			{#if !collapsed.library}
-				<div class="nav-group">
-					{#each libraryItems as item (item.href)}
-						<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
-							<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
-							{item.label}
-						</a>
-					{/each}
-				</div>
-			{/if}
-		</div>
+		{#if personalItems.length > 0}
+			<div class="nav-section">
+				<button
+					type="button"
+					class="nav-header"
+					onclick={() => toggleGroup('library')}
+					aria-expanded={!collapsed.library}
+				>
+					<span>{t.personal}</span>
+					<span class="chevron" class:collapsed={collapsed.library}>
+						<ChevronDown size={14} aria-hidden="true" />
+					</span>
+				</button>
+				{#if !collapsed.library}
+					<div class="nav-group">
+						{#each personalItems as item (item.href)}
+							<a href={item.href} aria-current={active(item.href) ? 'page' : undefined}>
+								<item.icon size={18} strokeWidth={2.2} aria-hidden="true" />
+								{item.label}
+							</a>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		{/if}
 
 		<div class="nav-group system">
 			<a href={settingsItem.href} aria-current={active(settingsItem.href) ? 'page' : undefined}>

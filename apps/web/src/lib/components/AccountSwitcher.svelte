@@ -8,6 +8,7 @@
 	import UserPlus from '@lucide/svelte/icons/user-plus';
 	import Server from '@lucide/svelte/icons/server';
 	import KeyRound from '@lucide/svelte/icons/key-round';
+	import ChartColumn from '@lucide/svelte/icons/chart-column';
 
 	/** Saved accounts on every server, one tap to switch. */
 	let { open = $bindable(false) }: { open?: boolean } = $props();
@@ -76,6 +77,10 @@
 			<UserPlus size={16} aria-hidden="true" />
 			{t.add}
 		</button>
+		<a class="btn ghost" href="/stats" onclick={() => (open = false)}>
+			<ChartColumn size={16} aria-hidden="true" />
+			{i18n.m.nav.stats}
+		</a>
 		<a class="btn ghost" href="/settings#account" onclick={() => (open = false)}>{t.manage}</a>
 	</div>
 	<p class="muted note">{t.privacy}</p>

@@ -88,6 +88,8 @@ export interface Prefs {
 	removeFinished: boolean;
 	/** Collapsed state of navigation groups in the sidebar. */
 	navCollapsed: { discover?: boolean; library?: boolean };
+	/** Hrefs of navigation items hidden by the listener (e.g. '/playlists'). */
+	navHidden: string[];
 }
 
 export const DEFAULTS: Prefs = {
@@ -136,7 +138,8 @@ export const DEFAULTS: Prefs = {
 	savedViews: [],
 	dailyGoal: 0,
 	removeFinished: false,
-	navCollapsed: {}
+	navCollapsed: {},
+	navHidden: []
 };
 
 /** Only known keys with a plausible type survive (older versions, hand edits, imports). */
@@ -150,9 +153,11 @@ export function sanitize(saved: Record<string, unknown>): Prefs {
 					? v === 10 || v === 30 || v === 60
 					: k === 'navCollapsed'
 						? typeof v === 'object' && v !== null
-						: Array.isArray(fallback)
-							? Array.isArray(v)
-							: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
+						: k === 'navHidden'
+							? Array.isArray(v) && v.every((x) => typeof x === 'string')
+							: Array.isArray(fallback)
+								? Array.isArray(v)
+								: typeof v === typeof fallback && (typeof v !== 'number' || Number.isFinite(v));
 	return Object.fromEntries(
 		Object.entries(DEFAULTS).map(([k, v]) => [k, valid(k, saved[k], v) ? saved[k] : v])
 	) as unknown as Prefs;

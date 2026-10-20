@@ -25,7 +25,7 @@ export const de: Messages = {
 		downloads: 'Downloads',
 		history: 'Verlauf',
 		discover: 'Entdecken',
-		myLibrary: 'Mediathek',
+		personal: 'Persönlich',
 		more: 'Mehr',
 		skip: 'Zum Inhalt springen'
 	},
@@ -458,6 +458,8 @@ export const de: Messages = {
 		spinHint: 'Die Platte dreht sich, solange ein Buch läuft.',
 		coverSize: 'Covergröße',
 		coverSizes: { sm: 'Klein', md: 'Mittel', lg: 'Groß' },
+		navItems: 'Navigationsleiste',
+		navItemsHint: 'Wähle, welche Menüpunkte in der Navigation sichtbar sein sollen.',
 		scope: 'Zeitleiste zeigt',
 		scopes: { book: 'Ganzes Buch', chapter: 'Aktuelles Kapitel' },
 		clock: 'Große Uhr',
