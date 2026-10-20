@@ -228,6 +228,12 @@ class Player {
 		try {
 			const item = await session.api.item(id);
 			if (this.item) return;
+			if (item.userMediaProgress) progress.merge(item.userMediaProgress);
+			// If already finished on another device, don't restore as an active playing item.
+			if (item.userMediaProgress?.isFinished) {
+				store(scoped(LAST_KEY), null);
+				return;
+			}
 			this.item = item;
 			this.chapters = item.media.chapters;
 			this.duration = item.media.duration;
@@ -303,9 +309,12 @@ class Player {
 			await this.#start();
 			return;
 		}
-		// Position chosen in the restored mini player (before any session existed) wins.
+		// Position chosen in the restored mini player (before any session existed) wins,
+		// unless the book was finished or explicitly requested to start elsewhere.
+		const isFinished = progress.get(id)?.isFinished ?? false;
 		const preset =
-			startAt ?? (this.item?.id === id && !this.#session ? this.currentTime : undefined);
+			startAt ??
+			(isFinished ? 0 : this.item?.id === id && !this.#session ? this.currentTime : undefined);
 		await this.#close();
 		if (req !== this.#request) return;
 		this.buffering = true;
@@ -340,9 +349,11 @@ class Player {
 		queue.remove(id);
 		this.#tracks = [...s.audioTracks].sort((a, b) => a.startOffset - b.startOffset);
 		this.item = s.libraryItem;
+		if (s.libraryItem.userMediaProgress) progress.merge(s.libraryItem.userMediaProgress);
+		const finished = isFinished || (s.libraryItem.userMediaProgress?.isFinished ?? false);
 		this.chapters = s.chapters?.length ? s.chapters : s.libraryItem.media.chapters;
 		this.duration = s.duration;
-		let start = preset ?? s.currentTime ?? 0;
+		let start = finished && startAt === undefined ? 0 : (preset ?? s.currentTime ?? 0);
 		// A finished book starts over instead of ending immediately.
 		if (start >= s.duration - 2) start = 0;
 		this.currentTime = start;
@@ -374,7 +385,11 @@ class Player {
 		this.item = item;
 		this.chapters = item.media.chapters;
 		this.duration = item.media.duration;
-		const known = progress.get(id)?.currentTime ?? item.userMediaProgress?.currentTime ?? 0;
+		const isFinished =
+			progress.get(id)?.isFinished || (item.userMediaProgress?.isFinished ?? false);
+		const known = isFinished
+			? 0
+			: (progress.get(id)?.currentTime ?? item.userMediaProgress?.currentTime ?? 0);
 		let start = preset ?? known;
 		if (start >= this.duration - 2) start = 0;
 		this.currentTime = start;
@@ -444,6 +459,11 @@ class Player {
 	/** Another device moved on: follow it unless we are playing here right now. */
 	applyRemoteProgress(p: MediaProgress) {
 		if (!this.item || this.item.id !== p.libraryItemId || this.playing) return;
+		if (p.isFinished) {
+			this.pause();
+			this.currentTime = this.duration;
+			return;
+		}
 		if (Math.abs(p.currentTime - this.currentTime) < 2) return;
 		if (this.#session) this.seek(p.currentTime);
 		else this.currentTime = p.currentTime;

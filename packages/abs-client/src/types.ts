@@ -138,6 +138,7 @@ interface LibraryItemBase {
 	updatedAt: number;
 	isMissing: boolean;
 	isInvalid: boolean;
+	userMediaProgress?: MediaProgress;
 }
 
 export interface LibraryItem extends LibraryItemBase {
@@ -145,7 +146,6 @@ export interface LibraryItem extends LibraryItemBase {
 	size: number;
 	/** A single audio file in the library root (downloads as that file, not as a ZIP). */
 	isFile?: boolean;
-	userMediaProgress?: MediaProgress;
 }
 
 export interface LibraryItemMinified extends LibraryItemBase {

@@ -8,6 +8,7 @@ class ProgressStore {
 	/** The book just finished on this device (not one that already was): its record shines gold. */
 	justFinished = $state<{ id: string; n: number } | null>(null);
 	#loaded: Promise<void> | null = null;
+	#lastLoadedAt = 0;
 	/** Only the latest load may write: an older, slower response must not undo newer state. */
 	#generation = 0;
 	/** Entries written by this device (stamped with its own clock, not the server's). */
@@ -16,17 +17,21 @@ class ProgressStore {
 	constructor() {
 		session.onSignOut(() => this.reset());
 		// Coming back to the tab: pick up progress made on other devices meanwhile.
-		document.addEventListener('visibilitychange', () => {
-			if (!document.hidden && session.client && this.#loaded)
-				void this.load(true).catch(() => undefined);
-		});
+		if (typeof document !== 'undefined') {
+			document.addEventListener('visibilitychange', () => {
+				if (!document.hidden && session.client && this.#loaded)
+					void this.load(true).catch(() => undefined);
+			});
+		}
 	}
 
 	load(force = false) {
-		if (!this.#loaded || force) {
+		const stale = Date.now() - this.#lastLoadedAt > 30_000;
+		if (!this.#loaded || force || stale) {
 			const generation = ++this.#generation;
 			this.#loaded = session.api.me().then((me) => {
 				if (generation !== this.#generation) return;
+				this.#lastLoadedAt = Date.now();
 				session.canDownload = me.permissions?.download !== false;
 				// Collections: creating and editing needs "update", deleting needs "delete".
 				session.canUpdate = me.type !== 'guest' && me.permissions?.update === true;
@@ -47,6 +52,7 @@ class ProgressStore {
 	/** Forget everything (sign-out / user switch). */
 	reset() {
 		this.#loaded = null;
+		this.#lastLoadedAt = 0;
 		this.#generation++;
 		this.byItem.clear();
 	}
@@ -75,7 +81,9 @@ class ProgressStore {
 	merge(p: MediaProgress) {
 		const known = this.byItem.get(p.libraryItemId);
 		// Timestamps are only comparable between server states (device clocks can be off).
-		if (known && !this.#local.has(known) && known.lastUpdate > p.lastUpdate) return false;
+		// A finished status from server always wins over unfinished local state.
+		if (known && !p.isFinished && !this.#local.has(known) && known.lastUpdate > p.lastUpdate)
+			return false;
 		this.byItem.set(p.libraryItemId, p);
 		return true;
 	}

@@ -33,10 +33,19 @@
 	$effect(() => {
 		const lib = session.libraryId;
 		if (!lib) return;
-		progress.load();
+		void progress.load(true);
 		session.api
 			.personalized(lib, 16)
-			.then((s) => (shelves = s))
+			.then((s) => {
+				shelves = s;
+				for (const shelf of s) {
+					if (shelf.type === 'book') {
+						for (const b of shelf.entities) {
+							if (b.userMediaProgress) progress.merge(b.userMediaProgress);
+						}
+					}
+				}
+			})
 			.catch((e) => (error = (e as Error).message));
 	});
 
@@ -65,12 +74,28 @@
 	const continueItems = $derived(books(shelves?.find((s) => s.id === 'continue-listening')));
 	const hero = $derived<LibraryItemMinified | undefined>(continueItems[0]);
 	const heroView = $derived(hero ? view(hero) : null);
-	const heroIsPlaying = $derived(!!hero && player.item?.id === hero.id);
+	const heroFinished = $derived(
+		hero
+			? (progress.get(hero.id)?.isFinished ?? false) ||
+					(hero.userMediaProgress?.isFinished ?? false)
+			: false
+	);
+	const heroIsPlaying = $derived(!!hero && player.item?.id === hero.id && !heroFinished);
 	const heroPos = $derived(
-		hero ? (heroIsPlaying ? player.currentTime : (progress.get(hero.id)?.currentTime ?? 0)) : 0
+		hero
+			? heroIsPlaying
+				? player.currentTime
+				: (progress.get(hero.id)?.currentTime ?? hero.userMediaProgress?.currentTime ?? 0)
+			: 0
 	);
 	const heroPct = $derived(
-		hero ? (heroIsPlaying ? player.progress : (progress.get(hero.id)?.progress ?? 0)) : 0
+		hero
+			? heroFinished
+				? 1
+				: heroIsPlaying
+					? player.progress
+					: (progress.get(hero.id)?.progress ?? hero.userMediaProgress?.progress ?? 0)
+			: 0
 	);
 
 	const LABELS = $derived<Record<string, string>>({

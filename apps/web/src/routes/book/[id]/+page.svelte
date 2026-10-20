@@ -59,10 +59,21 @@
 	);
 	const meta = $derived(item?.media.metadata);
 	const p = $derived(item ? progress.get(item.id) : undefined);
-	const isCurrent = $derived(!!item && player.item?.id === item.id);
-	const position = $derived(isCurrent ? player.currentTime : (p?.currentTime ?? 0));
+	const isFinished = $derived(
+		(p?.isFinished ?? false) || (item?.userMediaProgress?.isFinished ?? false)
+	);
+	const isCurrent = $derived(!!item && player.item?.id === item.id && !isFinished);
+	const position = $derived(
+		isCurrent ? player.currentTime : (p?.currentTime ?? item?.userMediaProgress?.currentTime ?? 0)
+	);
 	const pct = $derived(
-		item ? (isCurrent ? player.progress : p?.isFinished ? 1 : (p?.progress ?? 0)) : 0
+		item
+			? isFinished
+				? 1
+				: isCurrent
+					? player.progress
+					: (p?.progress ?? item.userMediaProgress?.progress ?? 0)
+			: 0
 	);
 	const marks = $derived(
 		item ? item.media.chapters.slice(1).map((c) => c.start / item.media.duration) : []
@@ -90,7 +101,8 @@
 	$effect(() => {
 		const it = item;
 		if (!it) return;
-		progress.load();
+		if (it.userMediaProgress) progress.merge(it.userMediaProgress);
+		void progress.load();
 		session.api
 			.bookmarks(it.id)
 			.then((b) => (ownBookmarks = b.sort((a, c) => a.time - c.time)))
