@@ -57,6 +57,11 @@ class ProgressStore {
 		this.byItem.clear();
 	}
 
+	/** Immediately drop a book's progress locally (e.g. on reset). */
+	remove(itemId: string) {
+		this.byItem.delete(itemId);
+	}
+
 	/** A book was finished here and now (end of playback or "mark finished"). */
 	celebrate(itemId: string) {
 		this.justFinished = { id: itemId, n: (this.justFinished?.n ?? 0) + 1 };

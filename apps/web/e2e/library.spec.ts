@@ -183,9 +183,8 @@ test.describe('library', () => {
 	});
 
 	test('switching library and paging through 70 titles (infinite scroll)', async ({ page }) => {
-		await page
-			.getByRole('combobox', { name: /^Library/ })
-			.selectOption({ label: 'Kurzgeschichten' });
+		await page.locator('.lib-trigger').click();
+		await page.locator('.lib-opt', { hasText: 'Kurzgeschichten' }).click();
 		await expect(page.getByText('70 titles')).toBeVisible();
 		await expect(page.locator('.tile')).toHaveCount(60);
 		await page.locator('.more').scrollIntoViewIfNeeded();

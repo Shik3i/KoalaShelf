@@ -17,7 +17,6 @@
 	} from '#lib/server-probe.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import LocaleSwitch from '#lib/components/LocaleSwitch.svelte';
-	import Vinyl from '#lib/components/Vinyl.svelte';
 
 	const t = $derived(i18n.m.signin);
 
@@ -150,11 +149,11 @@
 <div class="wrap">
 	<section class="card">
 		<div class="hero" aria-hidden="true">
-			<Vinyl
-				title="KoalaShelf"
-				author="Audiobookshelf"
-				playing={busy || check.state === 'checking'}
-				label={0.42}
+			<img
+				src="/mascot.png"
+				alt=""
+				class="mascot"
+				class:busy={busy || check.state === 'checking'}
 			/>
 		</div>
 		<h1>{adding ? t.addTitle : 'KoalaShelf'}</h1>
@@ -337,8 +336,15 @@
 	}
 
 	.hero {
-		width: 132px;
+		width: 136px;
 		margin: calc(-1 * var(--sp-64) - var(--sp-32)) auto var(--sp-8);
+	}
+
+	.mascot {
+		width: 100%;
+		height: auto;
+		display: block;
+		filter: drop-shadow(0 12px 24px rgb(0 0 0 / 0.35));
 	}
 
 	h1 {

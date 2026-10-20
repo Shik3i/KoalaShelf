@@ -15,7 +15,11 @@ export const ROOT = resolve(import.meta.dirname, '..');
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
 /** Which workflow may publish what. */
-const PUBLISHERS = { 'release-web.yml': 'web', 'release-desktop.yml': 'desktop' };
+const PUBLISHERS = {
+	'release-web.yml': 'web',
+	'release-desktop.yml': 'desktop',
+	'release-android.yml': 'android'
+};
 const CODEQL_LANGUAGES = ['javascript-typescript', 'actions'];
 
 /** Version files per component; every one must carry the released version. */
@@ -25,6 +29,9 @@ export const VERSION_FILES = {
 		'apps/desktop/package.json': (s) => JSON.parse(s).version,
 		'apps/desktop/src-tauri/tauri.conf.json': (s) => JSON.parse(s).version,
 		'apps/desktop/src-tauri/Cargo.toml': (s) => s.match(/^version\s*=\s*"([^"]+)"/m)?.[1]
+	},
+	android: {
+		'apps/android/app/build.gradle.kts': (s) => s.match(/versionName\s*=\s*"([^"]+)"/)?.[1]
 	}
 };
 
@@ -52,10 +59,10 @@ export function policyErrors(workflows, dockerfiles) {
 	return errors;
 }
 
-/** "web-v1.2.3", "desktop-v1.2.3" or "v1.2.3" -> { component: 'web', version: '1.2.3' } (or throws). */
+/** "web-v1.2.3", "desktop-v1.2.3", "android-v1.2.3" or "v1.2.3" -> { component: 'web', version: '1.2.3' } (or throws). */
 export function parseTag(tag, expectedComponent = 'web') {
-	const m = /^(?:(web|desktop)-)?v(\d+\.\d+\.\d+)$/.exec(tag ?? '');
-	if (!m) throw new Error(`Not a release tag: ${tag} (expected [web|desktop-]vX.Y.Z)`);
+	const m = /^(?:(web|desktop|android)-)?v(\d+\.\d+\.\d+)$/.exec(tag ?? '');
+	if (!m) throw new Error(`Not a release tag: ${tag} (expected [web|desktop|android-]vX.Y.Z)`);
 	return { component: m[1] ?? expectedComponent, version: m[2] };
 }
 

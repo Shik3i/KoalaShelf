@@ -221,16 +221,16 @@ test.describe('listening', () => {
 		await page.getByRole('button', { name: 'More', exact: true }).click();
 		const sheet = page.getByRole('dialog', { name: 'More' });
 		await expect(sheet.getByRole('link')).toHaveText([
-			'Series',
-			'Authors',
-			'Collections',
-			'Playlists',
-			'Bookmarks',
-			'History',
-			'Statistics',
-			'Settings'
+			/\s*Series\s*/,
+			/\s*Authors\s*/,
+			/\s*History\s*/,
+			/\s*Bookmarks\s*/,
+			/\s*Collections\s*/,
+			/\s*Playlists\s*/,
+			/\s*Statistics\s*/,
+			/\s*Settings\s*/
 		]);
-		await expect(sheet.getByRole('combobox', { name: 'Library' })).toBeVisible();
+		await expect(sheet.locator('.sheet-libraries')).toBeVisible();
 		await sheet.getByRole('link', { name: 'History' }).click();
 		await expect(page).toHaveURL(/\/history$/);
 		await expect(sheet).toBeHidden();

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { itemId } from './helpers.ts';
+import { api, itemId } from './helpers.ts';
 
 // The record-shop touches: they must land in the right place and never get in the way.
 
@@ -22,6 +22,10 @@ test('the navigation highlight glides to the current page and sits under it', as
 
 test('finishing a book turns its record gold, once with a shine', async ({ page }) => {
 	const id = await itemId('Salzwasser');
+	await api(`/api/me/progress/${id}`, {
+		method: 'PATCH',
+		body: JSON.stringify({ isFinished: false, currentTime: 0, progress: 0 })
+	});
 	await page.goto(`/book/${id}`);
 	const disc = page.locator('.hero .disc');
 	await expect(disc).not.toHaveClass(/gold/);

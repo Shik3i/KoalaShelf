@@ -621,7 +621,7 @@
 		top: 0;
 		right: 0;
 		bottom: 0;
-		width: 10px;
+		width: 24px;
 		margin: 0;
 		padding: 0;
 		border: 0;

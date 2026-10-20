@@ -63,7 +63,7 @@ test.describe('customization', () => {
 		await page.getByRole('button', { name: 'Reset settings' }).click();
 		await expect(page.getByRole('alert')).toHaveText('Reset all settings?');
 		await page.getByRole('button', { name: 'Reset settings' }).last().click();
-		await expect(page.getByRole('radio', { name: 'Vinyl' })).toBeChecked();
+		await expect(page.getByRole('radio', { name: 'Vinyl', exact: true })).toBeChecked();
 		await expect.poll(() => root(page, 'font-size')).toBe('16px');
 		expect(await page.evaluate(() => document.documentElement.dataset.accent)).toBe('vinyl');
 	});

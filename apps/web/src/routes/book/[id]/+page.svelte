@@ -129,18 +129,28 @@
 	/** Forget the progress (as if never started); undo writes the old state back. */
 	async function resetProgress() {
 		if (!item || !p) return;
-		const before = { currentTime: p.currentTime, progress: p.progress, isFinished: p.isFinished };
+		const progressId = p.id;
+		const before = { ...p };
+		const beforeUpdate = {
+			currentTime: p.currentTime,
+			progress: p.progress,
+			isFinished: p.isFinished
+		};
 		if (isCurrent) player.pause();
-		await session.api.removeProgress(p.id);
+		if (item.userMediaProgress) item.userMediaProgress = undefined;
+		progress.remove(item.id);
+		await session.api.removeProgress(progressId);
 		if (isCurrent) player.seek(0);
 		await progress.load(true);
 		toasts.show(t.progressReset, {
 			label: i18n.m.toast.undo,
-			run: () =>
+			run: () => {
+				if (item) item.userMediaProgress = before;
 				void session.api
-					.updateProgress(item.id, before)
+					.updateProgress(item.id, beforeUpdate)
 					.then(() => progress.load(true))
-					.then(() => isCurrent && player.seek(before.currentTime))
+					.then(() => isCurrent && player.seek(before.currentTime));
+			}
 		});
 	}
 
@@ -210,6 +220,21 @@
 	async function toggleFinished() {
 		if (!item) return;
 		const done = !p?.isFinished;
+		const cur = progress.get(item.id);
+		if (cur) {
+			cur.isFinished = done;
+			if (!done) {
+				cur.currentTime = 0;
+				cur.progress = 0;
+			}
+		}
+		if (item.userMediaProgress) {
+			item.userMediaProgress.isFinished = done;
+			if (!done) {
+				item.userMediaProgress.currentTime = 0;
+				item.userMediaProgress.progress = 0;
+			}
+		}
 		await session.api.updateProgress(item.id, {
 			isFinished: done,
 			...(done ? {} : { currentTime: 0, progress: 0 })
