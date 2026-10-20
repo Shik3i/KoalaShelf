@@ -7,6 +7,7 @@
 }
 
 :8080 {
+	log
 	encode zstd gzip
 
 	# Audiobookshelf API, auth, websockets and streams go to the server.
@@ -18,18 +19,31 @@
 		path /login
 	}
 	handle @images {
-		reverse_proxy {$ABS_URL}
+		reverse_proxy {$ABS_URL} {
+			header_up Host {upstream_hostport}
+			transport http {
+				versions 1.1
+			}
+		}
 	}
 	# Personal answers are never stored by a browser or a shared cache, whatever a proxy in
 	# front of Audiobookshelf says (seen: "public, max-age=15" on the whole API).
 	handle @abs {
 		reverse_proxy {$ABS_URL} {
+			header_up Host {upstream_hostport}
 			header_down Cache-Control "no-store"
+			transport http {
+				versions 1.1
+			}
 		}
 	}
 	handle @login {
 		reverse_proxy {$ABS_URL} {
+			header_up Host {upstream_hostport}
 			header_down Cache-Control "no-store"
+			transport http {
+				versions 1.1
+			}
 		}
 	}
 

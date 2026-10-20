@@ -88,28 +88,20 @@
 
 	const collapsed = $derived({
 		discover: prefs.navCollapsed.discover ?? false,
-		library: prefs.navCollapsed.library ?? false
+		personal: prefs.navCollapsed.personal ?? prefs.navCollapsed.library ?? false
 	});
 
-	function toggleGroup(group: 'discover' | 'library') {
+	function toggleGroup(group: 'discover' | 'personal') {
+		const next = !collapsed[group];
 		prefs.set('navCollapsed', {
 			...prefs.navCollapsed,
-			[group]: !collapsed[group]
+			[group]: next,
+			...(group === 'personal' ? { library: next } : {})
 		});
 	}
 
 	const active = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
-
-	// Auto-expand a collapsed section if one of its items is currently visited.
-	$effect(() => {
-		if (discoverItems.some((i) => active(i.href)) && collapsed.discover) {
-			prefs.set('navCollapsed', { ...prefs.navCollapsed, discover: false });
-		}
-		if (personalItems.some((i) => active(i.href)) && collapsed.library) {
-			prefs.set('navCollapsed', { ...prefs.navCollapsed, library: false });
-		}
-	});
 
 	/** Shortcut hint for the quick search (⌘ on Apple devices). */
 	const modKey =
@@ -186,9 +178,17 @@
 		}
 	}
 
-	afterNavigate(() => {
+	afterNavigate((nav) => {
 		closeSheet();
 		libOpen = false;
+		if (nav.from && nav.from.url.pathname !== nav.to?.url.pathname) {
+			if (discoverItems.some((i) => active(i.href)) && collapsed.discover) {
+				prefs.set('navCollapsed', { ...prefs.navCollapsed, discover: false });
+			}
+			if (personalItems.some((i) => active(i.href)) && collapsed.personal) {
+				prefs.set('navCollapsed', { ...prefs.navCollapsed, personal: false, library: false });
+			}
+		}
 	});
 
 	function startResize(e: PointerEvent) {
@@ -399,18 +399,18 @@
 					<button
 						type="button"
 						class="nav-header"
-						onclick={() => toggleGroup('library')}
-						aria-expanded={!collapsed.library}
+						onclick={() => toggleGroup('personal')}
+						aria-expanded={!collapsed.personal}
 					>
 						<span>{t.personal}</span>
-						<span class="chevron" class:collapsed={collapsed.library}>
+						<span class="chevron" class:collapsed={collapsed.personal}>
 							<ChevronDown size={14} aria-hidden="true" />
 						</span>
 					</button>
 				{:else}
 					<div class="nav-divider" role="separator" aria-hidden="true"></div>
 				{/if}
-				{#if prefs.sidebarCollapsed || !collapsed.library}
+				{#if prefs.sidebarCollapsed || !collapsed.personal}
 					<div class="nav-group">
 						{#each personalItems as item (item.href)}
 							<a

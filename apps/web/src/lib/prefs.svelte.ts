@@ -97,7 +97,7 @@ export interface Prefs {
 	/** Delete a downloaded book from this device once it is finished. */
 	removeFinished: boolean;
 	/** Collapsed state of navigation groups in the sidebar. */
-	navCollapsed: { discover?: boolean; library?: boolean };
+	navCollapsed: { discover?: boolean; personal?: boolean; library?: boolean };
 	/** Hrefs of navigation items hidden by the listener (e.g. '/playlists'). */
 	navHidden: string[];
 	/** Width of the resizable sidebar in desktop mode in pixels (180–380, default 240). */
