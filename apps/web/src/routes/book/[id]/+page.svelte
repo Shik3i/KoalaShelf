@@ -132,17 +132,20 @@
 		const progressId = p.id;
 		const before = { currentTime: p.currentTime, progress: p.progress, isFinished: p.isFinished };
 		if (isCurrent) player.pause();
+		if (item.userMediaProgress) item.userMediaProgress = undefined;
 		progress.remove(item.id);
 		await session.api.removeProgress(progressId);
 		if (isCurrent) player.seek(0);
 		await progress.load(true);
 		toasts.show(t.progressReset, {
 			label: i18n.m.toast.undo,
-			run: () =>
+			run: () => {
+				if (item) item.userMediaProgress = before as any;
 				void session.api
 					.updateProgress(item.id, before)
 					.then(() => progress.load(true))
-					.then(() => isCurrent && player.seek(before.currentTime))
+					.then(() => isCurrent && player.seek(before.currentTime));
+			}
 		});
 	}
 
@@ -218,6 +221,13 @@
 			if (!done) {
 				cur.currentTime = 0;
 				cur.progress = 0;
+			}
+		}
+		if (item.userMediaProgress) {
+			item.userMediaProgress.isFinished = done;
+			if (!done) {
+				item.userMediaProgress.currentTime = 0;
+				item.userMediaProgress.progress = 0;
 			}
 		}
 		await session.api.updateProgress(item.id, {
