@@ -1,5 +1,13 @@
 # Changelog
 
+## Desktop 0.3.0
+
+Phase D1 secure session vault release:
+
+- **OS Keychain Integration (`safeStorage`)**: Refresh and access tokens encrypted using platform credential vaults (Windows DPAPI, macOS Keychain, Linux Secret Service) and persisted in a protected disk vault (`vault.enc`).
+- **Token Migration & Storage Hygiene**: Seamless migration of legacy plain tokens from local storage into the encrypted vault on startup; tokens are wiped from web `localStorage` so credentials are never stored in plaintext.
+- **Multi-Account Switching**: Transparent multi-account and multi-server persistence with instant session restoration and server token revocation on account forget.
+
 ## Desktop 0.2.0
 
 Phase D0 foundation & hardening release:

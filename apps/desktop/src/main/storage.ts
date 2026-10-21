@@ -2,14 +2,14 @@ import { app, safeStorage } from 'electron';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-class SecureStorage {
+export class SecureStorage {
   private filePath: string;
   private cache: Record<string, string> = {};
   private initialized = false;
 
-  constructor() {
-    const userData = app.getPath('userData');
-    this.filePath = join(userData, 'vault.enc');
+  constructor(customPath?: string) {
+    const dir = customPath ?? app.getPath('userData');
+    this.filePath = join(dir, 'vault.enc');
   }
 
   private init() {
@@ -22,6 +22,8 @@ class SecureStorage {
         if (safeStorage.isEncryptionAvailable()) {
           const decrypted = safeStorage.decryptString(raw);
           this.cache = JSON.parse(decrypted);
+        } else {
+          this.cache = JSON.parse(raw.toString('utf8'));
         }
       }
     } catch {
@@ -31,16 +33,18 @@ class SecureStorage {
 
   private save() {
     try {
-      const dir = app.getPath('userData');
+      const dir = join(this.filePath, '..');
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
       const text = JSON.stringify(this.cache);
       if (safeStorage.isEncryptionAvailable()) {
         const encrypted = safeStorage.encryptString(text);
         writeFileSync(this.filePath, encrypted);
+      } else {
+        writeFileSync(this.filePath, Buffer.from(text, 'utf8'));
       }
     } catch {
-      // Ignore or log in debug mode
+      // Ignore in production
     }
   }
 
