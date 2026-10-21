@@ -1,5 +1,13 @@
 # Changelog
 
+## Desktop 0.6.0
+
+Phase D4 packaging & CI pipeline release:
+
+- **Multi-Platform Electron-Builder Pipeline**: Configured production distribution targets for Windows (NSIS installer, MSI), macOS (DMG, ZIP universal), and Linux (AppImage, deb, rpm).
+- **Hardened Release Automation**: Integrated CI packaging workflows (`release-desktop.yml`) with cryptographic build provenance attestations, strict package manager supply-chain caching isolation, and automated release asset bundling.
+- **Packaging Scripts**: Standardized compilation, pack, and release scripts across the monorepo workspace.
+
 ## Desktop 0.5.0
 
 Phase D3 native UX & tray release:
