@@ -1,5 +1,19 @@
 # Changelog
 
+## Desktop 1.0.0
+
+Milestone 1.0.0 Production Release:
+
+- **Universal Chromium Audio & Codec Consistency**: Bundles Chromium for 100% reliable playback of all audiobook formats (AAC, M4B, MP3, Opus, FLAC) across Windows, macOS, and Linux without external host WebView or GStreamer plugin dependencies.
+- **Full Web Audio DSP Suite Parity**: Complete Web Audio signal processing graph with Tape Warmth EQ, vinyl crackle simulation, voice boost, volume leveling, and skip-silence detection.
+- **Hardware & OS-Encrypted Secrets (`safeStorage`)**: All access and refresh tokens are encrypted using OS credential vaults (Windows DPAPI, macOS Keychain, Linux Secret Service) in a local protected vault (`vault.enc`), keeping web `localStorage` completely token-free.
+- **Native Sleep Prevention (`powerSaveBlocker`)**: Automated OS sleep inhibition (`prevent-app-suspension`) active during audio playback, preventing system standby while listening.
+- **Hardware Media Keys & OS Media Session Controls**: Integrated with Windows SMTC, macOS Now Playing, and Linux MPRIS; hardware media keys (Play/Pause, Skip, Prev/Next) respond immediately.
+- **Frameless Always-on-Top Mini-Player**: Floating pop-out mini player window with window drag region, cover art, track progress, chapter navigation, and playback controls.
+- **System Tray Integration**: Taskbar notification area tray icon with quick controls (Play/Pause, 30s skip back/forward), real-time metadata tooltips, and double-click window restore.
+- **Native Save Dialogs**: Direct export of listening history, bookmarks (CSV), and book file backups (ZIP) via native platform file picker dialogs.
+- **Multi-Platform Distribution & Provenance**: Packaged with `electron-builder` for Windows (NSIS, MSI), macOS (DMG, universal ZIP), and Linux (AppImage, deb, rpm) with signed cryptographic build provenance attestations.
+
 ## Desktop 0.6.0
 
 Phase D4 packaging & CI pipeline release:
