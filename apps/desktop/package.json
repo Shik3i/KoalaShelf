@@ -1,6 +1,6 @@
 {
   "name": "@koalashelf/desktop",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "KoalaShelf Desktop – private client for Audiobookshelf",
   "license": "MIT",
   "private": true,

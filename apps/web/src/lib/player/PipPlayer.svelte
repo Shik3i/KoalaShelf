@@ -65,6 +65,7 @@
 		background: var(--c-bg);
 		color: var(--c-ink);
 		overflow: hidden;
+		-webkit-app-region: drag;
 	}
 
 	.cover {
@@ -97,6 +98,7 @@
 	}
 
 	.ctl button {
+		-webkit-app-region: no-drag;
 		display: grid;
 		place-items: center;
 		width: 40px;

@@ -26,6 +26,12 @@ export interface ElectronBridge {
 			defaultPath?: string;
 			filters?: Array<{ name: string; extensions: string[] }>;
 		}) => Promise<string | null>;
+		saveFile: (options: {
+			name: string;
+			content: string;
+			isBase64?: boolean;
+			filters?: Array<{ name: string; extensions: string[] }>;
+		}) => Promise<boolean>;
 	};
 	media: {
 		updateState: (state: {

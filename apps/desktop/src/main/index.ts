@@ -276,9 +276,27 @@ function registerIpcHandlers(): void {
 
   // Native save dialog
   ipcMain.handle('dialog:showSaveDialog', async (_event, options) => {
-    if (!mainWindow) return null;
-    const res = await dialog.showSaveDialog(mainWindow, options);
+    const parentWin = mainWindow ?? BrowserWindow.getFocusedWindow();
+    if (!parentWin) return null;
+    const res = await dialog.showSaveDialog(parentWin, options);
     return res.canceled ? null : res.filePath;
+  });
+
+  ipcMain.handle('dialog:saveFile', async (_event, options: { name: string; content: string; isBase64?: boolean; filters?: Array<{ name: string; extensions: string[] }> }) => {
+    const parentWin = mainWindow ?? BrowserWindow.getFocusedWindow();
+    if (!parentWin) return false;
+    const res = await dialog.showSaveDialog(parentWin, {
+      defaultPath: options.name,
+      filters: options.filters
+    });
+    if (res.canceled || !res.filePath) return false;
+    const { writeFileSync } = await import('node:fs');
+    if (options.isBase64) {
+      writeFileSync(res.filePath, Buffer.from(options.content, 'base64'));
+    } else {
+      writeFileSync(res.filePath, options.content, 'utf8');
+    }
+    return true;
   });
 }
 

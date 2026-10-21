@@ -7,8 +7,9 @@
 	import AppNav from '#lib/components/AppNav.svelte';
 	import MiniPlayer from '#lib/player/MiniPlayer.svelte';
 	import FullPlayer from '#lib/player/FullPlayer.svelte';
+	import PipPlayer from '#lib/player/PipPlayer.svelte';
 	import { player } from '#lib/player/player.svelte.ts';
-	import { isTauri } from '#lib/platform.ts';
+	import { isDesktop } from '#lib/platform.ts';
 	import { startLive } from '#lib/live.ts';
 	import Toaster from '#lib/components/Toaster.svelte';
 	import Shortcuts from '#lib/components/Shortcuts.svelte';
@@ -25,6 +26,15 @@
 	let { children }: LayoutProps = $props();
 
 	const isPublic = $derived(page.url.pathname.startsWith('/signin'));
+	let isMini = $state(typeof window !== 'undefined' && window.location.hash.includes('/mini'));
+
+	$effect(() => {
+		const check = () => {
+			isMini = window.location.hash.includes('/mini');
+		};
+		window.addEventListener('hashchange', check);
+		return () => window.removeEventListener('hashchange', check);
+	});
 
 	let full = $state<FullPlayer>();
 	let shortcuts = $state(false);
@@ -69,7 +79,7 @@
 	});
 
 	// Offline shell for the browser/PWA; the desktop app ships its files locally anyway.
-	if (!dev && !isTauri && 'serviceWorker' in navigator) {
+	if (!dev && !isDesktop && 'serviceWorker' in navigator) {
 		navigator.serviceWorker
 			.register('/service-worker.js', { type: 'module' })
 			.catch(() => undefined);
@@ -160,7 +170,9 @@
 	</div>
 {/if}
 
-{#if isPublic}
+{#if isMini}
+	<PipPlayer />
+{:else if isPublic}
 	{@render children()}
 {:else if session.ready && session.client}
 	<a class="skip" href="#main">{i18n.m.nav.skip}</a>

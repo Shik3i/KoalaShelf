@@ -1,5 +1,13 @@
 # Changelog
 
+## Desktop 0.5.0
+
+Phase D3 native UX & tray release:
+
+- **Frameless Always-on-Top Mini-Player**: Pop-out mini-player window with drag regions and full playback, chapter, and seek controls that floats above all desktop applications.
+- **System Tray Controls**: Quick playback controls (Play/Pause, 30s skip back/forward), real-time track metadata tooltip, and window management directly from the OS taskbar notification area.
+- **Native Save Dialog for Data Export**: Direct file export (CSV history/bookmarks and ZIP backups) using OS native file chooser dialogs without intermediate web browser download prompts.
+
 ## Desktop 0.4.0
 
 Phase D2 audio & media controls release:

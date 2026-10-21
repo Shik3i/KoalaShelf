@@ -21,6 +21,7 @@ export interface ElectronBridge {
   };
   dialog: {
     showSaveDialog: (options: { title?: string; defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<string | null>;
+    saveFile: (options: { name: string; content: string; isBase64?: boolean; filters?: Array<{ name: string; extensions: string[] }> }) => Promise<boolean>;
   };
   media: {
     updateState: (state: { title: string; author: string; coverUrl?: string; playing: boolean; position: number; duration: number }) => void;
@@ -48,7 +49,8 @@ const bridge: ElectronBridge = {
     openMiniPlayer: () => ipcRenderer.send('window:openMiniPlayer')
   },
   dialog: {
-    showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options)
+    showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options),
+    saveFile: (options) => ipcRenderer.invoke('dialog:saveFile', options)
   },
   media: {
     updateState: (state) => ipcRenderer.send('media:updateState', state),
