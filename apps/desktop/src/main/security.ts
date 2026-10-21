@@ -13,17 +13,17 @@ export function setupSecurity(): void {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
     const csp = [
-      "default-src 'self'",
-      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
-      "style-src 'self' 'unsafe-inline'",
+      "default-src 'self' app:",
+      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' app:" : "script-src 'self' 'unsafe-inline' app:",
+      "style-src 'self' 'unsafe-inline' app:",
       "media-src * blob: data:",
-      "img-src * data: blob:",
+      "img-src * data: blob: app:",
       "connect-src * ws: wss:",
-      "font-src 'self' data:",
-      "worker-src 'self' blob:",
+      "font-src 'self' data: app:",
+      "worker-src 'self' blob: app:",
       "object-src 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
+      "base-uri 'self' app:",
+      "form-action 'self' app:",
       "frame-ancestors 'none'"
     ].join('; ');
 
@@ -55,7 +55,7 @@ export function configureWindowSecurity(win: Electron.BrowserWindow): void {
   // Block in-app navigation away from KoalaShelf
   win.webContents.on('will-navigate', (event, navigationUrl) => {
     const parsed = new URL(navigationUrl);
-    if (parsed.protocol !== 'file:' && parsed.protocol !== 'app:' && parsed.hostname !== 'localhost') {
+    if (parsed.protocol !== 'app:' && parsed.hostname !== 'localhost') {
       event.preventDefault();
       void shell.openExternal(navigationUrl);
     }

@@ -12,7 +12,8 @@
     "compile": "tsc",
     "dev": "tsc -w",
     "typecheck": "tsc --noEmit",
-    "electron-builder": "electron-builder"
+    "electron-builder": "electron-builder",
+    "test": "electron test/smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

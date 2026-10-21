@@ -1,5 +1,5 @@
-import { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker, Tray, Menu, nativeImage } from 'electron';
-import { fileURLToPath } from 'node:url';
+import { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker, Tray, Menu, nativeImage, protocol, net } from 'electron';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { setupSecurity, configureWindowSecurity } from './security.js';
@@ -7,6 +7,19 @@ import { secureStorage } from './storage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'app',
+    privileges: {
+      standard: true,
+      secure: true,
+      supportFetchAPI: true,
+      corsEnabled: true,
+      stream: true
+    }
+  }
+]);
 
 let mainWindow: BrowserWindow | null = null;
 let miniWindow: BrowserWindow | null = null;
@@ -37,9 +50,18 @@ if (!gotLock) {
   });
 }
 
-function getWebBuildPath(): string {
-  // apps/desktop/dist/main -> apps/web/build
-  return join(__dirname, '../../../../web/build/index.html');
+function getWebBuildDir(): string {
+  const candidates = [
+    join(__dirname, '../../../web/build'),
+    join(__dirname, '../../web/build'),
+    join(app.getAppPath(), 'web/build'),
+    join(app.getAppPath(), '../web/build')
+  ];
+
+  for (const p of candidates) {
+    if (existsSync(join(p, 'index.html'))) return p;
+  }
+  return candidates[0];
 }
 
 function createMainWindow(): BrowserWindow {
@@ -51,7 +73,7 @@ function createMainWindow(): BrowserWindow {
     backgroundColor: '#17130F',
     title: 'KoalaShelf',
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -62,14 +84,10 @@ function createMainWindow(): BrowserWindow {
   configureWindowSecurity(win);
 
   const devUrl = process.env.VITE_DEV_SERVER_URL;
-  const buildPath = getWebBuildPath();
-
   if (devUrl) {
     void win.loadURL(devUrl);
-  } else if (existsSync(buildPath)) {
-    void win.loadFile(buildPath);
   } else {
-    void win.loadURL('http://localhost:5173');
+    void win.loadURL('app://koalashelf/');
   }
 
   win.on('closed', () => {
@@ -96,7 +114,7 @@ function createMiniPlayer(): BrowserWindow {
     backgroundColor: '#17130F',
     title: 'KoalaShelf Mini',
     webPreferences: {
-      preload: join(__dirname, 'preload.js'),
+      preload: join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true
@@ -106,12 +124,10 @@ function createMiniPlayer(): BrowserWindow {
   configureWindowSecurity(win);
 
   const devUrl = process.env.VITE_DEV_SERVER_URL;
-  const buildPath = getWebBuildPath();
-
   if (devUrl) {
     void win.loadURL(`${devUrl}#/mini`);
-  } else if (existsSync(buildPath)) {
-    void win.loadFile(buildPath, { hash: '/mini' });
+  } else {
+    void win.loadURL('app://koalashelf/#/mini');
   }
 
   win.on('closed', () => {
@@ -302,6 +318,19 @@ function registerIpcHandlers(): void {
 
 app.whenReady().then(() => {
   setupSecurity();
+
+  protocol.handle('app', (request) => {
+    const url = new URL(request.url);
+    const buildDir = getWebBuildDir();
+    let pathname = decodeURIComponent(url.pathname);
+    if (pathname.startsWith('/')) pathname = pathname.slice(1);
+    let filePath = join(buildDir, pathname);
+    if (!pathname || !existsSync(filePath)) {
+      filePath = join(buildDir, 'index.html');
+    }
+    return net.fetch(pathToFileURL(filePath).toString());
+  });
+
   registerIpcHandlers();
   mainWindow = createMainWindow();
   setupTray();
