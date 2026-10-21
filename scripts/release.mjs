@@ -26,9 +26,7 @@ const CODEQL_LANGUAGES = ['javascript-typescript', 'actions'];
 export const VERSION_FILES = {
 	web: { 'apps/web/package.json': (s) => JSON.parse(s).version },
 	desktop: {
-		'apps/desktop/package.json': (s) => JSON.parse(s).version,
-		'apps/desktop/src-tauri/tauri.conf.json': (s) => JSON.parse(s).version,
-		'apps/desktop/src-tauri/Cargo.toml': (s) => s.match(/^version\s*=\s*"([^"]+)"/m)?.[1]
+		'apps/desktop/package.json': (s) => JSON.parse(s).version
 	},
 	android: {
 		'apps/android/app/build.gradle.kts': (s) => s.match(/versionName\s*=\s*"([^"]+)"/)?.[1]

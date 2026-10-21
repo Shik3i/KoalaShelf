@@ -1,0 +1,40 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "net.koalastuff.koalashelf",
+  "productName": "KoalaShelf",
+  "copyright": "Copyright © 2026 KoalaShelf contributors",
+  "directories": {
+    "output": "dist-release",
+    "buildResources": "resources"
+  },
+  "files": [
+    "dist/**/*",
+    "../web/build/**/*",
+    "package.json"
+  ],
+  "extraMetadata": {
+    "main": "dist/main/index.js"
+  },
+  "win": {
+    "target": ["nsis", "msi"],
+    "icon": "resources/icons/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "mac": {
+    "target": ["dmg", "zip"],
+    "icon": "resources/icons/icon.icns",
+    "category": "public.app-category.music",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false
+  },
+  "linux": {
+    "target": ["AppImage", "deb", "rpm"],
+    "icon": "resources/icons",
+    "category": "Audio"
+  }
+}

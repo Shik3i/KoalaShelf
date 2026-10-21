@@ -42,13 +42,11 @@ test('tags name the component and a semver version', () => {
 
 test('every version file must carry the tagged version', () => {
 	const files = {
-		'apps/desktop/package.json': '{"version":"0.2.0"}',
-		'apps/desktop/src-tauri/tauri.conf.json': '{"version":"0.2.0"}',
-		'apps/desktop/src-tauri/Cargo.toml': '[package]\nname = "x"\nversion = "0.1.0"\n'
+		'apps/desktop/package.json': '{"version":"0.1.0"}'
 	};
 	const errors = versionErrors('desktop', '0.2.0', (f) => files[f]);
 	assert.equal(errors.length, 1);
-	assert.match(errors[0], /Cargo\.toml has version 0\.1\.0/);
+	assert.match(errors[0], /apps\/desktop\/package\.json has version 0\.1\.0/);
 });
 
 test('release notes come from the matching changelog section', () => {

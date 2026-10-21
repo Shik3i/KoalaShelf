@@ -1,15 +1,22 @@
 {
   "name": "@koalashelf/desktop",
   "version": "0.1.0",
+  "description": "KoalaShelf Desktop – private client for Audiobookshelf",
   "license": "MIT",
   "private": true,
   "type": "module",
+  "main": "dist/main/index.js",
   "scripts": {
-    "tauri": "tauri",
-    "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tsc && electron-builder",
+    "pack": "tsc && electron-builder --dir",
+    "compile": "tsc",
+    "dev": "tsc -w",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.12.3"
+    "@types/node": "^24.0.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.15.3",
+    "typescript": "^6.0.3"
   }
 }

@@ -1,17 +1,18 @@
 // Platform detection and the fetch implementation to use for API calls.
 import type { FetchFn } from '@koalashelf/abs-client';
 
-/** True inside the Tauri desktop shell. */
-export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+/** True inside the Electron desktop shell. */
+export const isDesktop =
+	typeof window !== 'undefined' &&
+	Boolean((window as unknown as { electron?: unknown }).electron);
 
-let tauriFetch: Promise<FetchFn> | null = null;
+/** Alias for backward compatibility across components. */
+export const isTauri = isDesktop;
 
 /**
- * In the desktop app, API requests go through Rust (tauri-plugin-http), so the server
- * needs no CORS configuration. The plugin is only loaded there (separate chunk).
+ * API fetch implementation. In Electron desktop and browser, standard fetch is used.
  */
 export function apiFetch(): Promise<FetchFn> {
-	if (!isTauri) return Promise.resolve(globalThis.fetch.bind(globalThis));
-	tauriFetch ??= import('@tauri-apps/plugin-http').then((m) => m.fetch as FetchFn);
-	return tauriFetch;
+	return Promise.resolve(globalThis.fetch.bind(globalThis));
 }
+
