@@ -13,6 +13,17 @@ let miniWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let sleepBlockerId: number | null = null;
 
+interface MediaState {
+  title: string;
+  author: string;
+  coverUrl?: string;
+  playing: boolean;
+  position: number;
+  duration: number;
+}
+
+let currentMediaState: MediaState | null = null;
+
 // Enforce single instance
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -111,15 +122,44 @@ function createMiniPlayer(): BrowserWindow {
   return win;
 }
 
-function setupTray(): void {
-  const iconPath = join(__dirname, '../../resources/icons/32x32.png');
-  if (!existsSync(iconPath)) return;
+function updateTrayMenu(): void {
+  if (!tray) return;
 
-  const icon = nativeImage.createFromPath(iconPath);
-  tray = new Tray(icon);
-  tray.setToolTip('KoalaShelf');
+  const tooltip = currentMediaState
+    ? `${currentMediaState.title} - ${currentMediaState.author}`
+    : 'KoalaShelf';
+  tray.setToolTip(tooltip);
 
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: currentMediaState ? currentMediaState.title : 'KoalaShelf',
+      enabled: false
+    },
+    {
+      label: currentMediaState?.playing ? 'Pause' : 'Wiedergabe',
+      enabled: !!currentMediaState,
+      click: () => {
+        mainWindow?.webContents.send('media:command', 'play-pause');
+        miniWindow?.webContents.send('media:command', 'play-pause');
+      }
+    },
+    {
+      label: '30s zurück',
+      enabled: !!currentMediaState,
+      click: () => {
+        mainWindow?.webContents.send('media:command', 'skip-back');
+        miniWindow?.webContents.send('media:command', 'skip-back');
+      }
+    },
+    {
+      label: '30s vor',
+      enabled: !!currentMediaState,
+      click: () => {
+        mainWindow?.webContents.send('media:command', 'skip-forward');
+        miniWindow?.webContents.send('media:command', 'skip-forward');
+      }
+    },
+    { type: 'separator' },
     {
       label: 'KoalaShelf öffnen',
       click: () => {
@@ -145,6 +185,16 @@ function setupTray(): void {
   ]);
 
   tray.setContextMenu(contextMenu);
+}
+
+function setupTray(): void {
+  const iconPath = join(__dirname, '../../resources/icons/32x32.png');
+  if (!existsSync(iconPath)) return;
+
+  const icon = nativeImage.createFromPath(iconPath);
+  tray = new Tray(icon);
+  updateTrayMenu();
+
   tray.on('double-click', () => {
     if (mainWindow) {
       mainWindow.show();
@@ -180,6 +230,23 @@ function registerIpcHandlers(): void {
       powerSaveBlocker.stop(id);
     }
     sleepBlockerId = null;
+  });
+
+  // Media state synchronization
+  ipcMain.on('media:updateState', (_event, state: MediaState) => {
+    currentMediaState = state;
+    updateTrayMenu();
+
+    if (state.playing) {
+      if (sleepBlockerId === null || !powerSaveBlocker.isStarted(sleepBlockerId)) {
+        sleepBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+      }
+    } else {
+      if (sleepBlockerId !== null && powerSaveBlocker.isStarted(sleepBlockerId)) {
+        powerSaveBlocker.stop(sleepBlockerId);
+        sleepBlockerId = null;
+      }
+    }
   });
 
   // Window control

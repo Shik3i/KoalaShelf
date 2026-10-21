@@ -1,5 +1,13 @@
 # Changelog
 
+## Desktop 0.4.0
+
+Phase D2 audio & media controls release:
+
+- **Full Web Audio DSP Parity**: Unlocked Web Audio DSP chain on desktop Chromium (Tape Warmth EQ, vinyl crackle simulation, voice boost, volume leveling, skip silence) without CORS or WebView restrictions.
+- **System Media Controls & Hardware Keys**: Integrated media session synchronization with Windows SMTC, macOS Now Playing, and Linux MPRIS; hardware media keys (Play/Pause, Seek, Prev/Next) respond immediately.
+- **Sleep Prevention (`powerSaveBlocker`)**: Automated OS sleep inhibition (`prevent-app-suspension`) engaged dynamically during active audiobook playback and cleanly released when paused or stopped.
+
 ## Desktop 0.3.0
 
 Phase D1 secure session vault release:

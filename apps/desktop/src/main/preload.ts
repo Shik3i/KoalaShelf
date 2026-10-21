@@ -24,6 +24,7 @@ export interface ElectronBridge {
   };
   media: {
     updateState: (state: { title: string; author: string; coverUrl?: string; playing: boolean; position: number; duration: number }) => void;
+    onMediaCommand: (callback: (cmd: 'play-pause' | 'skip-back' | 'skip-forward' | 'stop') => void) => () => void;
   };
 }
 
@@ -50,7 +51,14 @@ const bridge: ElectronBridge = {
     showSaveDialog: (options) => ipcRenderer.invoke('dialog:showSaveDialog', options)
   },
   media: {
-    updateState: (state) => ipcRenderer.send('media:updateState', state)
+    updateState: (state) => ipcRenderer.send('media:updateState', state),
+    onMediaCommand: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, cmd: 'play-pause' | 'skip-back' | 'skip-forward' | 'stop') => callback(cmd);
+      ipcRenderer.on('media:command', handler);
+      return () => {
+        ipcRenderer.removeListener('media:command', handler);
+      };
+    }
   }
 };
 

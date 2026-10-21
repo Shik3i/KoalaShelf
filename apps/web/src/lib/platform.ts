@@ -36,6 +36,9 @@ export interface ElectronBridge {
 			position: number;
 			duration: number;
 		}) => void;
+		onMediaCommand?: (
+			callback: (cmd: 'play-pause' | 'skip-back' | 'skip-forward' | 'stop') => void
+		) => () => void;
 	};
 }
 
