@@ -46,6 +46,16 @@ export interface ElectronBridge {
 			callback: (cmd: 'play-pause' | 'skip-back' | 'skip-forward' | 'stop') => void
 		) => () => void;
 	};
+	netFetch?: (
+		url: string,
+		init?: { method?: string; headers?: Record<string, string>; body?: string }
+	) => Promise<{
+		ok: boolean;
+		status: number;
+		statusText: string;
+		headers: Record<string, string>;
+		body: string;
+	}>;
 }
 
 export function getElectron(): ElectronBridge | null {
@@ -102,8 +112,43 @@ export const vault = {
 };
 
 /**
- * API fetch implementation. In Electron desktop and browser, standard fetch is used.
+ * API fetch implementation. Uses native netFetch bridge in Electron desktop (bypassing browser CORS),
+ * and standard fetch in browser.
  */
 export function apiFetch(): Promise<FetchFn> {
+	const electron = getElectron();
+	const netFetch = electron?.netFetch;
+	if (netFetch) {
+		const desktopFetch: FetchFn = async (input, init) => {
+			const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+			let body: string | undefined;
+			if (typeof init?.body === 'string') {
+				body = init.body;
+			}
+			const headersRecord: Record<string, string> = {};
+			if (init?.headers) {
+				if (init.headers instanceof Headers) {
+					init.headers.forEach((v, k) => {
+						headersRecord[k] = v;
+					});
+				} else if (Array.isArray(init.headers)) {
+					for (const [k, v] of init.headers) headersRecord[k] = v;
+				} else {
+					Object.assign(headersRecord, init.headers);
+				}
+			}
+			const res = await netFetch(url, {
+				method: init?.method,
+				headers: headersRecord,
+				body
+			});
+			return new Response(res.body, {
+				status: res.status,
+				statusText: res.statusText,
+				headers: new Headers(res.headers)
+			});
+		};
+		return Promise.resolve(desktopFetch);
+	}
 	return Promise.resolve(globalThis.fetch.bind(globalThis));
 }

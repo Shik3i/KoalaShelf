@@ -1,6 +1,6 @@
 // Finds and validates an Audiobookshelf server from what the user typed.
 import { AbsError, getServerStatus, normalizeBaseUrl } from '@koalashelf/abs-client';
-import { apiFetch, isTauri } from './platform.ts';
+import { apiFetch, isTauri, isDesktop } from './platform.ts';
 
 export type ProbeFailure = 'not-abs' | 'cors' | 'unreachable' | 'local-disabled';
 
@@ -43,7 +43,7 @@ export async function probeServer(input: string, signal?: AbortSignal) {
 		} catch (e) {
 			if (signal?.aborted || e instanceof ProbeError) throw e;
 			if (e instanceof AbsError) failure = 'not-abs';
-			else if (!isTauri && (await reachableWithoutCors(url, signal))) failure = 'cors';
+			else if (!isTauri && !isDesktop && (await reachableWithoutCors(url, signal))) failure = 'cors';
 		}
 	}
 	throw new ProbeError(failure);

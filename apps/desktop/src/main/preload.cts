@@ -27,11 +27,22 @@ export interface ElectronBridge {
     updateState: (state: { title: string; author: string; coverUrl?: string; playing: boolean; position: number; duration: number }) => void;
     onMediaCommand: (callback: (cmd: 'play-pause' | 'skip-back' | 'skip-forward' | 'stop') => void) => () => void;
   };
+  netFetch: (
+    url: string,
+    init?: { method?: string; headers?: Record<string, string>; body?: string }
+  ) => Promise<{
+    ok: boolean;
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    body: string;
+  }>;
 }
 
 const bridge: ElectronBridge = {
   isElectron: true,
   platform: process.platform,
+  netFetch: (url, init) => ipcRenderer.invoke('net:fetch', url, init),
   storage: {
     getSecret: (key: string) => ipcRenderer.invoke('storage:getSecret', key),
     setSecret: (key: string, value: string) => ipcRenderer.invoke('storage:setSecret', key, value),

@@ -343,6 +343,32 @@ function registerIpcHandlers(): void {
     }
   });
 
+  // Native net:fetch bridge (bypasses CORS for direct Audiobookshelf API requests)
+  ipcMain.handle('net:fetch', async (_event, input: string, init?: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  }) => {
+    const reqInit: RequestInit = {
+      method: init?.method || 'GET',
+      headers: init?.headers,
+      body: init?.body
+    };
+    const res = await net.fetch(input, reqInit);
+    const text = await res.text();
+    const headers: Record<string, string> = {};
+    res.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    return {
+      ok: res.ok,
+      status: res.status,
+      statusText: res.statusText,
+      headers,
+      body: text
+    };
+  });
+
   // Window control
   ipcMain.on('window:minimize', () => {
     mainWindow?.minimize();

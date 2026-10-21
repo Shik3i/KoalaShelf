@@ -9,32 +9,61 @@ export function setupSecurity(): void {
     return false;
   });
 
-  // Strict CSP and security headers
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
-    const csp = [
-      "default-src 'self' app:",
-      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' app:" : "script-src 'self' 'unsafe-inline' app:",
-      "style-src 'self' 'unsafe-inline' app:",
-      "media-src * blob: data:",
-      "img-src * data: blob: app:",
-      "connect-src * ws: wss:",
-      "font-src 'self' data: app:",
-      "worker-src 'self' blob: app:",
-      "object-src 'none'",
-      "base-uri 'self' app:",
-      "form-action 'self' app:",
-      "frame-ancestors 'none'"
-    ].join('; ');
+  // Strip Origin header for outgoing external requests so Audiobookshelf treats Desktop as a native client
+  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
+    const requestHeaders = { ...details.requestHeaders };
+    if (details.url.startsWith('http://') || details.url.startsWith('https://')) {
+      delete requestHeaders['Origin'];
+      delete requestHeaders['origin'];
+    }
+    callback({ requestHeaders });
+  });
 
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [csp],
-        'X-Content-Type-Options': ['nosniff'],
-        'X-Frame-Options': ['DENY']
+  // Strict CSP for app://, CORS bypass headers for external Audiobookshelf API & media requests
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const isApp = details.url.startsWith('app://') || details.url.startsWith('http://localhost');
+    if (isApp) {
+      const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
+      const csp = [
+        "default-src 'self' app:",
+        isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' app:" : "script-src 'self' 'unsafe-inline' app:",
+        "style-src 'self' 'unsafe-inline' app:",
+        "media-src * blob: data:",
+        "img-src * data: blob: app:",
+        "connect-src * ws: wss:",
+        "font-src 'self' data: app:",
+        "worker-src 'self' blob: app:",
+        "object-src 'none'",
+        "base-uri 'self' app:",
+        "form-action 'self' app:",
+        "frame-ancestors 'none'"
+      ].join('; ');
+
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [csp],
+          'X-Content-Type-Options': ['nosniff'],
+          'X-Frame-Options': ['DENY']
+        }
+      });
+      return;
+    }
+
+    // External requests (Audiobookshelf API, audio streams, covers): ensure CORS passes in Desktop
+    const responseHeaders = { ...details.responseHeaders };
+    for (const key of Object.keys(responseHeaders)) {
+      if (key.toLowerCase().startsWith('access-control-')) {
+        delete responseHeaders[key];
       }
-    });
+    }
+    responseHeaders['access-control-allow-origin'] = ['app://koalashelf'];
+    responseHeaders['access-control-allow-credentials'] = ['true'];
+    responseHeaders['access-control-allow-methods'] = ['GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD'];
+    responseHeaders['access-control-allow-headers'] = ['Authorization, Content-Type, Range, X-Requested-With, Accept, Origin, *'];
+    responseHeaders['access-control-expose-headers'] = ['Content-Range, Accept-Ranges, Content-Length, *'];
+
+    callback({ responseHeaders });
   });
 }
 

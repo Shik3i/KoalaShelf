@@ -83,6 +83,13 @@ async function run() {
   ipcMain.handle('power:releaseSleep', (_e, id) => {
     if (powerSaveBlocker.isStarted(id)) powerSaveBlocker.stop(id);
   });
+  ipcMain.handle('net:fetch', async (_e, url) => ({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ mock: 'ok', url })
+  }));
   ipcMain.on('media:updateState', (_e, state) => {
     mediaUpdateReceived = state;
   });
@@ -142,6 +149,11 @@ async function run() {
       await e.storage.deleteSecret('ipc-test-token');
       const cleared = await e.storage.getSecret('ipc-test-token');
       if (cleared !== null) throw new Error('Cleared value should be null');
+
+      // Test netFetch bridge through IPC
+      if (!e.netFetch) throw new Error('netFetch missing');
+      const fetchRes = await e.netFetch('https://example.com/test');
+      if (!fetchRes.ok || fetchRes.status !== 200) throw new Error('netFetch status mismatch');
 
       // Test power sleep inhibition through IPC
       const id = await e.power.inhibitSleep('test-playback');

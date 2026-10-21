@@ -337,8 +337,12 @@ class Session {
 		this.activeKey = key;
 		this.expired = false;
 		this.#enter(account);
-		await this.#loadLibraries();
 		this.#persist();
+		try {
+			await this.#loadLibraries();
+		} finally {
+			this.#persist();
+		}
 	}
 
 	/** Makes another saved account the active one. False when it needs its password again. */
