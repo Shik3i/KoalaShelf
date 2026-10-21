@@ -1,12 +1,33 @@
 import { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker, Tray, Menu, nativeImage, protocol, net } from 'electron';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, appendFileSync } from 'node:fs';
 import { setupSecurity, configureWindowSecurity } from './security.js';
 import { secureStorage } from './storage.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+const logFile = join(__dirname, '../../debug.log');
+function log(msg: string) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  try { appendFileSync(logFile, line); } catch {}
+  console.log(msg);
+}
+
+process.on('uncaughtException', (err) => {
+  log(`UNCAUGHT EXCEPTION: ${err?.stack || err}`);
+});
+
+process.on('unhandledRejection', (reason) => {
+  log(`UNHANDLED REJECTION: ${reason}`);
+});
+
+app.on('before-quit', (e) => log('app event: before-quit'));
+app.on('will-quit', (e) => log('app event: will-quit'));
+app.on('quit', (e, code) => log(`app event: quit (exitCode: ${code})`));
+
+log('Electron main process starting...');
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -39,10 +60,13 @@ let currentMediaState: MediaState | null = null;
 
 // Enforce single instance
 const gotLock = app.requestSingleInstanceLock();
+log(`requestSingleInstanceLock: ${gotLock}`);
 if (!gotLock) {
+  log('Could not get single instance lock, quitting...');
   app.quit();
 } else {
   app.on('second-instance', () => {
+    log('app event: second-instance received, focusing mainWindow');
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
@@ -64,6 +88,28 @@ function getWebBuildDir(): string {
   return candidates[0];
 }
 
+function getTrayIconPath(): string {
+  const iconsDir = join(__dirname, '../../resources/icons');
+  if (process.platform === 'win32') {
+    const ico = join(iconsDir, 'icon.ico');
+    if (existsSync(ico)) return ico;
+  }
+  const png = join(iconsDir, '32x32.png');
+  if (existsSync(png)) return png;
+  return join(iconsDir, 'icon.png');
+}
+
+function getWindowIconPath(): string | undefined {
+  const iconsDir = join(__dirname, '../../resources/icons');
+  if (process.platform === 'win32') {
+    const ico = join(iconsDir, 'icon.ico');
+    if (existsSync(ico)) return ico;
+  }
+  const png = join(iconsDir, 'icon.png');
+  if (existsSync(png)) return png;
+  return undefined;
+}
+
 function createMainWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
@@ -72,6 +118,8 @@ function createMainWindow(): BrowserWindow {
     minHeight: 600,
     backgroundColor: '#17130F',
     title: 'KoalaShelf',
+    icon: getWindowIconPath(),
+    show: true,
     webPreferences: {
       preload: join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -83,16 +131,39 @@ function createMainWindow(): BrowserWindow {
 
   configureWindowSecurity(win);
 
+  win.once('ready-to-show', () => {
+    log('mainWindow event: ready-to-show -> calling win.show() and win.focus()');
+    win.show();
+    win.focus();
+  });
+
+  win.webContents.on('did-finish-load', () => {
+    log(`mainWindow webContents did-finish-load: URL=${win.webContents.getURL()}`);
+  });
+
+  win.webContents.on('did-fail-load', (e, code, desc, url) => {
+    log(`mainWindow webContents did-fail-load: code=${code}, desc=${desc}, url=${url}`);
+  });
+
+  win.webContents.on('render-process-gone', (e, details) => {
+    log(`mainWindow render-process-gone: reason=${details.reason}, exitCode=${details.exitCode}`);
+  });
+
+  win.on('close', (e) => {
+    log('mainWindow event: close');
+  });
+
+  win.on('closed', () => {
+    log('mainWindow event: closed');
+    mainWindow = null;
+  });
+
   const devUrl = process.env.VITE_DEV_SERVER_URL;
   if (devUrl) {
     void win.loadURL(devUrl);
   } else {
     void win.loadURL('app://koalashelf/');
   }
-
-  win.on('closed', () => {
-    mainWindow = null;
-  });
 
   return win;
 }
@@ -204,19 +275,26 @@ function updateTrayMenu(): void {
 }
 
 function setupTray(): void {
-  const iconPath = join(__dirname, '../../resources/icons/32x32.png');
+  const iconPath = getTrayIconPath();
   if (!existsSync(iconPath)) return;
 
-  const icon = nativeImage.createFromPath(iconPath);
-  tray = new Tray(icon);
-  updateTrayMenu();
+  try {
+    const icon = process.platform === 'win32' && iconPath.endsWith('.ico')
+      ? nativeImage.createFromPath(iconPath)
+      : nativeImage.createFromPath(iconPath);
+    tray = new Tray(icon.isEmpty() ? iconPath : icon);
+    updateTrayMenu();
 
-  tray.on('double-click', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  });
+    tray.on('double-click', () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+  } catch (err) {
+    console.error('Tray initialization error:', err);
+  }
 }
 
 function registerIpcHandlers(): void {
@@ -343,6 +421,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  log('app event: window-all-closed -> calling app.quit()');
   if (process.platform !== 'darwin') {
     app.quit();
   }
