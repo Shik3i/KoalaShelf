@@ -5,17 +5,25 @@ export function setupSecurity(): void {
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => {
     callback(false);
   });
+  session.defaultSession.setPermissionCheckHandler((_webContents, _permission, _origin) => {
+    return false;
+  });
 
   // Strict CSP and security headers
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    const isDev = Boolean(process.env.VITE_DEV_SERVER_URL);
     const csp = [
-      "default-src 'self' 'unsafe-inline' data: blob:",
+      "default-src 'self'",
+      isDev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
       "media-src * blob: data:",
       "img-src * data: blob:",
       "connect-src * ws: wss:",
       "font-src 'self' data:",
       "worker-src 'self' blob:",
       "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
       "frame-ancestors 'none'"
     ].join('; ');
 
@@ -31,6 +39,11 @@ export function setupSecurity(): void {
 }
 
 export function configureWindowSecurity(win: Electron.BrowserWindow): void {
+  // Block webview tags
+  win.webContents.on('will-attach-webview', (event) => {
+    event.preventDefault();
+  });
+
   // Prevent opening untrusted popups / new windows, open safe links in external browser
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('https://') || url.startsWith('http://')) {

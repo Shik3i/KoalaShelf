@@ -1,5 +1,13 @@
 # Changelog
 
+## Desktop 0.2.0
+
+Phase D0 foundation & hardening release:
+
+- **Electron & TypeScript Foundation**: Sandboxed main and preload process architecture with strict `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
+- **Security & Navigation Hardening**: Restrictive Content Security Policy (`default-src 'self'`), unconditional permission denial, webview blocking, and safe external navigation via OS default browser.
+- **CI Pipeline Integration**: Strict TypeScript type checking and compilation verified in continuous integration.
+
 ## Android 1.0.0
 
 Milestone 1.0.0 Production Release:
