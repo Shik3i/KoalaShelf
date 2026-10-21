@@ -72,7 +72,8 @@
 				{ value: 'off', label: t.profileOff },
 				{ value: 'voice', label: t.profileVoice },
 				{ value: 'night', label: t.profileNight },
-				{ value: 'commute', label: t.profileCommute }
+				{ value: 'commute', label: t.profileCommute },
+				{ value: 'warmth', label: t.profileWarmth }
 			]}
 			onchange={(p) => player.setSound('soundProfile', p)}
 		/>

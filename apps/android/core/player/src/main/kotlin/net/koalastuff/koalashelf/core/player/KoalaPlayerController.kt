@@ -67,22 +67,16 @@ import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import kotlin.random.Random
 
-sealed interface SleepTimerMode {
-    data object Off : SleepTimerMode
-    data object EndOfChapter : SleepTimerMode
-    data class Minutes(val minutes: Int, val endsAtMillis: Long) : SleepTimerMode
-    data class SmartWindow(
-        val minMinutes: Int,
-        val maxMinutes: Int,
-        val minAtMillis: Long,
-        val maxAtMillis: Long,
-    ) : SleepTimerMode
-}
-
 enum class PlayerErrorState {
     RETRYING,
     FATAL,
 }
+
+data class RemoteHandoffNotification(
+    val bookId: String,
+    val time: Double,
+    val timestamp: Long = System.currentTimeMillis(),
+)
 
 data class PlayerToastEvent(
     val message: String,
@@ -109,10 +103,9 @@ class KoalaPlayerController(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private var exoPlayer: ExoPlayer? = null
-    private var loudnessEnhancer: LoudnessEnhancer? = null
-    private var equalizer: Equalizer? = null
-    private var currentAudioSessionId: Int = C.AUDIO_SESSION_ID_UNSET
-    private var crackleJob: Job? = null
+    val audioEffectsController = AudioEffectsController()
+    val ambienceEngine = AmbienceEngine(scope)
+    val sleepTimerEngine = SleepTimerEngine { prefsRepository.prefs.value }
 
     private val _item = MutableStateFlow<LibraryItem?>(null)
     val item: StateFlow<LibraryItem?> = _item.asStateFlow()
@@ -141,11 +134,8 @@ class KoalaPlayerController(
     private val _rate = MutableStateFlow(1.0f)
     val rate: StateFlow<Float> = _rate.asStateFlow()
 
-    private val _sleep = MutableStateFlow<SleepTimerMode>(SleepTimerMode.Off)
-    val sleep: StateFlow<SleepTimerMode> = _sleep.asStateFlow()
-
-    private val _sleepRemainingSeconds = MutableStateFlow(0.0)
-    val sleepRemainingSeconds: StateFlow<Double> = _sleepRemainingSeconds.asStateFlow()
+    val sleep: StateFlow<SleepTimerMode> = sleepTimerEngine.mode
+    val sleepRemainingSeconds: StateFlow<Double> = sleepTimerEngine.remainingSeconds
 
     private val _expanded = MutableStateFlow(false)
     val expanded: StateFlow<Boolean> = _expanded.asStateFlow()
@@ -156,6 +146,13 @@ class KoalaPlayerController(
     private val _error = MutableStateFlow<PlayerErrorState?>(null)
     val error: StateFlow<PlayerErrorState?> = _error.asStateFlow()
 
+    private val _remoteHandoff = MutableStateFlow<RemoteHandoffNotification?>(null)
+    val remoteHandoff: StateFlow<RemoteHandoffNotification?> = _remoteHandoff.asStateFlow()
+
+    fun dismissRemoteHandoff() {
+        _remoteHandoff.value = null
+    }
+
     private val _toastEvents = MutableSharedFlow<PlayerToastEvent>(extraBufferCapacity = 8)
     val toastEvents: SharedFlow<PlayerToastEvent> = _toastEvents.asSharedFlow()
 
@@ -163,7 +160,6 @@ class KoalaPlayerController(
     private var activeLocalSession: LocalSessionPayload? = null
     private var tracks: List<AudioTrack> = emptyList()
     private var pausedAtMillis: Long = 0L
-    private var sleepPausedAtMillis: Long? = null
     private var listenedSecondsAccum: Double = 0.0
     private var lastTickMillis: Long = 0L
     private var playRequestGen: Int = 0
@@ -203,17 +199,11 @@ class KoalaPlayerController(
         }
 
     val sleepForecast: SleepForecast?
-        get() {
-            val s = _sleep.value as? SleepTimerMode.SmartWindow ?: return null
-            val base = sleepPausedAtMillis ?: System.currentTimeMillis()
-            return forecastSleepWindow(
-                chapters = _chapters.value,
-                currentTime = _currentTime.value,
-                rate = _rate.value,
-                minLeftSeconds = (s.minAtMillis - base) / 1000.0,
-                maxLeftSeconds = (s.maxAtMillis - base) / 1000.0,
-            )
-        }
+        get() = sleepTimerEngine.calculateForecast(
+            chapters = _chapters.value,
+            currentTime = _currentTime.value,
+            rate = _rate.value.toDouble(),
+        )
 
     fun setExpanded(open: Boolean) {
         _expanded.value = open
@@ -240,23 +230,24 @@ class KoalaPlayerController(
                     retryCount = 0
                     _error.value = null
                     lastTickMillis = System.currentTimeMillis()
-                    sleepPausedAtMillis?.let { pausedAt ->
-                        shiftSleepBy(System.currentTimeMillis() - pausedAt)
+                    sleepTimerEngine.pausedAtMillis?.let { pausedAt ->
+                        sleepTimerEngine.shiftBy(System.currentTimeMillis() - pausedAt)
                     }
-                    sleepPausedAtMillis = null
+                    sleepTimerEngine.pausedAtMillis = null
                     if (prefsRepository.prefs.value.needleDrop) {
-                        playNeedleDropCue()
+                        ambienceEngine.playNeedleDropCue()
                     }
                     updateVinylCrackleLoop()
                 } else {
                     lastTickMillis = 0L
                     pausedAtMillis = System.currentTimeMillis()
-                    if (_sleep.value !is SleepTimerMode.Off) {
-                        sleepPausedAtMillis = pausedAtMillis
+                    if (sleepTimerEngine.mode.value !is SleepTimerMode.Off) {
+                        sleepTimerEngine.pausedAtMillis = pausedAtMillis
                     }
                     updateVinylCrackleLoop()
                     scope.launch { syncNow() }
                 }
+                notifyWidgetStateChanged()
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
@@ -395,6 +386,7 @@ class KoalaPlayerController(
         queueRepository.remove(libItem.id)
         tracks = s.audioTracks.sortedBy { it.startOffset }.ifEmpty { libItem.resolvedTracks() }
         _item.value = libItem
+        notifyWidgetStateChanged()
         libItem.userMediaProgress?.let { progressRepository.mergeRemote(it) }
 
         val finished = isKnownFinished || (libItem.userMediaProgress?.isFinished == true)
@@ -434,6 +426,7 @@ class KoalaPlayerController(
             )
         }
         _item.value = libItem
+        notifyWidgetStateChanged()
         _chapters.value = libItem.media.chapters
         _duration.value = libItem.durationSeconds
 
@@ -613,88 +606,57 @@ class KoalaPlayerController(
     // --- Sleep Timer ---
 
     fun setSleep(mode: SleepTimerMode) {
-        _sleep.value = mode
-        sleepPausedAtMillis = if (!_playing.value && mode !is SleepTimerMode.Off) System.currentTimeMillis() else null
+        sleepTimerEngine.setMode(
+            newMode = mode,
+            isPlaying = _playing.value,
+            currentTime = _currentTime.value,
+            rate = _rate.value.toDouble(),
+            currentChapter = currentChapter,
+        )
         exoPlayer?.volume = prefsRepository.prefs.value.volume
-        updateSleepRemaining()
     }
 
     fun setSleepMinutes(minutes: Int) {
-        if (minutes <= 0) {
-            setSleep(SleepTimerMode.Off)
-        } else {
-            setSleep(
-                SleepTimerMode.Minutes(
-                    minutes = minutes,
-                    endsAtMillis = System.currentTimeMillis() + minutes * 60_000L,
-                ),
-            )
-        }
+        sleepTimerEngine.setMinutes(
+            minutes = minutes,
+            isPlaying = _playing.value,
+            currentTime = _currentTime.value,
+            rate = _rate.value.toDouble(),
+            currentChapter = currentChapter,
+        )
+        exoPlayer?.volume = prefsRepository.prefs.value.volume
     }
 
     fun setSleepSmartWindow(minMinutes: Int, maxMinutes: Int) {
-        val now = System.currentTimeMillis()
         prefsRepository.update { it.copy(sleepMin = minMinutes, sleepMax = maxMinutes) }
-        setSleep(
-            SleepTimerMode.SmartWindow(
-                minMinutes = minMinutes,
-                maxMinutes = maxMinutes,
-                minAtMillis = now + minMinutes * 60_000L,
-                maxAtMillis = now + maxMinutes * 60_000L,
-            ),
+        sleepTimerEngine.setSmartWindow(
+            minMinutes = minMinutes,
+            maxMinutes = maxMinutes,
+            isPlaying = _playing.value,
+            currentTime = _currentTime.value,
+            rate = _rate.value.toDouble(),
+            currentChapter = currentChapter,
         )
+        exoPlayer?.volume = prefsRepository.prefs.value.volume
     }
 
     fun extendSleep(extraMinutes: Int) {
-        val extraMs = extraMinutes * 60_000L
         exoPlayer?.volume = prefsRepository.prefs.value.volume
-        when (val s = _sleep.value) {
-            SleepTimerMode.Off -> setSleepMinutes(extraMinutes)
-            is SleepTimerMode.Minutes -> {
-                _sleep.value = s.copy(
-                    minutes = s.minutes + extraMinutes,
-                    endsAtMillis = s.endsAtMillis + extraMs,
-                )
-            }
-            is SleepTimerMode.SmartWindow -> {
-                _sleep.value = s.copy(
-                    minAtMillis = s.minAtMillis + extraMs,
-                    maxAtMillis = s.maxAtMillis + extraMs,
-                )
-            }
-            SleepTimerMode.EndOfChapter -> {
-                val chEnd = currentChapter?.end ?: _currentTime.value
-                val leftSec = max(0.0, (chEnd - _currentTime.value) / _rate.value)
-                val endsAt = System.currentTimeMillis() + (leftSec * 1000.0).roundToLong() + extraMs
-                _sleep.value = SleepTimerMode.Minutes(minutes = extraMinutes, endsAtMillis = endsAt)
-            }
-        }
-        updateSleepRemaining()
-    }
-
-    private fun shiftSleepBy(deltaMs: Long) {
-        when (val s = _sleep.value) {
-            is SleepTimerMode.Minutes -> _sleep.value = s.copy(endsAtMillis = s.endsAtMillis + deltaMs)
-            is SleepTimerMode.SmartWindow -> _sleep.value = s.copy(
-                minAtMillis = s.minAtMillis + deltaMs,
-                maxAtMillis = s.maxAtMillis + deltaMs,
-            )
-            else -> Unit
-        }
+        sleepTimerEngine.extend(
+            extraMinutes = extraMinutes,
+            currentTime = _currentTime.value,
+            rate = _rate.value.toDouble(),
+            currentChapter = currentChapter,
+        )
     }
 
     private fun checkAutoSleepOnStart() {
-        val prefs = prefsRepository.prefs.value
-        if (!prefs.autoSleep || _sleep.value !is SleepTimerMode.Off || _playing.value) return
-        val nowTime = LocalTime.now()
-        val nowMins = nowTime.hour * 60 + nowTime.minute
-        if (!inNightWindow(nowMins, prefs.autoSleepFrom, prefs.autoSleepTo)) return
-
-        when (prefs.autoSleepKind) {
-            "chapter" -> setSleep(SleepTimerMode.EndOfChapter)
-            "smart" -> setSleepSmartWindow(prefs.sleepMin, prefs.sleepMax)
-            else -> setSleepMinutes(prefs.autoSleepMinutes)
-        }
+        sleepTimerEngine.checkAutoSleepOnStart(
+            isPlaying = _playing.value,
+            currentTime = _currentTime.value,
+            rate = _rate.value.toDouble(),
+            currentChapter = currentChapter,
+        )
     }
 
     // --- Sound & Equalizer ---
@@ -705,163 +667,23 @@ class KoalaPlayerController(
     }
 
     fun releaseAudioEffects() {
-        runCatching {
-            loudnessEnhancer?.release()
-            loudnessEnhancer = null
-        }
-        runCatching {
-            equalizer?.release()
-            equalizer = null
-        }
-        currentAudioSessionId = C.AUDIO_SESSION_ID_UNSET
+        audioEffectsController.release()
     }
 
     private fun applySoundEffects(player: ExoPlayer) {
         val prefs = prefsRepository.prefs.value
         player.skipSilenceEnabled = prefs.skipSilence
         player.volume = prefs.volume
-
-        val sessionId = player.audioSessionId
-        if (sessionId == C.AUDIO_SESSION_ID_UNSET || sessionId <= 0) return
-
-        if (currentAudioSessionId != sessionId) {
-            releaseAudioEffects()
-            currentAudioSessionId = sessionId
-        }
-
-        // LoudnessEnhancer for volume boost (1.0x .. 2.0x -> up to +600 mB) & leveling
-        runCatching {
-            val needBoost = prefs.boost > 1.01f || prefs.leveling || prefs.soundProfile == "night" || prefs.soundProfile == "commute"
-            if (needBoost) {
-                val enhancer = loudnessEnhancer ?: LoudnessEnhancer(sessionId).also { loudnessEnhancer = it }
-                val boostMb = ((prefs.boost - 1f) * 600f).roundToInt()
-                val profileMb = when (prefs.soundProfile) {
-                    "night" -> 250
-                    "commute" -> 350
-                    else -> if (prefs.leveling) 180 else 0
-                }
-                enhancer.setTargetGain(boostMb + profileMb)
-                enhancer.enabled = true
-            } else {
-                loudnessEnhancer?.enabled = false
-            }
-        }
-
-        // Equalizer for Voice Boost / Acoustic Scene Profiles
-        runCatching {
-            val wantVoice = prefs.voiceBoost || prefs.soundProfile != "off"
-            if (wantVoice) {
-                val eq = equalizer ?: Equalizer(0, sessionId).also { equalizer = it }
-                val numBands = eq.numberOfBands
-                val range = eq.bandLevelRange
-                val minLevel = range[0]
-                val maxLevel = range[1]
-                for (b in 0 until numBands) {
-                    val band = b.toShort()
-                    val centerHz = eq.getCenterFreq(band) / 1000
-                    val target = when {
-                        // Cut low rumble (< 120 Hz)
-                        centerHz < 120 -> (minLevel / 2).toShort()
-                        // Presence boost for human voice (1 kHz - 4 kHz)
-                        centerHz in 1000..4000 -> (maxLevel / 2).toShort()
-                        // Soften harsh highs in Night Whisper profile
-                        prefs.soundProfile == "night" && centerHz > 6000 -> (minLevel / 3).toShort()
-                        else -> 0.toShort()
-                    }
-                    eq.setBandLevel(band, target)
-                }
-                eq.enabled = true
-            } else {
-                equalizer?.enabled = false
-            }
-        }
+        audioEffectsController.applyEffects(player.audioSessionId, prefs)
     }
 
-    /**
-     * Synthesizes a subtle analog needle drop sound cue when playback starts (`sound.ts`).
-     */
-    private fun playNeedleDropCue() {
-        scope.launch(Dispatchers.Default) {
-            runCatching {
-                val sampleRate = 22050
-                val numSamples = (sampleRate * 0.18).toInt()
-                val pcm = ShortArray(numSamples)
-                val rng = Random(System.nanoTime())
-                for (i in 0 until numSamples) {
-                    val t = i.toDouble() / sampleRate
-                    val thump = kotlin.math.sin(2.0 * Math.PI * 65.0 * t) * kotlin.math.exp(-t * 32.0) * 0.35
-                    val click = if (i in 400..520) (rng.nextDouble() * 2.0 - 1.0) * 0.25 else 0.0
-                    val hiss = (rng.nextDouble() * 2.0 - 1.0) * 0.03 * kotlin.math.exp(-t * 10.0)
-                    pcm[i] = ((thump + click + hiss).coerceIn(-1.0, 1.0) * Short.MAX_VALUE).toInt().toShort()
-                }
-                val track = AndroidAudioTrack.Builder()
-                    .setAudioFormat(
-                        AudioFormat.Builder()
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(sampleRate)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                            .build(),
-                    )
-                    .setBufferSizeInBytes(pcm.size * 2)
-                    .setTransferMode(AndroidAudioTrack.MODE_STATIC)
-                    .build()
-                try {
-                    track.write(pcm, 0, pcm.size)
-                    track.play()
-                    delay(220L)
-                } finally {
-                    runCatching { track.release() }
-                }
-            }
-        }
-    }
-
-    /**
-     * Synthesizes warm ambient vinyl surface crackle while playing (`sound.ts`).
-     */
     private fun updateVinylCrackleLoop() {
-        crackleJob?.cancel()
-        crackleJob = null
         val prefs = prefsRepository.prefs.value
-        if (!_playing.value || !prefs.vinylCrackle) return
-
-        crackleJob = scope.launch(Dispatchers.Default) {
-            runCatching {
-                val sampleRate = 16000
-                val chunkSamples = sampleRate / 4
-                val pcm = ShortArray(chunkSamples)
-                val rng = Random(System.nanoTime())
-                val minBuf = max(chunkSamples * 2, AndroidAudioTrack.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT))
-                val track = AndroidAudioTrack.Builder()
-                    .setAudioFormat(
-                        AudioFormat.Builder()
-                            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                            .setSampleRate(sampleRate)
-                            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                            .build(),
-                    )
-                    .setBufferSizeInBytes(minBuf)
-                    .setTransferMode(AndroidAudioTrack.MODE_STREAM)
-                    .build()
-                track.play()
-                try {
-                    while (isActive && _playing.value && prefsRepository.prefs.value.vinylCrackle) {
-                        val gain = prefsRepository.prefs.value.vinylCrackleVolume.coerceIn(0.01f, 0.15f)
-                        for (i in 0 until chunkSamples) {
-                            val pop = if (rng.nextFloat() < 0.0018f) (rng.nextFloat() * 2f - 1f) * 0.65f else 0f
-                            val warmth = (rng.nextFloat() * 2f - 1f) * 0.06f
-                            pcm[i] = (((pop + warmth) * gain).coerceIn(-1f, 1f) * Short.MAX_VALUE).toInt().toShort()
-                        }
-                        track.write(pcm, 0, chunkSamples)
-                    }
-                } finally {
-                    runCatching {
-                        track.stop()
-                        track.release()
-                    }
-                }
-            }
-        }
+        ambienceEngine.updateVinylCrackleLoop(
+            isPlaying = _playing.value,
+            enabled = prefs.vinylCrackle,
+            volume = prefs.vinylCrackleVolume,
+        )
     }
 
     // --- Bookmarks ---
@@ -932,76 +754,26 @@ class KoalaPlayerController(
         checkSleepTimerOnTick(p, now)
     }
 
-    private fun updateSleepRemaining() {
-        val now = sleepPausedAtMillis ?: System.currentTimeMillis()
-        _sleepRemainingSeconds.value = when (val s = _sleep.value) {
-            SleepTimerMode.Off -> 0.0
-            SleepTimerMode.EndOfChapter -> {
-                val ch = currentChapter
-                if (ch != null) max(0.0, (ch.end - _currentTime.value) / _rate.value) else 0.0
-            }
-            is SleepTimerMode.Minutes -> max(0.0, (s.endsAtMillis - now) / 1000.0)
-            is SleepTimerMode.SmartWindow -> sleepForecast?.seconds ?: max(0.0, (s.maxAtMillis - now) / 1000.0)
-        }
-    }
-
     private fun checkSleepTimerOnTick(p: ExoPlayer, now: Long) {
-        val s = _sleep.value
-        if (s is SleepTimerMode.Off) {
-            _sleepRemainingSeconds.value = 0.0
-            return
-        }
-        updateSleepRemaining()
-        if (!_playing.value) return
-
-        val prefs = prefsRepository.prefs.value
-        val fadeSec = prefs.sleepFadeDuration.toDouble()
-
-        when (s) {
-            SleepTimerMode.EndOfChapter -> {
-                val ch = currentChapter ?: return
-                val left = (ch.end - _currentTime.value) / _rate.value
-                if (_currentTime.value >= ch.end - 0.4) {
-                    p.pause()
-                    p.volume = prefs.volume
-                    _sleep.value = SleepTimerMode.Off
-                } else if (prefs.sleepFade && left in 0.0..fadeSec) {
-                    val ratio = max(0.01, left / fadeSec).pow(1.5).toFloat()
-                    p.volume = prefs.volume * ratio
-                }
+        val action = sleepTimerEngine.evaluateTick(
+            isPlaying = _playing.value,
+            currentTime = _currentTime.value,
+            rate = _rate.value.toDouble(),
+            currentChapter = currentChapter,
+            now = now,
+            forecast = sleepForecast,
+        )
+        when (action) {
+            SleepTickAction.None -> Unit
+            is SleepTickAction.AdjustVolume -> {
+                p.volume = action.volume
             }
-            is SleepTimerMode.SmartWindow -> {
-                val ch = currentChapter
-                if (now >= s.minAtMillis && ch != null && _currentTime.value >= ch.end - 0.4) {
-                    p.pause()
-                    p.volume = prefs.volume
-                    _sleep.value = SleepTimerMode.Off
-                    return
-                }
-                val left = (s.maxAtMillis - now) / 1000.0
-                if (left <= 0.0) {
-                    p.pause()
-                    p.volume = prefs.volume
-                    if (prefs.sleepRewind > 0) skip(-prefs.sleepRewind.toDouble())
-                    _sleep.value = SleepTimerMode.Off
-                } else if (prefs.sleepFade && left < fadeSec && sleepForecast?.chapterIndex == null) {
-                    val ratio = max(0.01, left / fadeSec).pow(1.5).toFloat()
-                    p.volume = prefs.volume * ratio
-                }
+            is SleepTickAction.TriggerStop -> {
+                p.pause()
+                p.volume = prefsRepository.prefs.value.volume
+                if (action.rewindSeconds > 0) skip(-action.rewindSeconds.toDouble())
+                ambienceEngine.playRunOutGrooveCue()
             }
-            is SleepTimerMode.Minutes -> {
-                val left = (s.endsAtMillis - now) / 1000.0
-                if (left <= 0.0) {
-                    p.pause()
-                    p.volume = prefs.volume
-                    if (prefs.sleepRewind > 0) skip(-prefs.sleepRewind.toDouble())
-                    _sleep.value = SleepTimerMode.Off
-                } else if (prefs.sleepFade && left < fadeSec) {
-                    val ratio = max(0.01, left / fadeSec).pow(1.5).toFloat()
-                    p.volume = prefs.volume * ratio
-                }
-            }
-            SleepTimerMode.Off -> Unit
         }
     }
 
@@ -1041,11 +813,11 @@ class KoalaPlayerController(
                 downloadRepository.remove(currentItem.id)
             }
 
-            val s = _sleep.value
+            val s = sleepTimerEngine.mode.value
             if (s is SleepTimerMode.EndOfChapter ||
                 (s is SleepTimerMode.SmartWindow && System.currentTimeMillis() >= s.minAtMillis)
             ) {
-                _sleep.value = SleepTimerMode.Off
+                sleepTimerEngine.setMode(SleepTimerMode.Off, isPlaying = false)
                 return@launch
             }
 
@@ -1210,22 +982,31 @@ class KoalaPlayerController(
     suspend fun leaveAccount() {
         closeCurrentSession()
         _item.value = null
+        notifyWidgetStateChanged()
         _chapters.value = emptyList()
         _bookmarks.value = emptyList()
         _expanded.value = false
-        _sleep.value = SleepTimerMode.Off
+        sleepTimerEngine.setMode(SleepTimerMode.Off, isPlaying = false)
     }
 
-    private fun applyRemoteProgress(p: MediaProgress) {
-        val currentItem = _item.value ?: return
-        if (currentItem.id != p.libraryItemId || _playing.value) return
-        if (p.isFinished) {
-            pause()
-            _currentTime.value = _duration.value
-            return
+    internal fun applyRemoteProgress(p: MediaProgress) {
+        when (val action = RemoteProgressResolver.resolve(
+            currentBookId = _item.value?.id,
+            currentTime = _currentTime.value,
+            duration = _duration.value,
+            isPlaying = _playing.value,
+            progress = p,
+        )) {
+            RemoteProgressResolver.Action.Ignore -> Unit
+            is RemoteProgressResolver.Action.FinishAndPause -> {
+                pause()
+                _currentTime.value = action.duration
+            }
+            is RemoteProgressResolver.Action.SeekTo -> {
+                seek(action.targetTime)
+                _remoteHandoff.value = RemoteHandoffNotification(p.libraryItemId, action.targetTime)
+            }
         }
-        if (abs(p.currentTime - _currentTime.value) < 2.0) return
-        seek(p.currentTime)
     }
 
     /**
@@ -1233,12 +1014,19 @@ class KoalaPlayerController(
      */
     fun release() {
         releaseAudioEffects()
-        crackleJob?.cancel()
-        crackleJob = null
+        ambienceEngine.release()
         exoPlayer?.run {
             stop()
             release()
         }
         exoPlayer = null
+    }
+
+    private fun notifyWidgetStateChanged() {
+        runCatching {
+            context.sendBroadcast(
+                Intent("net.koalastuff.koalashelf.widget.STATE_CHANGED").setPackage(context.packageName)
+            )
+        }
     }
 }

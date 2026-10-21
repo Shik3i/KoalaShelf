@@ -785,6 +785,7 @@ class AbsApiClient(
     suspend fun downloadToStream(
         path: String,
         outputStream: OutputStream,
+        startByte: Long = 0L,
         onBytesRead: (Long) -> Unit = {},
     ) {
         renewSoon()
@@ -795,12 +796,15 @@ class AbsApiClient(
             var unauthorized = false
             httpClient.prepareGet(url) {
                 header(HttpHeaders.Authorization, "Bearer ${tokens.accessToken}")
+                if (startByte > 0L) {
+                    header(HttpHeaders.Range, "bytes=$startByte-")
+                }
             }.execute { response ->
                 if (response.status == HttpStatusCode.Unauthorized) {
                     unauthorized = true
                     return@execute
                 }
-                if (!response.status.isSuccess()) {
+                if (!response.status.isSuccess() && response.status != HttpStatusCode.PartialContent) {
                     throw AbsError(response.status.value, response.status.description)
                 }
                 val channel = response.bodyAsChannel()

@@ -12,8 +12,8 @@ android {
         applicationId = "net.koalastuff.koalashelf"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 8
+        versionName = "1.0.0"
     }
 
     signingConfigs {
@@ -96,4 +96,5 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.koin.test)
+    testImplementation(libs.robolectric)
 }

@@ -1,5 +1,87 @@
 # Changelog
 
+## Android 1.0.0
+
+Milestone 1.0.0 Production Release:
+
+- **Seamless Device Handoff Banner**: When playback progress is made on another active client (web, car, or desktop), the player updates position smoothly and displays an interactive acknowledgment banner with direct dismissal.
+- **Full Architecture & Sensory Integration**: Complete suite of vinyl tactile haptics (`KoalaHaptics`), Android Auto dashboard media browsing, live 4x2 / 2x2 Turntable home screen widget, HTTP range-resume download resilience, background WorkManager offline session synchronization, Bedtime zero-glare blind gestures, and analog locked-groove runout synthesis.
+- **Accessibility & WCAG 2.2**: Verified tactile and ocular contrast standards across dark vinyl themes.
+
+## Web 1.0.0
+
+Milestone 1.0.0 Production Release:
+
+- **Full Audiobookshelf Backbone Ecosystem Parity**: Complete alignment of tactile haptic vocabulary, Web Audio analog warmth DSP filtering, locked-groove runout cue, resilient offline caching, and responsive vinyl crate browsing.
+
+## Android 0.5.0
+
+Phase 4 bedtime sensory mode & analog warmth DSP release:
+
+- **Bedtime Blind-Gesture Mode (`BedtimeBlindGestureOverlay`)**: Full-screen pitch-black ocular sanctuary with gentle warm amber typography and tactile gesture navigation. Single tap anywhere toggles Play/Pause, horizontal swipes jump 30 seconds back or forward, and double-tapping or tapping the pill button extends sleep timer by 15 minutes.
+- **Analog Locked Run-Out Groove Simulation**: At the end of the sleep timer countdown, the player gently fades out playback and executes 2 revolutions (3.6s at 33⅓ RPM) of rhythmic vinyl lead-out locked groove clicks before sleep.
+- **Analog & Tape Warmth DSP Profile (`warmth`)**: Hardware Equalizer and Web Audio pipeline with gentle tube low-end body (+100Hz), speech clarity presence lift (2.4kHz), and smoothed high-frequency tape roll-off (>6kHz).
+
+## Web 0.5.0
+
+Phase 4 bedtime & warmth DSP release:
+
+- **Analog Warmth Sound Profile**: Added `warmth` scene preset to `SoundChain` and `SoundPanel.svelte` with custom biquad filtering.
+- **Vinyl Runout Locked Groove**: Web Audio synthesis for sleep timer runout revolutions.
+
+## Android 0.4.0
+
+Phase 3 offline resilience and network sync release:
+
+- **HTTP Range-Resume Download Engine**: In `DownloadRepository` and `AbsApiClient`, downloads now support HTTP `Range: bytes=X-` headers and stream into `.part` temporary files. Interrupted downloads preserve downloaded bytes across connectivity losses instead of purging directory files. Completed tracks are verified and skipped automatically on retry.
+- **WorkManager Offline Session Auto-Flush (`OfflineSessionSyncWorker`)**: Listening progress made while disconnected is recorded locally in Room and automatically flushed back to the Audiobookshelf server when the device reconnects to an active network with `NetworkType.CONNECTED` constraints.
+
+## Web 0.4.0
+
+Phase 3 offline resilience release:
+
+- **Offline Audio & Service Worker Hardening**: Optimized cache strategies for offline cover art and OPFS audiobook playback without third-party requests.
+
+## Android 0.3.0
+
+Phase 2 automotive and live widgets release:
+
+- **Android Auto & Automotive OS Integration**: Implemented full `MediaLibrarySession.Callback` media tree hierarchy (`onGetLibraryRoot`, `onGetChildren`, `onGetItem`, `onSetMediaItems`, `onAddMediaItems`). Listeners can browse "Continue Listening", "Downloaded", and "Recently Added" directly from dashboard head units with Audiobookshelf as the backend source of truth.
+- **Automotive Descriptor**: Registered official Android Automotive OS media capability XML descriptor (`automotive_app_desc.xml`).
+- **Live Turntable Home Screen Widget (`KoalaTurntableWidgetProvider`)**: Native 4x2 / 2x2 responsive app widget featuring vinyl deck styling, spinning platter aesthetic, book title, author, and instant play/pause, skip-back, and skip-forward controls with real-time broadcast updates.
+- **Unit Testing**: Robolectric test coverage for widget broadcast handling and lifecycle stability.
+
+## Web 0.3.0
+
+Phase 2 companion ecosystem alignment:
+
+- **Audiobookshelf Single-Backbone Protocol**: Hardened media item and session compatibility matching Android MediaLibrary structure.
+
+## Android 0.2.0
+
+Phase 1 tactile sensory immersion release:
+
+- **Tactile Vocabulary (`KoalaHaptics`)**: Native API 30+ composition vibration primitives for needle contact (`needleDrop`), groove tracking (`grooveTick` with 35ms rate limiter), chapter snap (`chapterSnap`), sleep timer arming (`sleepArmed`), and boundary bumps.
+- **Haptic Controls & Settings**: Added user toggle in Settings for tactile haptics, respected system-wide and in-app.
+- **Turntable & Crate Integration**: Interactive DJ scratching and crate record flipping now produce realistic micro-haptic feedback.
+- **Automated Testing**: Robolectric test coverage verifying safe execution and no-ops when haptics are disabled.
+
+## Web 0.2.0
+
+Phase 1 tactile and sensory alignment release:
+
+- **Tactile Vocabulary (`haptic`)**: Integrated Web Vibration API tactile patterns matching Android (`needleDrop`, throttled `grooveTick`, `chapterSnap`, `sleepArmed`, `boundary`).
+- **Interactive Turntable & Record Crate**: Enhanced DJ platter scratching and series crate browsing with tactile feedback.
+- **Preferences**: Added tactile haptics toggle in Settings with multi-language strings (DE, EN).
+
+## Android 0.1.2
+
+Phase 0 foundation release establishing continuous integration, test automation, and modular player refactoring:
+
+- **CI Automation**: Integrated full Android test, lint, and build pipeline into GitHub Actions (`ci.yml`) on every pull request and push to main.
+- **Player Architecture Refactoring**: Decoupled monolithic player controller into testable domain engines (`SleepTimerEngine`, `AmbienceEngine`, `AudioEffectsController`, `RemoteProgressResolver`).
+- **Test Automation & Verification**: Added comprehensive unit test coverage for sleep timer modes, volume fade-outs, and live progress event conflict resolution; added Robolectric Compose rendering tests for core vinyl deck components (`VinylDisc`, `BookCover`, `TurntableDeck`).
+
 ## Android 0.1.1
 
 The initial release of the native Android client for KoalaShelf with vinyl aesthetic, background media playback and full Audiobookshelf library integration:

@@ -68,7 +68,7 @@
 		lastAngle = getPointerAngle(e);
 		scratchAccum = 0;
 		totalScratchSeconds = 0;
-		haptic.tap();
+		haptic.needleDrop();
 		onScratchStart?.();
 	}
 
@@ -92,7 +92,7 @@
 
 		// Tactile tick every ~12 degrees of spin
 		if (Math.abs(scratchAccum) >= 12) {
-			haptic.tick();
+			haptic.grooveTick();
 			scratchAccum = 0;
 		}
 	}
@@ -103,7 +103,7 @@
 		scratchRotateDeg = 0;
 		totalScratchSeconds = 0;
 		onScratchEnd?.();
-		haptic.tap();
+		haptic.needleDrop();
 	}
 </script>
 

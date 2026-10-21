@@ -71,8 +71,8 @@ Not used, on purpose: podcast and e-book routes (scope), RSS feeds, shares, meta
 | Several accounts and servers, quick switching | Audiobookshelf app (server list), Plappa | ✅ one tap, each account with its own queue, downloads and searches |
 | Own accent color, readable font | BookPlayer (themes), Smart AudioBook Player (fonts) | ✅ any color kept readable automatically; Atkinson Hyperlegible or system font |
 | Lock screen controls, media keys, headset buttons | all | ✅ (chapter or skip, configurable) |
-| Car mode, Android Auto, CarPlay | Audible, Audiobookshelf app | ⏸ native roadmap |
-| Widgets, Siri / Assistant shortcuts, Wear OS / watchOS | Audible, BookPlayer | ⏸ native roadmap |
+| Car mode, Android Auto, CarPlay | Audible, Audiobookshelf app | ✅ Android Auto in native Android app; CarPlay planned |
+| Widgets, Siri / Assistant shortcuts, Wear OS / watchOS | Audible, BookPlayer | ✅ Live Turntable Home Screen Widget on Android; Wear OS planned |
 | Equalizer with bands | Smart AudioBook Player | ✅ hardware Equalizer on Android; clearer voices + leveling in web |
 | Ratings, reviews, wish list, store | Audible | ➖ not in Audiobookshelf |
 | Character lists, read along (Whispersync) | Smart AudioBook Player, Audible | ➖ needs e-book sync (out of scope) |

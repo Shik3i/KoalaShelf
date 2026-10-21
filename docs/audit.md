@@ -65,4 +65,4 @@ Found while testing against Audiobookshelf 2.37.1 (details in [api/audiobookshel
 | Podcasts and e-books | Out of scope for now (decided 2026-10-15); audiobooks first. |
 | Shake to extend the sleep timer, car mode | Need sensors and background work with the screen off: native apps. |
 | Editing metadata, RSS feeds, shares | Need editor or admin rights on the server; KoalaShelf is a listening client (collections are editable for accounts with that right). |
-| Driving mode, Android Auto | Native apps (future roadmap). |
+| Driving mode | Native apps (future roadmap). Android Auto is supported in Android v1.0.0. |

@@ -57,12 +57,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -660,7 +658,7 @@ fun TurntableDeck(
 ) {
     val colors = KoalaTheme.colors
     val typography = KoalaTheme.typography
-    val haptics = LocalHapticFeedback.current
+    val koalaHaptics = LocalKoalaHaptics.current
 
     var isScratching by remember { mutableStateOf(false) }
     var scratchRotateDeg by remember { mutableFloatStateOf(0f) }
@@ -705,7 +703,7 @@ fun TurntableDeck(
                                     totalScratchSeconds = 0f
                                     scratchRotateDeg = 0f
                                     isScratching = true
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    koalaHaptics.needleDrop()
                                     onScratchStart()
                                 },
                                 onDrag = { change, _ ->
@@ -728,7 +726,7 @@ fun TurntableDeck(
                                     onScratchDeltaSeconds(dtSeconds)
 
                                     if (abs(hapticAccum) >= 12f) {
-                                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        koalaHaptics.grooveTick()
                                         hapticAccum = 0f
                                     }
                                 },
@@ -736,7 +734,7 @@ fun TurntableDeck(
                                     isScratching = false
                                     scratchRotateDeg = 0f
                                     totalScratchSeconds = 0f
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    koalaHaptics.needleDrop()
                                     onScratchEnd()
                                 },
                                 onDragCancel = {
@@ -845,7 +843,7 @@ fun RecordCrate(
 ) {
     val colors = KoalaTheme.colors
     val typography = KoalaTheme.typography
-    val haptics = LocalHapticFeedback.current
+    val koalaHaptics = LocalKoalaHaptics.current
 
     var currentIndex by remember(records.size) { mutableIntStateOf(0) }
     var isOpen by remember { mutableStateOf(false) }
@@ -878,7 +876,7 @@ fun RecordCrate(
                                 val next = (currentIndex - steps).coerceIn(0, count - 1)
                                 if (next != currentIndex) {
                                     currentIndex = next
-                                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    koalaHaptics.grooveTick()
                                 }
                             }
                         },

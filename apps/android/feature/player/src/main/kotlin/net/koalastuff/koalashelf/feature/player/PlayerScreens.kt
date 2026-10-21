@@ -1,7 +1,14 @@
 package net.koalastuff.koalashelf.feature.player
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import net.koalastuff.koalashelf.core.designsystem.LocalKoalaHaptics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -114,6 +121,7 @@ enum class PlayerPanel {
     CHAPTERS,
     BOOKMARKS,
     QUEUE,
+    BEDTIME,
 }
 
 @Composable
@@ -260,6 +268,7 @@ fun FullPlayerSheet(
     val prefs by prefsRepository.prefs.collectAsState()
     val silenceSaved by prefsRepository.silenceSavedTotalSec.collectAsState()
     val queueItems by queueRepository.items.collectAsState()
+    val remoteHandoff by playerController.remoteHandoff.collectAsState()
 
     val scope = rememberCoroutineScope()
     val strings = currentKoalaStrings
@@ -351,6 +360,32 @@ fun FullPlayerSheet(
                             contentDescription = strings.playerAddBookmark,
                             tint = colors.accent,
                         )
+                    }
+                }
+            }
+
+            AnimatedVisibility(visible = remoteHandoff != null) {
+                remoteHandoff?.let { handoff ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                            .background(colors.accent.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            text = "⚡ Synced with another device (${formatClock(handoff.time)})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.accent,
+                        )
+                        IconButton(
+                            onClick = { playerController.dismissRemoteHandoff() },
+                            modifier = Modifier.size(20.dp),
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = null, tint = colors.accent)
+                        }
                     }
                 }
             }
@@ -726,6 +761,7 @@ fun FullPlayerSheet(
                             prefsRepository = prefsRepository,
                             prefs = prefs,
                             sleep = sleep,
+                            onOpenBedtime = { activePanel = PlayerPanel.BEDTIME },
                         )
                         PlayerPanel.SOUND -> SoundEnginePanel(
                             prefs = prefs,
@@ -772,6 +808,14 @@ fun FullPlayerSheet(
                             onRemove = { id -> queueRepository.remove(id) },
                             onClear = { queueRepository.clear() },
                         )
+                        PlayerPanel.BEDTIME -> {
+                            BedtimeBlindGestureOverlay(
+                                playerController = playerController,
+                                playing = playing,
+                                sleepRemainingSeconds = sleepRemaining,
+                                onDismiss = { activePanel = PlayerPanel.NONE },
+                            )
+                        }
                         PlayerPanel.NONE -> {}
                     }
                 }
@@ -862,6 +906,7 @@ private fun SleepTimerPanel(
     prefsRepository: PrefsRepository,
     prefs: KoalaPrefs,
     sleep: SleepTimerMode,
+    onOpenBedtime: () -> Unit,
 ) {
     val strings = currentKoalaStrings
     val colors = KoalaTheme.colors
@@ -936,6 +981,19 @@ private fun SleepTimerPanel(
                 onCheckedChange = { enabled -> prefsRepository.update { it.copy(autoSleep = enabled) } },
             )
         }
+
+        Button(
+            onClick = onOpenBedtime,
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF1E1408),
+                contentColor = Color(0xFFD49B43),
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Icon(Icons.Default.NightlightRound, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(strings.bedtimeTitle)
+        }
     }
 }
 
@@ -960,6 +1018,7 @@ private fun SoundEnginePanel(
                 "voice" to strings.soundProfileVoice,
                 "night" to strings.soundProfileNight,
                 "commute" to strings.soundProfileCommute,
+                "warmth" to strings.soundProfileWarmth,
             ).forEach { (id, label) ->
                 FilterChip(
                     selected = prefs.soundProfile == id,
@@ -1274,6 +1333,176 @@ private fun QueuePanel(
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                 }
             }
+        }
+    }
+}
+
+/**
+ * Bedtime blind-gesture view:
+ * Absolute zero ocular glare (pitch black background with ultra-dim amber accents).
+ * Allows listeners to control playback completely blind by touch:
+ * - Single tap anywhere: Play / Pause
+ * - Double tap: +15 Min sleep timer
+ * - Swipe left: Skip back 30s
+ * - Swipe right: Skip forward 30s
+ * - Exit via top right X
+ */
+@Composable
+fun BedtimeBlindGestureOverlay(
+    playerController: KoalaPlayerController,
+    playing: Boolean,
+    sleepRemainingSeconds: Double,
+    onDismiss: () -> Unit,
+) {
+    val strings = currentKoalaStrings
+    val koalaHaptics = LocalKoalaHaptics.current
+
+    val amberColor = androidx.compose.ui.graphics.Color(0xFFD49B43)
+    val dimAmberColor = androidx.compose.ui.graphics.Color(0xFF7A551E)
+    val darkAmberBg = androidx.compose.ui.graphics.Color(0xFF1E1408)
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = false,
+        ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(androidx.compose.ui.graphics.Color.Black)
+                .pointerInput(playing) {
+                    var dragAccum = 0f
+                    val stepPx = 48.dp.toPx()
+                    detectHorizontalDragGestures(
+                        onDragStart = { dragAccum = 0f },
+                        onHorizontalDrag = { change, dragAmount ->
+                            change.consume()
+                            dragAccum += dragAmount
+                            if (abs(dragAccum) >= stepPx) {
+                                if (dragAccum > 0) {
+                                    playerController.forward()
+                                    koalaHaptics.chapterSnap()
+                                } else {
+                                    playerController.back()
+                                    koalaHaptics.chapterSnap()
+                                }
+                                dragAccum = 0f
+                            }
+                        },
+                    )
+                }
+                .pointerInput(playing) {
+                    detectTapGestures(
+                        onTap = {
+                            if (playing) {
+                                playerController.pause()
+                            } else {
+                                playerController.play()
+                            }
+                            koalaHaptics.grooveTick()
+                        },
+                        onDoubleTap = {
+                            playerController.extendSleep(15)
+                            koalaHaptics.sleepArmed()
+                        },
+                    )
+                },
+        ) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 36.dp)
+                    .align(Alignment.TopCenter),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.NightlightRound,
+                        contentDescription = null,
+                        tint = dimAmberColor,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        text = strings.bedtimeTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = dimAmberColor,
+                    )
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = strings.bedtimeExit,
+                        tint = dimAmberColor,
+                    )
+                }
+            }
+
+            // Center: Big Analog Status Indicator
+            Column(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(130.dp)
+                        .border(2.dp, dimAmberColor, CircleShape)
+                        .background(darkAmberBg, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = amberColor,
+                        modifier = Modifier.size(56.dp),
+                    )
+                }
+
+                if (sleepRemainingSeconds > 0) {
+                    val mins = (sleepRemainingSeconds / 60).toInt()
+                    val secs = (sleepRemainingSeconds % 60).toInt()
+                    Text(
+                        text = String.format("%02d:%02d", mins, secs),
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = amberColor,
+                    )
+                } else {
+                    Text(
+                        text = strings.playerTimerOff,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = dimAmberColor,
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        playerController.extendSleep(15)
+                        koalaHaptics.sleepArmed()
+                    },
+                    border = BorderStroke(1.dp, dimAmberColor),
+                ) {
+                    Text(strings.bedtimeAdd15, color = amberColor)
+                }
+            }
+
+            // Bottom blind gesture guide
+            Text(
+                text = strings.bedtimeHint,
+                style = MaterialTheme.typography.bodySmall,
+                color = androidx.compose.ui.graphics.Color(0xFF553B18),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 36.dp, start = 24.dp, end = 24.dp)
+                    .align(Alignment.BottomCenter),
+            )
         }
     }
 }

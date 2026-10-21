@@ -188,6 +188,51 @@ export class SoundChain {
 		}
 	}
 
+	/** Synthesizes 2 revolutions (3.6s) of gentle locked-groove vinyl runout clicks before sleep. */
+	async playRunOutGroove() {
+		let ctx = this.#ctx;
+		if (!ctx) {
+			try {
+				ctx = new AudioContext({ latencyHint: 'playback' });
+				this.#ctx = ctx;
+			} catch {
+				return;
+			}
+		}
+		if (ctx.state === 'suspended') {
+			await ctx.resume().catch(() => undefined);
+		}
+		try {
+			const now = ctx.currentTime;
+			const duration = 3.6;
+			const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate);
+			const data = buffer.getChannelData(0);
+			const samplesPerRev = Math.floor(ctx.sampleRate * 1.8);
+			for (let i = 0; i < data.length; i++) {
+				const t = i / ctx.sampleRate;
+				const fade = Math.max(0, 1 - t / duration);
+				const revPos = i % samplesPerRev;
+				const thump =
+					revPos < 500
+						? Math.sin(2 * Math.PI * 45 * (revPos / ctx.sampleRate)) *
+							Math.exp(-(revPos / ctx.sampleRate) * 20) *
+							0.35
+						: 0;
+				const hiss = (Math.random() * 2 - 1) * 0.02;
+				data[i] = (thump + hiss) * fade;
+			}
+			const source = ctx.createBufferSource();
+			source.buffer = buffer;
+			const gain = ctx.createGain();
+			gain.gain.setValueAtTime(0.15, now);
+			source.connect(gain);
+			gain.connect(ctx.destination);
+			source.start(now);
+		} catch {
+			// Ignore if audio buffer cannot be scheduled
+		}
+	}
+
 	/** Browsers start audio contexts suspended until a user gesture; call before play(). */
 	async resume() {
 		if (this.#ctx?.state === 'suspended') await this.#ctx.resume().catch(() => undefined);
@@ -324,6 +369,16 @@ export class SoundChain {
 			this.#warmth!.type = 'highshelf';
 			this.#warmth!.frequency.value = 8000;
 			this.#warmth!.gain.value = -2;
+			chain.push(this.#highpass!, this.#presence!, this.#warmth!);
+		} else if (profile === 'warmth') {
+			this.#highpass!.frequency.value = 40;
+			this.#presence!.type = 'peaking';
+			this.#presence!.frequency.value = 2400;
+			this.#presence!.Q.value = 0.8;
+			this.#presence!.gain.value = 2.5;
+			this.#warmth!.type = 'highshelf';
+			this.#warmth!.frequency.value = 6500;
+			this.#warmth!.gain.value = -3;
 			chain.push(this.#highpass!, this.#presence!, this.#warmth!);
 		}
 

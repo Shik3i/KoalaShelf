@@ -201,20 +201,38 @@ class DownloadRepository(
             for (t in tracks) {
                 val ext = t.metadata?.ext?.let { if (it.startsWith(".")) it else ".$it" } ?: ".m4b"
                 val fileName = "track-${t.index}$ext"
-                val outFile = File(dir, fileName)
-                FileOutputStream(outFile).use { fos ->
-                    api.downloadToStream("${t.contentUrl}/download", fos) { delta ->
-                        received += delta
-                        _jobs.value = _jobs.value + (
-                            itemId to DownloadJobState(
-                                itemId = itemId,
-                                receivedBytes = received,
-                                totalBytes = max(totalExpected, received),
-                                status = DownloadJobState.Status.RUNNING,
+                val finalFile = File(dir, fileName)
+                val expectedSize = t.metadata?.size ?: 0L
+
+                if (!finalFile.exists() || (expectedSize > 0L && finalFile.length() < expectedSize)) {
+                    val partFile = File(dir, "$fileName.part")
+                    val existingBytes = if (partFile.exists()) partFile.length() else 0L
+                    received += existingBytes
+
+                    FileOutputStream(partFile, /* append = */ existingBytes > 0L).use { fos ->
+                        api.downloadToStream(
+                            path = "${t.contentUrl}/download",
+                            outputStream = fos,
+                            startByte = existingBytes,
+                        ) { delta ->
+                            received += delta
+                            _jobs.value = _jobs.value + (
+                                itemId to DownloadJobState(
+                                    itemId = itemId,
+                                    receivedBytes = received,
+                                    totalBytes = max(totalExpected, received),
+                                    status = DownloadJobState.Status.RUNNING,
+                                )
                             )
-                            )
+                        }
                     }
+                    if (partFile.exists()) {
+                        partFile.renameTo(finalFile)
+                    }
+                } else {
+                    received += finalFile.length()
                 }
+
                 savedTracks.add(
                     DownloadedTrackManifest(
                         index = t.index,
@@ -255,19 +273,19 @@ class DownloadRepository(
             _jobs.value = _jobs.value - itemId
             refreshActiveAccountDownloads()
         } catch (e: CancellationException) {
-            dir.deleteRecursively()
+            // Keep .part and completed files intact for automatic resume
             _jobs.value = _jobs.value - itemId
             throw e
         } catch (_: Exception) {
-            dir.deleteRecursively()
+            // Keep existing downloaded bytes for resume on retry
             _jobs.value = _jobs.value + (
                 itemId to DownloadJobState(
                     itemId = itemId,
-                    receivedBytes = 0L,
-                    totalBytes = 0L,
+                    receivedBytes = _jobs.value[itemId]?.receivedBytes ?: 0L,
+                    totalBytes = _jobs.value[itemId]?.totalBytes ?: 0L,
                     status = DownloadJobState.Status.FAILED,
                 )
-                )
+            )
         } finally {
             activeJobs.remove(itemId)
         }
@@ -373,6 +391,9 @@ class DownloadRepository(
                 updatedAt = session.updatedAt,
             ),
         )
+        runCatching {
+            OfflineSessionSyncWorker.enqueue(context)
+        }
     }
 
     suspend fun flushOfflineSessions() {
@@ -403,5 +424,43 @@ class BookDownloadWorker(
 
     companion object {
         const val KEY_ITEM_ID = "item_id"
+    }
+}
+
+/**
+ * WorkManager worker that automatically awakens when an active internet connection returns
+ * and synchronizes all offline listening progress back to the Audiobookshelf server backbone.
+ */
+class OfflineSessionSyncWorker(
+    appContext: Context,
+    params: WorkerParameters,
+) : CoroutineWorker(appContext, params), KoinComponent {
+    private val downloadRepository: DownloadRepository by inject()
+
+    override suspend fun doWork(): Result {
+        return runCatching {
+            downloadRepository.flushOfflineSessions()
+            Result.success()
+        }.getOrElse {
+            Result.retry()
+        }
+    }
+
+    companion object {
+        const val WORK_NAME = "net.koalastuff.koalashelf.OFFLINE_SESSION_SYNC"
+
+        fun enqueue(context: Context) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+            val request = OneTimeWorkRequestBuilder<OfflineSessionSyncWorker>()
+                .setConstraints(constraints)
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                WORK_NAME,
+                ExistingWorkPolicy.KEEP,
+                request,
+            )
+        }
     }
 }

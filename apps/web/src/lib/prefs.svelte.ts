@@ -16,7 +16,7 @@ export const FONTS = [
 ] as const;
 export type FontChoice = (typeof FONTS)[number];
 
-export type SoundProfile = 'off' | 'voice' | 'night' | 'commute';
+export type SoundProfile = 'off' | 'voice' | 'night' | 'commute' | 'warmth';
 
 export interface Prefs {
 	// Appearance
@@ -68,6 +68,8 @@ export interface Prefs {
 	autoQueue: boolean;
 	seriesOffer: boolean;
 	shortcuts: boolean;
+	/** Subtle tactile haptics on mobile / touch devices. */
+	haptics: boolean;
 	// Sleep timer
 	sleepFade: boolean;
 	/** Duration of the sleep fade-out in seconds. */
@@ -136,6 +138,7 @@ export const DEFAULTS: Prefs = {
 	autoQueue: true,
 	seriesOffer: true,
 	shortcuts: true,
+	haptics: true,
 	sleepFade: true,
 	sleepFadeDuration: 30,
 	sleepRewind: 15,
@@ -164,7 +167,7 @@ export function sanitize(saved: Record<string, unknown>): Prefs {
 		k === 'defaultRate'
 			? v === 'last' || (typeof v === 'number' && v > 0)
 			: k === 'soundProfile'
-				? v === 'off' || v === 'voice' || v === 'night' || v === 'commute'
+				? v === 'off' || v === 'voice' || v === 'night' || v === 'commute' || v === 'warmth'
 				: k === 'font'
 					? (FONTS as readonly unknown[]).includes(v)
 					: k === 'sleepFadeDuration'

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="72"
+    android:viewportHeight="72">
+    <!-- Outer Vinyl Body -->
+    <path
+        android:fillColor="#0D0C0B"
+        android:pathData="M36,36m-34,0a34,34 0 1,1 68,0a34,34 0 1,1 -68,0" />
+    <!-- Concentric Grooves -->
+    <path
+        android:strokeColor="#1F1C19"
+        android:strokeWidth="1"
+        android:pathData="M36,36m-28,0a28,28 0 1,1 56,0a28,28 0 1,1 -56,0" />
+    <path
+        android:strokeColor="#24201C"
+        android:strokeWidth="1"
+        android:pathData="M36,36m-23,0a23,23 0 1,1 46,0a23,23 0 1,1 -46,0" />
+    <path
+        android:strokeColor="#1F1C19"
+        android:strokeWidth="1"
+        android:pathData="M36,36m-18,0a18,18 0 1,1 36,0a18,18 0 1,1 -36,0" />
+    <!-- Center Label (Gold Amber) -->
+    <path
+        android:fillColor="#D4A359"
+        android:pathData="M36,36m-12,0a12,12 0 1,1 24,0a12,12 0 1,1 -24,0" />
+    <!-- Spindle Hole -->
+    <path
+        android:fillColor="#0D0C0B"
+        android:pathData="M36,36m-3,0a3,3 0 1,1 6,0a3,3 0 1,1 -6,0" />
+</vector>

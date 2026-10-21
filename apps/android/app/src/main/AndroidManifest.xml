@@ -18,6 +18,10 @@
         android:theme="@style/Theme.KoalaShelf"
         android:usesCleartextTraffic="true">
 
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -29,6 +33,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".widget.KoalaTurntableWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="net.koalastuff.koalashelf.widget.STATE_CHANGED" />
+                <action android:name="net.koalastuff.koalashelf.widget.PLAY_PAUSE" />
+                <action android:name="net.koalastuff.koalashelf.widget.SKIP_BACK" />
+                <action android:name="net.koalastuff.koalashelf.widget.SKIP_FWD" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_turntable_info" />
+        </receiver>
 
     </application>
 

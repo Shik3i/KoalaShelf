@@ -1741,6 +1741,22 @@ fun SettingsScreen(
                     )
                 }
 
+                // Haptic feedback toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Text(strings.settingsHaptics, style = MaterialTheme.typography.bodyMedium)
+                        Text(strings.settingsHapticsHint, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                    }
+                    Switch(
+                        checked = prefs.haptics,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(haptics = v) } },
+                    )
+                }
+
                 // Font Choice
                 Text(strings.settingsFont, style = MaterialTheme.typography.bodySmall, color = colors.muted)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -89,6 +89,7 @@ import net.koalastuff.koalashelf.core.designsystem.KoalaAccentPreset
 import net.koalastuff.koalashelf.core.designsystem.KoalaFontChoice
 import net.koalastuff.koalashelf.core.designsystem.KoalaMotionMode
 import net.koalastuff.koalashelf.core.designsystem.KoalaShelfTheme
+import net.koalastuff.koalashelf.core.designsystem.ProvideKoalaHaptics
 import net.koalastuff.koalashelf.core.designsystem.KoalaTextSize
 import net.koalastuff.koalashelf.core.designsystem.KoalaTheme
 import net.koalastuff.koalashelf.core.designsystem.KoalaThemeMode
@@ -166,24 +167,26 @@ class MainActivity : ComponentActivity() {
             val strings = stringsForLocale(locale)
 
             CompositionLocalProvider(LocalKoalaStrings provides strings) {
-                KoalaShelfTheme(
-                    themeMode = KoalaThemeMode.fromId(prefs.themeMode),
-                    accentPreset = KoalaAccentPreset.fromId(prefs.accent),
-                    customAccentHex = prefs.customAccent,
-                    fontChoice = KoalaFontChoice.fromId(prefs.font),
-                    textSize = KoalaTextSize.fromId(prefs.textSize),
-                    motionMode = KoalaMotionMode.fromId(prefs.motion),
-                    spinEnabled = prefs.spin,
-                ) {
-                    KoalaAppShell(
-                        prefsRepository = prefsRepository,
-                        sessionRepository = sessionRepository,
-                        progressRepository = progressRepository,
-                        queueRepository = queueRepository,
-                        downloadRepository = downloadRepository,
-                        libraryRepository = libraryRepository,
-                        playerController = playerController,
-                    )
+                ProvideKoalaHaptics(enabled = prefs.haptics) {
+                    KoalaShelfTheme(
+                        themeMode = KoalaThemeMode.fromId(prefs.themeMode),
+                        accentPreset = KoalaAccentPreset.fromId(prefs.accent),
+                        customAccentHex = prefs.customAccent,
+                        fontChoice = KoalaFontChoice.fromId(prefs.font),
+                        textSize = KoalaTextSize.fromId(prefs.textSize),
+                        motionMode = KoalaMotionMode.fromId(prefs.motion),
+                        spinEnabled = prefs.spin,
+                    ) {
+                        KoalaAppShell(
+                            prefsRepository = prefsRepository,
+                            sessionRepository = sessionRepository,
+                            progressRepository = progressRepository,
+                            queueRepository = queueRepository,
+                            downloadRepository = downloadRepository,
+                            libraryRepository = libraryRepository,
+                            playerController = playerController,
+                        )
+                    }
                 }
             }
         }

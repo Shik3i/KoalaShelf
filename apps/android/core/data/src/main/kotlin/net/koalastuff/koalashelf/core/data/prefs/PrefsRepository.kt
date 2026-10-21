@@ -43,6 +43,7 @@ data class KoalaPrefs(
     val motion: String = "system", // "system" | "reduce" | "full"
     val spin: Boolean = true,
     val coverSize: String = "md", // "sm" | "md" | "lg"
+    val haptics: Boolean = true,
     // Player
     val skipBack: Int = 30,
     val skipForward: Int = 30,

@@ -2,7 +2,16 @@
 
 Native KoalaShelf Android app: Kotlin, Jetpack Compose, Media3. A standalone multi-module Gradle project, independent of the pnpm workspace.
 
-**Status:** Feature-complete native client with dedicated release cycle. Fully implements the KoalaShelf Vinyl design language, background audio playback with Media3, faceted library search, offline downloads, analog crackle ambience, and multi-account switching.
+**Status:** Production release (v1.0.0). Fully implements the KoalaShelf Vinyl design language, background audio playback with Media3, Android Auto automotive browse tree, live turntable home screen app widget, bedtime zero-glare gesture mode, tactile vinyl haptics, HTTP Range download resume, WorkManager offline session sync, faceted library search, analog crackle ambience & warmth EQ, and multi-account switching.
+
+## Key Features in v1.0.0
+
+- **Vinyl Haptics Engine (`KoalaHaptics`):** Tactile micro-vibrations for needle drop, vinyl surface crackle, tonearm placement, and timeline scrubbing with graceful fallback.
+- **Android Auto & Automotive Media Tree (`KoalaMediaSessionService`):** Compliant `automotive_app_desc.xml` descriptor and browsable tree partitions (`continue`, `downloaded`, `recent`) with safe in-car playback.
+- **Live Turntable App Widget (`KoalaTurntableWidgetProvider`):** 4×2 and 2×2 interactive home screen widget with spinning vinyl, play/pause and skip controls.
+- **Bedtime Mode (`BedtimeBlindGestureOverlay`):** Pitch-black, zero-glare full-screen mode for sleepy listening with intuitive single-finger swipe and tap gestures.
+- **Resilient Offline Engine (`DownloadRepository` & `OfflineSessionSyncWorker`):** Resumable downloads with HTTP Range support (`.part` files) and automatic WorkManager background syncing when network connectivity returns.
+- **Analog Warmth EQ (`AudioEffectsController`):** Dynamic 5-band Equalizer profile simulating tape warmth and vintage tube amplification.
 
 ## Architecture & Modules
 
