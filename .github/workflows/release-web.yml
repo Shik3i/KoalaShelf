@@ -4,7 +4,7 @@
 #   1. Bump apps/web/package.json, add "## Web X.Y.Z" to CHANGELOG.md, push to main.
 #   2. git tag web-vX.Y.Z && git push origin web-vX.Y.Z
 #
-# Only web-v* tags start it; desktop-v* tags start release-desktop.yml instead. "Run workflow"
+# Triggered by web-v* or unified v* tags. "Run workflow"
 # by hand builds both architectures as a dry run without publishing anything.
 name: Release · Web
 

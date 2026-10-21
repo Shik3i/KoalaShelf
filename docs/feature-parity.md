@@ -40,7 +40,7 @@ Not used, on purpose: podcast and e-book routes (scope), RSS feeds, shares, meta
 | Queue | ✅ | ✅ kept on the device, continues automatically, next in series offered |
 | Statistics, year in review | ✅ | ✅ plus daily goal, streak, shareable year picture |
 | Chromecast | ✅ | ✅ Cast / AirPlay through the browser |
-| Offline listening | mobile apps only | ✅ in the browser (PWA) |
+| Offline listening | mobile apps only | ✅ in the browser (PWA) and native Android app |
 | Admin: users, libraries, metadata, scans, backups | ✅ | ➖ (stays in Audiobookshelf) |
 
 ## Compared with Audible and other players
@@ -52,7 +52,7 @@ Not used, on purpose: podcast and e-book routes (scope), RSS feeds, shares, meta
 | Sleep timer that waits for a chapter end within a window | — | ✅ (KoalaShelf's own) |
 | Extend the timer, "still listening?" before it stops | Audible, Smart AudioBook Player | ✅ +5/+15/+30 min, a hint with +10 min while it fades |
 | Automatic sleep timer at night | Audiobookshelf app, Smart AudioBook Player | ✅ with a time window and the usual timer kind |
-| Shake to extend the timer | Smart AudioBook Player, ShelfPlayer | ⏸ needs motion sensors with the screen off (native) |
+| Shake to extend the timer | Smart AudioBook Player, ShelfPlayer | ⏸ needs motion sensors with the screen off (native roadmap) |
 | Rewind after a pause | BookPlayer, Smart AudioBook Player | ✅ smart rewind (longer pause, further back) |
 | Skip silence | Voice, Smart AudioBook Player, Pocket Casts | ✅ audio-worklet detector, saved time shown |
 | Volume boost | Voice, BookPlayer, Smart AudioBook Player | ✅ up to +100 % |
@@ -71,9 +71,9 @@ Not used, on purpose: podcast and e-book routes (scope), RSS feeds, shares, meta
 | Several accounts and servers, quick switching | Audiobookshelf app (server list), Plappa | ✅ one tap, each account with its own queue, downloads and searches |
 | Own accent color, readable font | BookPlayer (themes), Smart AudioBook Player (fonts) | ✅ any color kept readable automatically; Atkinson Hyperlegible or system font |
 | Lock screen controls, media keys, headset buttons | all | ✅ (chapter or skip, configurable) |
-| Car mode, Android Auto, CarPlay | Audible, Audiobookshelf app | ⏸ native apps |
-| Widgets, Siri / Assistant shortcuts, Wear OS / watchOS | Audible, BookPlayer | ⏸ native apps |
-| Equalizer with bands | Smart AudioBook Player | ➖ replaced by "clearer voices" (one switch instead of ten sliders) |
+| Car mode, Android Auto, CarPlay | Audible, Audiobookshelf app | ⏸ native roadmap |
+| Widgets, Siri / Assistant shortcuts, Wear OS / watchOS | Audible, BookPlayer | ⏸ native roadmap |
+| Equalizer with bands | Smart AudioBook Player | ✅ hardware Equalizer on Android; clearer voices + leveling in web |
 | Ratings, reviews, wish list, store | Audible | ➖ not in Audiobookshelf |
 | Character lists, read along (Whispersync) | Smart AudioBook Player, Audible | ➖ needs e-book sync (out of scope) |
 

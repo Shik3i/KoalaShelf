@@ -1,30 +1,31 @@
 # Releasing
 
-KoalaShelf can be released using a unified version tag (`vX.Y.Z`, building web, desktop, and mobile), or component-specific tags (`web-vX.Y.Z` or `desktop-vX.Y.Z`). Each release takes its notes from its section in CHANGELOG.md; see below.
+KoalaShelf can be released using a unified version tag (`vX.Y.Z`, building web, desktop, and mobile), or component-specific tags (`web-vX.Y.Z`, `desktop-vX.Y.Z`, or `android-vX.Y.Z`). Each release takes its notes from its section in CHANGELOG.md; see below.
 
 | Part | Tag | Workflow | Result |
 |---|---|---|---|
 | Unified | `vX.Y.Z` | All release workflows | Builds all release artifacts with matching versions |
 | Web (Docker image) | `web-vX.Y.Z` or `vX.Y.Z` | [`release-web.yml`](../.github/workflows/release-web.yml) | `ghcr.io/shik3i/koalashelf` for linux/amd64 and linux/arm64, tagged `X.Y.Z`, `X.Y`, `X` (from 1.0) and `latest`; signed build provenance and SBOM attestations; a GitHub Release with `docker-compose.yml`, `.env.example`, `Caddyfile.example` and the SBOM |
 | Desktop | `desktop-vX.Y.Z` or `vX.Y.Z` | [`release-desktop.yml`](../.github/workflows/release-desktop.yml) | Windows (.msi, setup .exe), macOS (universal .dmg) and Linux (.deb, .rpm, .AppImage) with signed build provenance, as a GitHub pre-release (not code-signed yet) |
-| Android | `app-vX.Y.Z` or `vX.Y.Z` | — | planned |
+| Android | `android-vX.Y.Z` or `vX.Y.Z` | [`release-android.yml`](../.github/workflows/release-android.yml) | Production APK (`KoalaShelf-X.Y.Z.apk`) with R8 code shrinking and ProGuard optimization, published as a GitHub release with release notes from `CHANGELOG.md` |
 
 ## Steps
 
 1. Bump the version:
    - Web: `apps/web/package.json`
    - Desktop: `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/src-tauri/Cargo.toml` (and `Cargo.lock` via `cargo update -p koalashelf`)
-2. Add a section `## Web X.Y.Z` (or `## Desktop X.Y.Z`) to [CHANGELOG.md](../CHANGELOG.md). It becomes the release notes.
-3. Check locally: `node scripts/release.mjs version web-vX.Y.Z`
+   - Android: `apps/android/app/build.gradle.kts` (`versionName` and `versionCode`)
+2. Add a section `## Web X.Y.Z`, `## Desktop X.Y.Z`, or `## Android X.Y.Z` to [CHANGELOG.md](../CHANGELOG.md). It becomes the release notes.
+3. Check locally: `node scripts/release.mjs version web-vX.Y.Z` (or `node scripts/release.mjs version android-vX.Y.Z android`, `node scripts/release.mjs version desktop-vX.Y.Z desktop`)
 4. Push to `main` and wait for CI and CodeQL to finish green.
 5. Tag and push the tag:
 
 ```bash
-git tag web-v0.1.0
+git tag web-v0.1.0 # or desktop-v0.1.0 or android-v0.1.1
 ```
 
 ```bash
-git push origin web-v0.1.0
+git push origin web-v0.1.0 # or desktop-v0.1.0 or android-v0.1.1
 ```
 
 ## What a release checks before publishing

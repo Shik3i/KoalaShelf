@@ -5,7 +5,7 @@
 //   node scripts/release.mjs notes web 0.1.0        prints that version's CHANGELOG section
 //   node scripts/release.mjs gate                   release commit = main, CodeQL green, no open alerts
 //
-// Components are released separately: web-vX.Y.Z (Docker image), desktop-vX.Y.Z (installers).
+// Components can be released separately: web-vX.Y.Z (Docker image), desktop-vX.Y.Z (installers), android-vX.Y.Z (APK), or together with unified vX.Y.Z tags.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';

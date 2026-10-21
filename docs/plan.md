@@ -22,7 +22,7 @@ Every decision is checked against: **performance, quality-of-life features, self
 | 4b | Web extras: downloads and offline listening, statistics, collections, live progress, queue, smart sleep timer, volume leveling, listening history, ZIP download, chapter timeline, settings for nearly everything, responsive and accessibility audits | done |
 | 4c | Web parity: combined filters, search, quick search, author/series/narrator pages, playlists, bookmarks, year in review, devices; fine speed, sound tools (boost, voices, mono, skip silence), jump back, sleep timer extras, Cast, pop-out player; multi-select, collections management, book actions; daily goal, year picture, exports and settings backup | done |
 | 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | scaffolded, paused until the web app is signed off |
-| 6 | Android: Compose with tokens, Media3 service, background playback, downloads, offline sessions | skeleton parked on branch `wip/android`, paused |
+| 6 | Android: Compose with tokens, Media3 service, background playback, downloads, offline sessions, vinyl aesthetic, faceted search, R8 optimization | done ([`apps/android`](../apps/android), release 0.1.1) |
 
 Later (native): Android Auto, driving mode.
 

@@ -1,3 +1,12 @@
+# Release · Android: standalone native Android APK with R8 code shrinking and ProGuard optimization,
+# published as a GitHub pre-release with notes from CHANGELOG.md.
+#
+#   1. Bump the version in apps/android/app/build.gradle.kts (versionName and versionCode),
+#      add "## Android X.Y.Z" to CHANGELOG.md, push to main.
+#   2. git tag android-vX.Y.Z && git push origin android-vX.Y.Z
+#
+# Triggered by android-v* or unified v* tags. "Run workflow" by hand
+# builds the release APK as a dry run.
 name: Release · Android
 
 on:

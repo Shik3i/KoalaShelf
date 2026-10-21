@@ -9,7 +9,7 @@ Versions verified on 2026-10-12 (web extras and test tools on 2026-10-13) agains
 | Node.js | 26.x | LTS from late October 2026; 24 LTS works too. Node 25 is end of life. |
 | pnpm | 12.11 | pinned via `packageManager` |
 | Rust | 1.99 stable | desktop (phase 5) |
-| JDK | bundled with Android Studio | Android (phase 6) |
+| JDK | 21 (Temurin / Android Studio) | Android ([`apps/android`](../apps/android)) |
 
 ## Web and packages
 
@@ -59,7 +59,7 @@ Own dependency-free, type-safe solution in `apps/web/src/lib/i18n/`: English is 
 | Android Gradle Plugin | 9.4.1 | built-in Kotlin support |
 | Gradle | 9.8.1 | |
 | Kotlin | 2.4.21 | |
-| compileSdk / targetSdk | 37 | minSdk 29 (proposal) |
+| compileSdk / targetSdk | 37 | minSdk 29 |
 | Compose BOM | 2026.09.00 | |
 | Material 3 | 1.4 | |
 | Navigation 3 | 1.2 | replaces Navigation Compose |

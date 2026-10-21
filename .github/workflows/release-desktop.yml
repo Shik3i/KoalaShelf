@@ -5,7 +5,7 @@
 #      src-tauri/Cargo.toml, add "## Desktop X.Y.Z" to CHANGELOG.md, push to main.
 #   2. git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z
 #
-# Only desktop-v* tags start it (web-v* tags start release-web.yml). "Run workflow" by hand
+# Triggered by desktop-v* or unified v* tags. "Run workflow" by hand
 # builds all three platforms as a dry run and keeps the installers as workflow artifacts.
 # The installers are not code-signed yet (no certificates): Windows SmartScreen and macOS
 # Gatekeeper will warn, so releases are marked as pre-releases until signing is set up.
