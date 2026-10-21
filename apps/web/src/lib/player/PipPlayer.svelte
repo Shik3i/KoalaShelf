@@ -50,6 +50,13 @@
 		</div>
 		<div class="line" aria-hidden="true"></div>
 	</div>
+{:else}
+	<div class="pip empty">
+		<div class="empty-state">
+			<strong>KoalaShelf Mini</strong>
+			<span class="muted">Kein aktives Hörbuch</span>
+		</div>
+	</div>
 {/if}
 
 <style>
@@ -66,6 +73,18 @@
 		color: var(--c-ink);
 		overflow: hidden;
 		-webkit-app-region: drag;
+	}
+
+	.pip.empty {
+		display: grid;
+		grid-template-columns: 1fr;
+		place-items: center;
+		text-align: center;
+	}
+
+	.empty-state {
+		display: grid;
+		gap: 4px;
 	}
 
 	.cover {
