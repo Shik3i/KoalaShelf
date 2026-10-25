@@ -1,5 +1,6 @@
 package net.koalastuff.koalashelf.feature.library
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -27,12 +29,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -103,6 +108,7 @@ import net.koalastuff.koalashelf.core.network.Narrator
 import net.koalastuff.koalashelf.core.network.Playlist
 import net.koalastuff.koalashelf.core.network.SearchResult
 import net.koalastuff.koalashelf.core.network.Series
+import net.koalastuff.koalashelf.core.network.ServerUser
 import net.koalastuff.koalashelf.core.network.YearStats
 import java.util.Calendar
 import kotlin.math.max
@@ -1272,6 +1278,10 @@ fun StatsAndHistoryScreen(
     sessions: List<ListeningSession>,
     libraryStats: LibraryStats? = null,
     historyCsvExportProvider: () -> String = { "" },
+    users: List<ServerUser> = emptyList(),
+    selectedUserId: String? = null,
+    onSelectUser: (String?) -> Unit = {},
+    isAdmin: Boolean = false,
     onSelectYear: (Int) -> Unit,
     onOpenBook: (String) -> Unit,
     onShowToast: (String) -> Unit = {},
@@ -1307,6 +1317,75 @@ fun StatsAndHistoryScreen(
                             Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(strings.exportCsv)
+                        }
+                    }
+                }
+                if (isAdmin && users.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                text = strings.statsAdminUserSelect,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.muted,
+                            )
+                            if (selectedUserId != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(999.dp),
+                                    color = colors.accent.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, colors.accent.copy(alpha = 0.35f)),
+                                ) {
+                                    Text(
+                                        text = strings.statsAdminBadge,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = colors.accent,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    )
+                                }
+                            }
+                        }
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            item(key = "self") {
+                                FilterChip(
+                                    selected = selectedUserId == null,
+                                    onClick = { onSelectUser(null) },
+                                    label = { Text(strings.statsViewingSelf) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Person,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = colors.accent.copy(alpha = 0.2f),
+                                        selectedLabelColor = colors.ink,
+                                    ),
+                                )
+                            }
+                            items(users, key = { it.id }) { u ->
+                                FilterChip(
+                                    selected = selectedUserId == u.id,
+                                    onClick = { onSelectUser(u.id) },
+                                    label = { Text(u.username) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Group,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = colors.accent.copy(alpha = 0.2f),
+                                        selectedLabelColor = colors.ink,
+                                    ),
+                                )
+                            }
                         }
                     }
                 }
@@ -1396,45 +1475,47 @@ fun StatsAndHistoryScreen(
                 }
             }
 
-            // Year in Review Card
-            item {
-                val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = colors.card,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, colors.line, RoundedCornerShape(16.dp)),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+            // Year in Review Card (only for own account, as ABS year review endpoint is per-user)
+            if (selectedUserId == null) {
+                item {
+                    val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = colors.card,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, colors.line, RoundedCornerShape(16.dp)),
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Text(
-                                text = "${strings.statsYearInReview} $selectedYear",
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                listOf(currentYear - 1, currentYear).forEach { y ->
-                                    FilterChip(
-                                        selected = selectedYear == y,
-                                        onClick = { onSelectYear(y) },
-                                        label = { Text("$y") },
-                                    )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "${strings.statsYearInReview} $selectedYear",
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf(currentYear - 1, currentYear).forEach { y ->
+                                        FilterChip(
+                                            selected = selectedYear == y,
+                                            onClick = { onSelectYear(y) },
+                                            label = { Text("$y") },
+                                        )
+                                    }
                                 }
                             }
-                        }
-                        if (yearInReview != null) {
-                            Text(
-                                text = "${strings.statsTotal}: ${formatDuration(yearInReview.totalListeningTime, strings)} · ${strings.filterFinished}: ${yearInReview.numBooksFinished}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = colors.accent,
-                            )
+                            if (yearInReview != null) {
+                                Text(
+                                    text = "${strings.statsTotal}: ${formatDuration(yearInReview.totalListeningTime, strings)} · ${strings.filterFinished}: ${yearInReview.numBooksFinished}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = colors.accent,
+                                )
+                            }
                         }
                     }
                 }
@@ -1552,7 +1633,25 @@ fun StatsAndHistoryScreen(
                 }
             }
         } else {
-            items(sessions, key = { it.id }) { sess ->
+            if (sessions.isEmpty()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = colors.card,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, colors.line, RoundedCornerShape(14.dp)),
+                    ) {
+                        Text(
+                            text = if (selectedUserId != null) strings.statsUserEmpty else strings.historyEmpty,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.muted,
+                            modifier = Modifier.padding(24.dp),
+                        )
+                    }
+                }
+            } else {
+                items(sessions, key = { it.id }) { sess ->
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = colors.card,
@@ -1586,6 +1685,7 @@ fun StatsAndHistoryScreen(
             }
         }
     }
+}
 }
 
 @Composable

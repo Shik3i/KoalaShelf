@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -330,7 +331,7 @@ fun HomeScreen(
         }
 
         // Personalized Shelves (`Crate.svelte` for book shelves, `RecordCrate.svelte` for series shelves)
-        items(orderedVisibleShelves, key = { it.id }) { shelf ->
+        itemsIndexed(orderedVisibleShelves, key = { idx, shelf -> "${shelf.id}_$idx" }) { _, shelf ->
             val shelfTitle = remember(shelf.id, shelf.label, strings) {
                 when {
                     shelf.id.contains("continue-series", ignoreCase = true) -> strings.homeContinueSeries
@@ -358,7 +359,7 @@ fun HomeScreen(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
                                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
-                                items(shelf.series, key = { it.id }) { series ->
+                                itemsIndexed(shelf.series, key = { idx, series -> "${series.id}_$idx" }) { _, series ->
                                     val ordered = inSeriesOrder(series.books, series.name)
                                     val records = ordered.map { b ->
                                         val p = progressMap[b.id] ?: b.userMediaProgress
@@ -428,7 +429,7 @@ fun HomeScreen(
                                 contentPadding = PaddingValues(horizontal = 20.dp),
                                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                             ) {
-                                items(shelf.authors, key = { it.id }) { author ->
+                                itemsIndexed(shelf.authors, key = { idx, author -> "${author.id.ifBlank { author.name }}_$idx" }) { _, author ->
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(6.dp),

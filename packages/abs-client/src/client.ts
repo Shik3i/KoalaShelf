@@ -26,7 +26,8 @@ import type {
 	YearStats,
 	LibraryStats,
 	AuthSession,
-	User
+	User,
+	ServerUser
 } from './types.ts';
 
 export type FetchFn = typeof globalThis.fetch;
@@ -324,9 +325,10 @@ export class AbsClient {
 		return this.request<void>(`/api/me/progress/${progressId}/remove-from-continue-listening`);
 	}
 
-	/** The user's listening history, newest first. */
-	listeningSessions(page = 0, itemsPerPage = 50) {
-		return this.request<SessionPage>('/api/me/listening-sessions', { query: { page, itemsPerPage } });
+	/** The user's listening history, newest first. If userId is passed (admin), returns that user's history. */
+	listeningSessions(page = 0, itemsPerPage = 50, userId?: string) {
+		const path = userId ? `/api/users/${userId}/listening-sessions` : '/api/me/listening-sessions';
+		return this.request<SessionPage>(path, { query: { page, itemsPerPage } });
 	}
 
 	/** Listening history of one book, newest first. */
@@ -334,8 +336,15 @@ export class AbsClient {
 		return this.request<SessionPage>(`/api/me/item/listening-sessions/${itemId}`, { query: { page, itemsPerPage } });
 	}
 
-	listeningStats() {
-		return this.request<ListeningStats>('/api/me/listening-stats');
+	/** Listening stats (aggregate duration, days heatmap, items, today). If userId is passed (admin), returns that user's stats. */
+	listeningStats(userId?: string) {
+		const path = userId ? `/api/users/${userId}/listening-stats` : '/api/me/listening-stats';
+		return this.request<ListeningStats>(path);
+	}
+
+	/** List all users on the server (admin only). */
+	users() {
+		return this.request<{ users: ServerUser[] }>('/api/users').then((r) => r.users);
 	}
 
 	collections(libraryId: string) {

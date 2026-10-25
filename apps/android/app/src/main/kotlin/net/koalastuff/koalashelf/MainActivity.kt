@@ -68,6 +68,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -107,6 +108,7 @@ import net.koalastuff.koalashelf.core.network.Narrator
 import net.koalastuff.koalashelf.core.network.Playlist
 import net.koalastuff.koalashelf.core.network.SearchResult
 import net.koalastuff.koalashelf.core.network.Series
+import net.koalastuff.koalashelf.core.network.ServerUser
 import net.koalastuff.koalashelf.core.network.Shelf
 import net.koalastuff.koalashelf.core.network.YearStats
 import net.koalastuff.koalashelf.core.player.KoalaPlayerController
@@ -211,6 +213,7 @@ private fun KoalaAppShell(
     libraryRepository: LibraryRepository,
     playerController: KoalaPlayerController,
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val strings = currentKoalaStrings
     val colors = KoalaTheme.colors
@@ -257,6 +260,8 @@ private fun KoalaAppShell(
     var yearInReview by remember { mutableStateOf<YearStats?>(null) }
     var recentSessions by remember { mutableStateOf<List<ListeningSession>>(emptyList()) }
     var authSessions by remember { mutableStateOf<List<AuthSession>>(emptyList()) }
+    var serverUsers by remember { mutableStateOf<List<ServerUser>>(emptyList()) }
+    var selectedStatsUserId by remember { mutableStateOf<String?>(null) }
 
     // Detail screen dynamic states
     var detailedBook by remember { mutableStateOf<LibraryItem?>(null) }
@@ -309,10 +314,28 @@ private fun KoalaAppShell(
     }
 
     suspend fun refreshActiveLibraryData(libId: String) {
-        homeShelves = libraryRepository.getHomeShelves(libId)
-        filterData = libraryRepository.getFilterData(libId)
-        libraryBooks = libraryRepository.queryLibraryItems(libId, libraryQueryState)
-        listeningStats = libraryRepository.getListeningStats() ?: ListeningStats()
+        runCatching {
+            homeShelves = libraryRepository.getHomeShelves(libId)
+            filterData = libraryRepository.getFilterData(libId)
+            libraryBooks = libraryRepository.queryLibraryItems(libId, libraryQueryState)
+            listeningStats = libraryRepository.getListeningStats() ?: ListeningStats()
+        }.onFailure { err ->
+            android.util.Log.e("KoalaShelf", "Failed to refresh library data for $libId", err)
+            snackbarHostState.showSnackbar(
+                message = "Bibliothek konnte nicht geladen werden: ${err.message ?: "Verbindungsfehler"}",
+                duration = SnackbarDuration.Short,
+            )
+        }
+    }
+
+    // Reset admin user selection when active account changes
+    LaunchedEffect(activeKey) {
+        selectedStatsUserId = null
+        if (activeAccount?.isAdmin == true) {
+            serverUsers = libraryRepository.getUsers()
+        } else {
+            serverUsers = emptyList()
+        }
     }
 
     // Load library data when authenticated or active library changes
@@ -325,63 +348,74 @@ private fun KoalaAppShell(
     // Re-query library items when queryState changes
     LaunchedEffect(activeLibraryId, libraryQueryState) {
         val libId = activeLibraryId ?: return@LaunchedEffect
-        libraryBooks = libraryRepository.queryLibraryItems(libId, libraryQueryState)
+        runCatching {
+            libraryBooks = libraryRepository.queryLibraryItems(libId, libraryQueryState)
+        }.onFailure { err ->
+            android.util.Log.e("KoalaShelf", "Query items failed", err)
+        }
     }
 
     // Load route-specific data
     LaunchedEffect(currentRoute, activeLibraryId) {
         val libId = activeLibraryId ?: return@LaunchedEffect
-        when (val r = currentRoute) {
-            is KoalaRoute.Series -> {
-                seriesList = libraryRepository.getSeriesList(libId)
-            }
-            is KoalaRoute.SeriesDetail -> {
-                val (_, books) = libraryRepository.getSeriesDetail(libId, r.seriesId)
-                currentSeriesBooks = books
-            }
-            is KoalaRoute.Authors -> {
-                authorsList = libraryRepository.getAuthors(libId)
-                narratorsList = libraryRepository.getNarrators(libId)
-            }
-            is KoalaRoute.AuthorDetailRoute -> {
-                currentAuthorDetail = libraryRepository.getAuthorDetail(r.authorId, libId)
-            }
-            is KoalaRoute.Collections -> {
-                collections = libraryRepository.getCollections(libId)
-            }
-            is KoalaRoute.Playlists -> {
-                playlists = libraryRepository.getPlaylists(libId)
-            }
-            is KoalaRoute.Bookmarks -> {
-                bookmarksWithBooks = libraryRepository.getAllBookmarksWithBooks()
-            }
-            is KoalaRoute.Stats -> {
-                listeningStats = libraryRepository.getListeningStats() ?: ListeningStats()
-                libraryStats = libraryRepository.getLibraryStats(libId)
-                yearInReview = libraryRepository.getYearStats(selectedYear)
-                recentSessions = libraryRepository.getListeningSessions().sessions
-            }
-            is KoalaRoute.Settings -> {
-                authSessions = libraryRepository.getAuthSessions()
-            }
-            is KoalaRoute.BookDetail -> {
-                detailedBook = libraryBooks.firstOrNull { it.id == r.bookId }
-                val fetched = libraryRepository.getBookDetail(r.bookId)
-                if (fetched != null) {
-                    detailedBook = fetched
-                    val author = fetched.author
-                    moreByAuthorBooks = libraryBooks.filter {
-                        it.id != fetched.id && it.author.equals(author, ignoreCase = true)
-                    }
+        runCatching {
+            when (val r = currentRoute) {
+                is KoalaRoute.Series -> {
+                    seriesList = libraryRepository.getSeriesList(libId)
                 }
-                detailBookmarks = runCatching {
-                    sessionRepository.apiClient?.bookmarks(r.bookId) ?: emptyList()
-                }.getOrDefault(emptyList())
-                bookSessions = libraryRepository.getItemListeningSessions(r.bookId).sessions
-                collections = libraryRepository.getCollections(libId)
-                playlists = libraryRepository.getPlaylists(libId)
+                is KoalaRoute.SeriesDetail -> {
+                    val (_, books) = libraryRepository.getSeriesDetail(libId, r.seriesId)
+                    currentSeriesBooks = books
+                }
+                is KoalaRoute.Authors -> {
+                    authorsList = libraryRepository.getAuthors(libId)
+                    narratorsList = libraryRepository.getNarrators(libId)
+                }
+                is KoalaRoute.AuthorDetailRoute -> {
+                    currentAuthorDetail = libraryRepository.getAuthorDetail(r.authorId, libId)
+                }
+                is KoalaRoute.Collections -> {
+                    collections = libraryRepository.getCollections(libId)
+                }
+                is KoalaRoute.Playlists -> {
+                    playlists = libraryRepository.getPlaylists(libId)
+                }
+                is KoalaRoute.Bookmarks -> {
+                    bookmarksWithBooks = libraryRepository.getAllBookmarksWithBooks()
+                }
+                is KoalaRoute.Stats -> {
+                    if (activeAccount?.isAdmin == true) {
+                        serverUsers = libraryRepository.getUsers()
+                    }
+                    listeningStats = libraryRepository.getListeningStats(selectedStatsUserId) ?: ListeningStats()
+                    libraryStats = libraryRepository.getLibraryStats(libId)
+                    yearInReview = libraryRepository.getYearStats(selectedYear)
+                    recentSessions = libraryRepository.getListeningSessions(userId = selectedStatsUserId).sessions
+                }
+                is KoalaRoute.Settings -> {
+                    authSessions = libraryRepository.getAuthSessions()
+                }
+                is KoalaRoute.BookDetail -> {
+                    detailedBook = libraryBooks.firstOrNull { it.id == r.bookId }
+                    val fetched = libraryRepository.getBookDetail(r.bookId)
+                    if (fetched != null) {
+                        detailedBook = fetched
+                        val author = fetched.author
+                        moreByAuthorBooks = libraryBooks.filter {
+                            it.id != fetched.id && it.author.equals(author, ignoreCase = true)
+                        }
+                    }
+                    detailBookmarks = runCatching {
+                        sessionRepository.apiClient?.bookmarks(r.bookId) ?: emptyList()
+                    }.getOrDefault(emptyList())
+                    bookSessions = libraryRepository.getItemListeningSessions(r.bookId).sessions
+                    collections = libraryRepository.getCollections(libId)
+                    playlists = libraryRepository.getPlaylists(libId)
+                }
+                else -> {}
             }
-            else -> {}
+        }.onFailure { err ->
+            android.util.Log.e("KoalaShelf", "Failed loading data for route $currentRoute", err)
         }
     }
 
@@ -648,6 +682,17 @@ private fun KoalaAppShell(
                                 searchQuery = query
                                 navigateTo(KoalaRoute.Search)
                             },
+                            canDownload = sessionRepository.canDownload.collectAsState().value,
+                            onDownloadZip = {
+                                val url = sessionRepository.apiClient?.downloadUrl(book.id)
+                                if (!url.isNullOrBlank()) {
+                                    runCatching {
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                                        intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            },
                         )
                     }
                 }
@@ -858,6 +903,16 @@ private fun KoalaAppShell(
                         sessions = recentSessions,
                         libraryStats = libraryStats,
                         historyCsvExportProvider = { libraryRepository.exportHistoryCsv(recentSessions) },
+                        users = serverUsers,
+                        selectedUserId = selectedStatsUserId,
+                        isAdmin = activeAccount?.isAdmin == true,
+                        onSelectUser = { uid ->
+                            selectedStatsUserId = uid
+                            scope.launch {
+                                listeningStats = libraryRepository.getListeningStats(uid) ?: ListeningStats()
+                                recentSessions = libraryRepository.getListeningSessions(userId = uid).sessions
+                            }
+                        },
                         onSelectYear = { year ->
                             selectedYear = year
                             scope.launch { yearInReview = libraryRepository.getYearStats(year) }

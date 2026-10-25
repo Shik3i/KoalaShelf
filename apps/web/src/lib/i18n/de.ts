@@ -95,7 +95,13 @@ export const de: Messages = {
 		recentActivity: 'Neueste Hör-Aktivitäten',
 		recentActivityHint: 'Wann du welches Buch gehört und wo du aufgehört hast',
 		viewAllHistory: 'Gesamten Verlauf ansehen',
-		lastListened: 'Zuletzt gehört'
+		lastListened: 'Zuletzt gehört',
+		adminUserSelect: 'Benutzer',
+		viewingSelf: 'Mein Profil',
+		adminBadge: 'Admin-Ansicht',
+		viewingUser: (name: string) => `Statistiken von ${name}`,
+		resetToMe: 'Zurück zu meinen Statistiken',
+		userEmpty: 'Dieser Benutzer hat noch keine Hörsitzungen.'
 	},
 	signin: {
 		title: 'Anmelden',

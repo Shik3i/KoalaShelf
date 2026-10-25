@@ -23,7 +23,7 @@ export interface SavedAccount {
 	/** Server address + user id: one entry per account per server. */
 	key: string;
 	baseUrl: string;
-	user: { id: string; username: string };
+	user: { id: string; username: string; type?: 'root' | 'admin' | 'user' | 'guest' };
 	/** Null when the server ended the session: the account waits for its password. */
 	tokens: Tokens | null;
 	libraryId: string | null;
@@ -148,6 +148,10 @@ class Session {
 	canDownload = $state(true);
 	canUpdate = $state(false);
 	canDelete = $state(false);
+
+	get isAdmin(): boolean {
+		return this.user?.type === 'root' || this.user?.type === 'admin';
+	}
 	/** Every saved account, most recently used first; the active one is activeKey. */
 	accounts = $state.raw<SavedAccount[]>([]);
 	activeKey = $state<string | null>(null);
@@ -326,7 +330,7 @@ class Session {
 		const account: SavedAccount = {
 			key,
 			baseUrl,
-			user: { id: res.user.id, username: res.user.username },
+			user: { id: res.user.id, username: res.user.username, type: res.user.type },
 			tokens,
 			libraryId:
 				this.accounts.find((a) => a.key === key)?.libraryId ?? res.userDefaultLibraryId ?? null,
@@ -461,6 +465,14 @@ class Session {
 		this.libraryId = account.libraryId;
 		this.libraries = account.libraries ?? [];
 		this.librariesLoaded = false;
+		if (!account.user.type && this.client) {
+			void this.client.me().then((me) => {
+				if (this.activeKey === account.key) {
+					this.user = { id: me.id, username: me.username, type: me.type };
+					this.#update(account.key, { user: this.user });
+				}
+			}).catch(() => undefined);
+		}
 		for (const fn of this.#enterHooks) {
 			try {
 				fn();

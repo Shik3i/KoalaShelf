@@ -39,6 +39,7 @@ private val Context.accountsDataStore: DataStore<Preferences> by preferencesData
 data class AccountUser(
     val id: String,
     val username: String,
+    val type: String = "user",
 )
 
 @Serializable
@@ -52,6 +53,7 @@ data class SavedAccount(
     val lastUsed: Long = 0L,
 ) {
     val label: String get() = serverLabel(baseUrl)
+    val isAdmin: Boolean get() = user.type == "root" || user.type == "admin"
 }
 
 @Serializable
@@ -194,7 +196,7 @@ class SessionRepository(
         val account = SavedAccount(
             key = key,
             baseUrl = baseUrl,
-            user = AccountUser(id = res.user.id, username = res.user.username),
+            user = AccountUser(id = res.user.id, username = res.user.username, type = res.user.type),
             tokens = Tokens(
                 accessToken = res.user.accessToken,
                 refreshToken = res.user.refreshToken,
@@ -303,6 +305,7 @@ class SessionRepository(
         if (key != null) {
             updateAccount(key) {
                 it.copy(
+                    user = it.user.copy(type = me.type),
                     libraryId = _activeLibraryId.value,
                     libraries = effectiveLibs,
                 )

@@ -356,9 +356,9 @@ class AbsApiClient(
         executeRaw("/api/me/progress/$progressId/remove-from-continue-listening")
     }
 
-    suspend fun listeningSessions(page: Int = 0, itemsPerPage: Int = 50): SessionPage =
+    suspend fun listeningSessions(page: Int = 0, itemsPerPage: Int = 50, userId: String? = null): SessionPage =
         request(
-            path = "/api/me/listening-sessions",
+            path = if (userId != null) "/api/users/$userId/listening-sessions" else "/api/me/listening-sessions",
             query = mapOf("page" to page, "itemsPerPage" to itemsPerPage),
         )
 
@@ -368,7 +368,12 @@ class AbsApiClient(
             query = mapOf("page" to page, "itemsPerPage" to itemsPerPage),
         )
 
-    suspend fun listeningStats(): ListeningStats = request("/api/me/listening-stats")
+    suspend fun listeningStats(userId: String? = null): ListeningStats {
+        val path = if (userId != null) "/api/users/$userId/listening-stats" else "/api/me/listening-stats"
+        return request(path)
+    }
+
+    suspend fun users(): List<ServerUser> = request<UsersResponse>("/api/users").users
 
     suspend fun yearStats(year: Int): YearStats = request("/api/me/stats/year/$year")
 

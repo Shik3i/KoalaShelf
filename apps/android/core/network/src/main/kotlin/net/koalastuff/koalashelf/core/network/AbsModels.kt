@@ -1,9 +1,17 @@
 package net.koalastuff.koalashelf.core.network
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -13,6 +21,79 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
+
+object FlexibleStringListSerializer : KSerializer<List<String>> {
+    override val descriptor: SerialDescriptor =
+        ListSerializer(String.serializer()).descriptor
+
+    override fun serialize(encoder: Encoder, value: List<String>) {
+        ListSerializer(String.serializer()).serialize(encoder, value)
+    }
+
+    override fun deserialize(decoder: Decoder): List<String> {
+        val jsonDecoder = decoder as? JsonDecoder
+            ?: return ListSerializer(String.serializer()).deserialize(decoder)
+        return when (val el = jsonDecoder.decodeJsonElement()) {
+            is JsonNull -> emptyList()
+            is JsonArray -> el.mapNotNull { item ->
+                when (item) {
+                    is JsonPrimitive -> item.contentOrNull?.takeIf { it.isNotBlank() }
+                    else -> item.toString().takeIf { it.isNotBlank() }
+                }
+            }
+            is JsonPrimitive -> {
+                val str = el.contentOrNull
+                if (!str.isNullOrBlank()) listOf(str) else emptyList()
+            }
+            is JsonObject -> {
+                val str = el["name"]?.jsonPrimitive?.contentOrNull ?: el["title"]?.jsonPrimitive?.contentOrNull
+                if (!str.isNullOrBlank()) listOf(str) else emptyList()
+            }
+        }
+    }
+}
+
+object FlexibleAuthorListSerializer : KSerializer<List<AuthorRef>> {
+    override val descriptor: SerialDescriptor =
+        ListSerializer(AuthorRef.serializer()).descriptor
+
+    override fun serialize(encoder: Encoder, value: List<AuthorRef>) {
+        ListSerializer(AuthorRef.serializer()).serialize(encoder, value)
+    }
+
+    override fun deserialize(decoder: Decoder): List<AuthorRef> {
+        val jsonDecoder = decoder as? JsonDecoder
+            ?: return ListSerializer(AuthorRef.serializer()).deserialize(decoder)
+        return when (val el = jsonDecoder.decodeJsonElement()) {
+            is JsonNull -> emptyList()
+            is JsonArray -> el.mapNotNull { item ->
+                when (item) {
+                    is JsonObject -> {
+                        val id = item["id"]?.jsonPrimitive?.contentOrNull ?: ""
+                        val name = item["name"]?.jsonPrimitive?.contentOrNull
+                            ?: item["authorName"]?.jsonPrimitive?.contentOrNull ?: ""
+                        if (id.isNotBlank() || name.isNotBlank()) AuthorRef(id = id, name = name) else null
+                    }
+                    is JsonPrimitive -> {
+                        val name = item.contentOrNull
+                        if (!name.isNullOrBlank()) AuthorRef(id = "", name = name) else null
+                    }
+                    else -> null
+                }
+            }
+            is JsonObject -> {
+                val id = el["id"]?.jsonPrimitive?.contentOrNull ?: ""
+                val name = el["name"]?.jsonPrimitive?.contentOrNull
+                    ?: el["authorName"]?.jsonPrimitive?.contentOrNull ?: ""
+                if (id.isNotBlank() || name.isNotBlank()) listOf(AuthorRef(id = id, name = name)) else emptyList()
+            }
+            is JsonPrimitive -> {
+                val name = el.contentOrNull
+                if (!name.isNullOrBlank()) listOf(AuthorRef(id = "", name = name)) else emptyList()
+            }
+        }
+    }
+}
 
 @Serializable
 data class Tokens(
@@ -48,6 +129,23 @@ data class User(
     val permissions: UserPermissions? = null,
     val accessToken: String = "",
     val refreshToken: String? = null,
+)
+
+@Serializable
+data class ServerUser(
+    val id: String,
+    val username: String,
+    val type: String = "user",
+    val isActive: Boolean = true,
+    val email: String? = null,
+    val isLocked: Boolean = false,
+    val lastSeen: Long? = null,
+    val createdAt: Long? = null,
+)
+
+@Serializable
+data class UsersResponse(
+    val users: List<ServerUser> = emptyList(),
 )
 
 @Serializable
@@ -140,12 +238,15 @@ data class AudioTrack(
 data class BookMetadata(
     val title: String = "",
     val subtitle: String? = null,
+    @Serializable(with = FlexibleAuthorListSerializer::class)
     val authors: List<AuthorRef> = emptyList(),
+    @Serializable(with = FlexibleStringListSerializer::class)
     val narrators: List<String> = emptyList(),
     val series: JsonElement? = null,
     val authorName: String? = null,
     val narratorName: String? = null,
     val seriesName: String? = null,
+    @Serializable(with = FlexibleStringListSerializer::class)
     val genres: List<String> = emptyList(),
     val publishedYear: String? = null,
     val publishedDate: String? = null,
@@ -197,6 +298,7 @@ data class BookMetadata(
 data class BookMedia(
     val metadata: BookMetadata = BookMetadata(),
     val coverPath: String? = null,
+    @Serializable(with = FlexibleStringListSerializer::class)
     val tags: List<String> = emptyList(),
     val audioFiles: List<AudioFile> = emptyList(),
     val chapters: List<Chapter> = emptyList(),
@@ -378,13 +480,20 @@ data class FilterSeriesRef(
 
 @Serializable
 data class FilterData(
+    @Serializable(with = FlexibleAuthorListSerializer::class)
     val authors: List<AuthorRef> = emptyList(),
+    @Serializable(with = FlexibleStringListSerializer::class)
     val genres: List<String> = emptyList(),
+    @Serializable(with = FlexibleStringListSerializer::class)
     val tags: List<String> = emptyList(),
     val series: List<FilterSeriesRef> = emptyList(),
+    @Serializable(with = FlexibleStringListSerializer::class)
     val narrators: List<String> = emptyList(),
+    @Serializable(with = FlexibleStringListSerializer::class)
     val languages: List<String> = emptyList(),
+    @Serializable(with = FlexibleStringListSerializer::class)
     val publishers: List<String> = emptyList(),
+    @Serializable(with = FlexibleStringListSerializer::class)
     val publishedDecades: List<String> = emptyList(),
 )
 

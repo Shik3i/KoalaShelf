@@ -1,7 +1,7 @@
 <script lang="ts">
 	/* eslint-disable svelte/prefer-svelte-reactivity -- local date math inside $derived, not state */
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import type { LibraryItem, ListeningStats, ListeningSession } from '@koalashelf/abs-client';
+	import type { LibraryItem, ListeningStats, ListeningSession, ServerUser } from '@koalashelf/abs-client';
 	import { coverSrc } from '#lib/items.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -22,11 +22,24 @@
 	let topItems = $state.raw<Map<string, LibraryItem>>(new Map());
 	let recentSessions = $state.raw<ListeningSession[]>([]);
 	let recentItems = $state.raw<Map<string, LibraryItem>>(new Map());
+	let users = $state.raw<ServerUser[]>([]);
+	let selectedUserId = $state<string | null>(null);
+	const selectedUser = $derived(users.find((u) => u.id === selectedUserId) ?? null);
 
 	$effect(() => {
 		if (!session.client) return;
+		if (session.isAdmin) {
+			session.api.users().then((u) => (users = u)).catch(() => (users = []));
+		}
+	});
+
+	$effect(() => {
+		if (!session.client) return;
+		const uid = selectedUserId ?? undefined;
+		stats = null;
+		error = null;
 		session.api
-			.listeningStats()
+			.listeningStats(uid)
 			.then(async (s) => {
 				stats = s;
 				const ids = Object.values(s.items)
@@ -36,12 +49,14 @@
 				if (ids.length) {
 					const items = await session.api.items(ids).catch(() => []);
 					topItems = new Map(items.map((i) => [i.id, i]));
+				} else {
+					topItems = new Map();
 				}
 			})
 			.catch((e) => (error = (e as Error).message));
 
 		session.api
-			.listeningSessions(0, 10)
+			.listeningSessions(0, 10, uid)
 			.then(async (r) => {
 				const fresh = r.sessions.filter(meaningful).slice(0, 8);
 				recentSessions = fresh;
@@ -49,9 +64,14 @@
 				if (ids.length) {
 					const items = await session.api.items(ids).catch(() => []);
 					recentItems = new Map(items.map((i) => [i.id, i]));
+				} else {
+					recentItems = new Map();
 				}
 			})
-			.catch(() => undefined);
+			.catch(() => {
+				recentSessions = [];
+				recentItems = new Map();
+			});
 	});
 
 	const key = (d: Date) =>
@@ -151,7 +171,36 @@
 
 <svelte:head><title>{t.title} · KoalaShelf</title></svelte:head>
 
-<h1>{t.title}</h1>
+<div class="stats-header">
+	<div>
+		<h1>{t.title}</h1>
+		{#if selectedUser && selectedUserId !== session.user?.id}
+			<p class="muted admin-viewing-subtitle">
+				<span class="admin-badge">{t.adminBadge}</span>
+				<span>{t.viewingUser(selectedUser.username)}</span>
+				<button type="button" class="link-btn" onclick={() => (selectedUserId = null)}>{t.resetToMe}</button>
+			</p>
+		{/if}
+	</div>
+	{#if session.isAdmin && users.length > 1}
+		<div class="user-selector">
+			<label for="admin-user-select" class="sr-only">{t.adminUserSelect}</label>
+			<select
+				id="admin-user-select"
+				class="select-user"
+				value={selectedUserId ?? ''}
+				onchange={(e) => (selectedUserId = e.currentTarget.value || null)}
+			>
+				<option value="">👤 {t.viewingSelf} ({session.user?.username})</option>
+				{#each users as u (u.id)}
+					{#if u.id !== session.user?.id}
+						<option value={u.id}>👥 {u.username} {u.type === 'root' || u.type === 'admin' ? `(${u.type})` : ''}</option>
+					{/if}
+				{/each}
+			</select>
+		</div>
+	{/if}
+</div>
 
 {#if error}
 	<p class="muted">{i18n.m.common.error(error)}</p>
@@ -218,9 +267,11 @@
 	</section>
 
 	{#if stats.totalTime === 0}
-		<EmptyState text={t.empty} />
+		<EmptyState text={selectedUserId ? t.userEmpty : t.empty} />
 	{:else}
-		<YearReview {years} />
+		{#if !selectedUserId || selectedUserId === session.user?.id}
+			<YearReview {years} />
+		{/if}
 
 		<section class="card block">
 			<h2 class="label">{t.year}</h2>
@@ -729,6 +780,70 @@
 	.session-list :global(.session) {
 		background: var(--c-bg);
 		border: 1px solid color-mix(in oklab, var(--c-ink) 8%, transparent);
+	}
+
+	.stats-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: var(--sp-16);
+		flex-wrap: wrap;
+		margin-bottom: var(--sp-16);
+	}
+
+	.stats-header h1 {
+		margin: 0;
+	}
+
+	.admin-viewing-subtitle {
+		margin: var(--sp-6) 0 0;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-8);
+		font-size: var(--fs-14);
+	}
+
+	.admin-badge {
+		background: color-mix(in oklab, var(--c-amber) 25%, transparent);
+		color: var(--c-amber-high, var(--c-amber));
+		border: 1px solid color-mix(in oklab, var(--c-amber) 40%, transparent);
+		padding: 2px 8px;
+		border-radius: 999px;
+		font-size: var(--fs-12);
+		font-weight: var(--fw-semibold);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.link-btn {
+		background: none;
+		border: none;
+		padding: 0;
+		color: var(--c-ink);
+		text-decoration: underline;
+		cursor: pointer;
+		font-size: var(--fs-13);
+	}
+
+	.link-btn:hover {
+		color: var(--c-accent);
+	}
+
+	.select-user {
+		font: inherit;
+		font-size: var(--fs-14);
+		padding: var(--sp-8) var(--sp-12);
+		background: var(--c-card);
+		color: var(--c-ink);
+		border: 1px solid var(--c-line);
+		border-radius: var(--rad-pill, 999px);
+		cursor: pointer;
+		outline: none;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	}
+
+	.select-user:focus-visible {
+		border-color: var(--c-accent);
 	}
 
 	@container page (max-width: 760px) {

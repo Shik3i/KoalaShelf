@@ -2,7 +2,7 @@
 
 Native KoalaShelf desktop app (Windows, macOS, Linux) built with Electron and TypeScript. It ships the `apps/web` build locally with full Chromium audio codec consistency (AAC, M4B, MP3, Opus, FLAC, Web Audio), OS Keychain token encryption, and native OS integration.
 
-**Status:** Feature-complete production release 1.0.0 with full parity to Web 1.0.0.
+**Status:** Feature-complete production release 1.1.0 with full parity to Web 1.1.0 and Android 1.1.0.
 
 What the Electron desktop shell adds:
 

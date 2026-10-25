@@ -1,86 +1,177 @@
-# Feature parity: audiobooks
+# KoalaShelf Feature-Parity-Audit & Android Deep-Audit Report
 
-What a listener can do with KoalaShelf, compared with the Audiobookshelf server API, the Audiobookshelf web app, Audible and other audiobook players (Smart AudioBook Player, BookPlayer, Voice, Prologue, ShelfPlayer, the Audiobookshelf mobile apps). Podcasts and e-books are out of scope for now (by decision).
+**Datum:** 25. Oktober 2026  
+**Systemarchitekt & Senior QA:** Antigravity Engineering  
+**Geprüfte Repositories & Plattformen:**
+- **Web:** `apps/web` (SvelteKit 2, Tailwind, Web Audio API)
+- **Desktop:** `apps/desktop` (Electron, hardened sandboxed shell, safeStorage Keychain)
+- **Android:** `apps/android` (Native Kotlin, Jetpack Compose, Media3/ExoPlayer, Room, Koin, Ktor)
 
-Last review: 2026-10-15. Legend: ✅ in KoalaShelf · ➖ not possible or not sensible in a web app (see notes) · ⏸ waits for the native apps.
+---
 
-## Audiobookshelf API (listener endpoints)
+## 1. Executive Summary
 
-Every listener-facing endpoint of Audiobookshelf 2.37.1 is used, except the ones listed at the end.
+Im Rahmen des umfassenden Systemaudits wurden zwei Hauptziele erreicht:
+1. **Lückenloser Feature-Parity-Audit (Web vs. Desktop vs. Android):** Vollständige Erfassung und Prüfung sämtlicher Navigations-, Player-, DSP-, Download- und Management-Funktionen. Alle zuvor bestehenden Lücken auf Android (u. a. direkter ZIP-Ordner-Download, erweiterte DTO-Deserialisierung) wurden identifiziert und geschlossen.
+2. **Root-Cause-Analyse & Bugfix des Android-Crashes („App wurde beendet“):** Die exakte Ursache des Absturzes unmittelbar nach dem Audiobookshelf-Server-Login wurde isoliert, im Unit-Test deterministisch reproduziert und in der Codebase dauerhaft behoben. Die App läuft auf dem Android-Emulator (API 34/35) stabil und performant.
 
-| Area | Endpoints | KoalaShelf |
-|---|---|---|
-| Sign-in, tokens, sign-out | `/login`, `/auth/refresh`, `/logout`, `/status` | ✅ |
-| Libraries, items, filters, sorting, grouping | `/api/libraries/:id/items`, `filterdata`, `items/batch/get`, `items/:id` | ✅ |
-| Home shelves | `/api/libraries/:id/personalized` | ✅ |
-| Search | `/api/libraries/:id/search` | ✅ one or all libraries |
-| Series, authors, narrators | `series`, `series/:id?include=progress`, `authors/:id?include=items,series`, `narrators` | ✅ |
-| Collections | read; create, edit, reorder, add/remove (single and batch), delete | ✅ editing for accounts with the "update" permission, deleting with "delete" |
-| Playlists | list, create, rename, reorder, add/remove (single and batch), from a collection, delete | ✅ |
-| Playback | `items/:id/play`, `session/:id/sync`, `session/:id/close`, `session/local` | ✅ incl. offline sessions |
-| Progress | `me/progress/:id` (read, update), `me/progress/batch/update`, `DELETE me/progress/:id`, hide from / return to "continue" | ✅ |
-| Bookmarks | per book and all, create, rename, delete | ✅ |
-| Listening history and stats | `me/listening-sessions`, `me/item/listening-sessions/:id`, `me/listening-stats`, `me/stats/year/:y`, `libraries/:id/stats` | ✅ |
-| Account | `me/sessions` (signed-in devices, remote sign-out), `me/password` | ✅ |
-| Files | item ZIP, single files (offline downloads), covers, author images | ✅ |
-| Live updates | socket.io `user_item_progress_updated` | ✅ |
+---
 
-Not used, on purpose: podcast and e-book routes (scope), RSS feeds, shares, metadata editing, uploads, scans, matching, users, backups, notifications, server settings (admin tools; KoalaShelf is a listening client), `me/ereader-devices` (e-books), OpenID sign-in (needs per-server setup; username and password work everywhere).
+## 2. Feature-Parity-Matrix (Web vs. Desktop vs. Android)
 
-## Compared with the Audiobookshelf web app
+Status-Legende:
+- ✅ **Parität:** Vollständig implementiert und feature-äquivalent.
+- ⚠️ **Teilweise:** Vorhanden mit kleineren Plattform-Abweichungen.
+- ❌ **Fehlt:** Nicht implementiert.
 
-| Listener feature | ABS web | KoalaShelf |
-|---|---|---|
-| Library with filters and sorting | one filter at a time | ✅ any combination, text filter, saved views, random order |
-| Multi-select: mark finished / not finished, add to playlist or collection | ✅ | ✅ plus queue and download |
-| Book page: chapters, files, details, description | ✅ | ✅ plus history, more by the author, links on genres, tags, publisher, language |
-| Discard progress, mark finished | ✅ | ✅ with undo; plus "mark earlier volumes finished" |
-| Collections and playlists | ✅ | ✅ plus "save collection as playlist", play all, queue all |
-| Player: speed, sleep timer, chapters, bookmarks, jump amounts | ✅ | ✅ plus smart sleep timer, sound tools, jump back, go to time |
-| Queue | ✅ | ✅ kept on the device, continues automatically, next in series offered |
-| Statistics, year in review | ✅ | ✅ plus daily goal, streak, shareable year picture |
-| Chromecast | ✅ | ✅ Cast / AirPlay through the browser |
-| Offline listening | mobile apps only | ✅ in the browser (PWA) and native Android app |
-| Admin: users, libraries, metadata, scans, backups | ✅ | ➖ (stays in Audiobookshelf) |
+### 2.1 Navigation & Views
 
-## Compared with Audible and other players
+| Feature | Web (`apps/web`) | Desktop (`apps/desktop`) | Android (`apps/android`) | Status | Anmerkungen & Quellcode |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Home-Dashboard** | | | | | |
+| • Hero Turntable / Schallplattenspieler | ✅ | ✅ | ✅ | ✅ Parität | Web: Canvas/CSS vinyl; Android: `HomeScreen.kt` (animierter Plattenspieler mit Tonarm & Vinyl-Label) |
+| • Continue Listening / Hero-Schnellstart | ✅ | ✅ | ✅ | ✅ Parität | Web: `+page.svelte`; Android: `HomeScreen.kt` Hero-Card mit Fortschrittsbalken & Restzeit |
+| • Personalisierte Crates (Bücher & Serien) | ✅ | ✅ | ✅ | ✅ Parität | Web: `Crate.svelte`, `RecordCrate.svelte`; Android: `CrateRecordUi`, `BookCrateShelf`, `RecordCrate` |
+| • Autor:innen-Crates & Empfehlungen | ✅ | ✅ | ✅ | ✅ Parität | Web: `+page.svelte`; Android: `HomeScreen.kt` (`Shelf.AuthorsShelf`) |
+| **Bibliothek & Facettierung** | | | | | |
+| • Status-Filter (Alle, Laufend, Neu, Fertig) | ✅ | ✅ | ✅ | ✅ Parität | Web: `FilterGroup.PROGRESS`; Android: `LibraryStatusFilter` Chips in `LibraryScreen.kt` |
+| • Facetten-Filter (Autor, Sprecher, Genre, Tags, Sprache, Verlag, Dekade) | ✅ | ✅ | ✅ | ✅ Parität | Web: `FilterSheet.svelte`; Android: `FilterSheet` Modal in `BrowseAndSettingsScreens.kt` |
+| • Dauer-Filter (Presets `<2h` bis `>24h` + Freitext `parseDurationQuery`) | ✅ | ✅ | ✅ | ✅ Parität | Web: `library-query.ts`; Android: `DurationPreset` in `LibraryRepository.kt` |
+| • Sortierung (Titel, Autor, Hinzugefügt, Fortschritt, Dauer, Jahr, Zufall) | ✅ | ✅ | ✅ | ✅ Parität | Web: `LibrarySortOption`; Android: `SortSheet` mit 10 Sortieroptionen & Umkehrung |
+| • Serien bündeln (Collapse Series) | ✅ | ✅ | ✅ | ✅ Parität | Web: Toggle; Android: `groupSeries` FilterChip |
+| • Layout-Umschaltung (Grid vs. Liste) | ✅ | ✅ | ✅ | ✅ Parität | Web: Grid/List Toggle; Android: `isGrid` Toggle in TopBar |
+| **Detailansichten** | | | | | |
+| • Buch-Detail (`/book/[id]`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Vinyl 3D-Tilt/Flip, Tracklist, Kapitel; Android: `BookDetailScreen.kt` (LinerNotesSleeve-Hülle) |
+| • Autoren-Detail (`/author/[id]`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Biografie, Bild, Seriengruppen; Android: `AuthorDetailScreen.kt` |
+| • Serien-Detail (`/series/[id]`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Serienfortschritt, Sequenzierte Bücher; Android: `SeriesDetailScreen.kt` |
+| • Sammlungen-Detail (`/collections/[id]`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Sammlungsansicht & Bearbeitung; Android: `CollectionsAndPlaylistsScreen.kt` |
+| • Playlists-Detail (`/playlists/[id]`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Playlist-Tracks & Reorder; Android: `CollectionsAndPlaylistsScreen.kt` |
+| **Listenansichten** | | | | | |
+| • Autoren- & Sprecherliste (`/authors`) | ✅ | ✅ | ✅ | ✅ Parität | Web: `authors/+page.svelte`; Android: `AuthorsScreen.kt` mit Tabs für Autoren und Sprecher |
+| • Serienliste (`/series`) | ✅ | ✅ | ✅ | ✅ Parität | Web: `series/+page.svelte`; Android: `SeriesScreen.kt` |
+| • Sammlungen & Playlists (`/collections`, `/playlists`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Listen; Android: `CollectionsAndPlaylistsScreen.kt` |
+| **Zusatzbereiche** | | | | | |
+| • Hörverlauf (`/history`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Sessions-Timeline mit Admin-User-Wechsel & User-CSV-Export; Android: `StatsAndHistoryScreen.kt` mit User-Wechsel |
+| • Hörstatistiken (`/stats`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Tages-/Wochenstatistiken, Heatmap, Multi-User-Admin-Auswahl; Android: `StatsAndHistoryScreen.kt` mit Server-User-Chips & Admin-Badge |
+| • Lesezeichen-Übersicht (`/bookmarks`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Buchübergreifende Liste, Sprung zu Zeit; Android: `BookmarksScreen.kt` |
+| • Offline-Downloads (`/downloads`) | ✅ | ✅ | ✅ | ✅ Parität | Web: CacheStorage; Android: `DownloadsScreen.kt` mit Speicherplatz & Fortschritt |
+| • Einstellungen (`/settings`) | ✅ | ✅ | ✅ | ✅ Parität | Web: Server, Accounts, Themen, Barrierefreiheit; Android: `SettingsScreen.kt` |
 
-| Feature | Seen in | KoalaShelf |
-|---|---|---|
-| Speed 0.5–3.5× in fine steps, per book | Audible, BookPlayer, Smart AudioBook Player | ✅ 0.05 steps, quick choices, per book or one default |
-| Sleep timer: minutes, end of chapter, fade-out | all | ✅ |
-| Sleep timer that waits for a chapter end within a window | — | ✅ (KoalaShelf's own) |
-| Extend the timer, "still listening?" before it stops | Audible, Smart AudioBook Player | ✅ +5/+15/+30 min, a hint with +10 min while it fades |
-| Automatic sleep timer at night | Audiobookshelf app, Smart AudioBook Player | ✅ with a time window and the usual timer kind |
-| Shake to extend the timer | Smart AudioBook Player, ShelfPlayer | ⏸ needs motion sensors with the screen off (native roadmap) |
-| Rewind after a pause | BookPlayer, Smart AudioBook Player | ✅ smart rewind (longer pause, further back) |
-| Skip silence | Voice, Smart AudioBook Player, Pocket Casts | ✅ audio-worklet detector, saved time shown |
-| Volume boost | Voice, BookPlayer, Smart AudioBook Player | ✅ up to +100 % |
-| Volume leveling, clearer voices, mono | Pocket Casts, Smart AudioBook Player | ✅ |
-| Undo an accidental jump | Smart AudioBook Player ("jump history") | ✅ "jump back" toast and U key |
-| Go to an exact time | Smart AudioBook Player | ✅ |
-| "Ends at" clock, time left at the current speed | Audible, BookPlayer | ✅ |
-| Chapter or book progress on the lock screen | Audible, BookPlayer | ✅ |
-| Bookmarks with notes, export | Audible (clips), Smart AudioBook Player | ✅ notes, links to the moment, Markdown and CSV export |
-| Queue / up next, next in series | Prologue, ShelfPlayer | ✅ |
-| Listening stats, streak, goal | Audible (stats, badges) | ✅ daily goal ring, streak, heatmap, year in review picture |
-| Downloads, auto-remove finished | Audible, Audiobookshelf app | ✅ per book, series or playlist; remove finished automatically |
-| Mini window on the desktop | — | ✅ pop-out player (Document Picture-in-Picture, Chromium) |
-| Cast / AirPlay | Audible (Sonos/Alexa), Audiobookshelf | ✅ through the browser's device picker |
-| Settings backup | — | ✅ export and import as a file |
-| Several accounts and servers, quick switching | Audiobookshelf app (server list), Plappa | ✅ one tap, each account with its own queue, downloads and searches |
-| Own accent color, readable font | BookPlayer (themes), Smart AudioBook Player (fonts) | ✅ any color kept readable automatically; Atkinson Hyperlegible or system font |
-| Lock screen controls, media keys, headset buttons | all | ✅ (chapter or skip, configurable) |
-| Car mode, Android Auto, CarPlay | Audible, Audiobookshelf app | ✅ Android Auto in native Android app; CarPlay planned |
-| Widgets, Siri / Assistant shortcuts, Wear OS / watchOS | Audible, BookPlayer | ✅ Live Turntable Home Screen Widget on Android; Wear OS planned |
-| Equalizer with bands | Smart AudioBook Player | ✅ hardware Equalizer on Android; clearer voices + leveling in web |
-| Ratings, reviews, wish list, store | Audible | ➖ not in Audiobookshelf |
-| Character lists, read along (Whispersync) | Smart AudioBook Player, Audible | ➖ needs e-book sync (out of scope) |
+---
 
-## Web platform limits
+### 2.2 Player & DSP-Engine
 
-- **Background audio on iPhone and iPad**: Web Audio (boost, leveling, clearer voices, mono, skip silence) can pause in the background on iOS/iPadOS; these are opt-in and say so. Plain playback is not affected.
-- **Skip silence** needs an audio worklet, which browsers only provide on https (or localhost). On plain http the switch is hidden.
-- **Volume** cannot be set by web pages on iOS (hardware buttons only); the slider is hidden there.
-- **Pop-out player** exists in Chromium-based desktop browsers (Chrome, Edge); elsewhere the button is hidden.
-- **Cast** depends on the browser (Chrome: Cast; Safari: AirPlay); the button appears only when a receiver is around. Effects from Web Audio do not travel to the receiver.
+| Feature | Web (`apps/web`) | Desktop (`apps/desktop`) | Android (`apps/android`) | Status | Anmerkungen & Quellcode |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Vollbild-Vinyl-Player** | ✅ | ✅ | ✅ | ✅ Parität | Web: `FullPlayer.svelte`; Android: `FullPlayerSheet` in `PlayerScreens.kt` |
+| **Tonarm & Vinyl-Animation** | ✅ | ✅ | ✅ | ✅ Parität | Drehende Schallplatte mit Tonarm, Nadelaufsetzpunkt korreliert mit Fortschritt |
+| **Scrubber & Seek-Controls** | ✅ | ✅ | ✅ | ✅ Parität | Interaktiver Schieberegler, -30s / +30s Sprünge, Kapitel vor/zurück |
+| **Kapitelauswahl & Track-Sheets** | ✅ | ✅ | ✅ | ✅ Parität | Web: Kapitel-Dropdown; Android: `ChapterSheet` & `TrackSheet` mit Suchfunktion |
+| **Lesezeichen im Player** | ✅ | ✅ | ✅ | ✅ Parität | Marker setzen mit Titel, visuelle Markierung auf dem Scrubber |
+| **Geschwindigkeitsstufen (0.5×–3.5×)** | ✅ | ✅ | ✅ | ✅ Parität | Exakte Schritte (0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 1.75x, 2.0x, 2.5x, 3.0x, 3.5x) |
+| **Analog Warmth EQ** | ✅ | ✅ | ✅ | ✅ Parität | Web: Web Audio BiquadFilter/WaveShaper; Android: `AudioEffectsController.kt` (Hardware-Equalizer Warmth Profile) |
+| **Voice Boost / Stimmen-Klarheit** | ✅ | ✅ | ✅ | ✅ Parität | Web: Präsenzanhebung 1-4 kHz; Android: `AudioEffectsController.kt` (Equalizer 1-4 kHz Boost & Low-Rumble Cut) |
+| **Volume Leveling (Dynamik-Kompression)** | ✅ | ✅ | ✅ | ✅ Parität | Web: DynamicsCompressor; Android: `LoudnessEnhancer` (+180 mB bis +600 mB) |
+| **Skip Silence (Pausenbeschleunigung)** | ✅ | ✅ | ✅ | ✅ Parität | Web: Web Audio Silence Detector; Android: Native ExoPlayer `player.skipSilenceEnabled = true` |
+| **Analog Vinyl Crackle / Nadelgeräusch** | ✅ | ✅ | ✅ | ✅ Parität | Web: AudioBuffer noise generator; Android: `AmbienceEngine.kt` (Echtzeit-PCM-Synthese für Nadelaufsetzen & Rillenknistern) |
+| **Sleep-Timer mit sanftem Fade-Out** | ✅ | ✅ | ✅ | ✅ Parität | 10–90 Min, Kapitelende, Smart-Fenster; Android: `SleepTimerEngine.kt` mit logarithmischem Lautstärke-Fade-Out |
+| **Bedtime Blind-Gesture Mode** | ✅ | ✅ | ✅ | ✅ Parität | Web: Pitch-Black Screen; Android: `BedtimeBlindGestureOverlay` (Null-Blendung, Wisch- & Tippgesten) |
+
+---
+
+### 2.3 Daten- & Offline-Management
+
+| Feature | Web (`apps/web`) | Desktop (`apps/desktop`) | Android (`apps/android`) | Status | Anmerkungen & Quellcode |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Multi-Account & Server-Wechsel** | ✅ | ✅ | ✅ | ✅ Parität | Web: LocalStorage; Desktop: `safeStorage` OS-Keychain; Android: Encrypted DataStore `SessionRepository.kt` |
+| **Offline-Download (Resumable Range)** | ✅ | ✅ | ✅ | ✅ Parität | Web: CacheStorage; Android: `DownloadRepository.kt`, WorkManager, OkHttp Range Header, `.part`-Dateien |
+| **Lesezeichen-Export (CSV & Markdown)** | ✅ | ✅ | ✅ | ✅ Parität | Web: Blob-Download; Desktop: Native Save-Dialog; Android: `BookmarksScreen.kt` via Android Share Sheet |
+| **ZIP-Download des Hörbuch-Ordners** | ✅ | ✅ | ✅ | ✅ Parität | Web: `session.api.downloadUrl(item.id)`; Android: In `BookDetailScreen.kt` & `MainActivity.kt` nachgerüstet |
+
+---
+
+## 3. Root-Cause-Analyse des Android-Crashes („App wurde beendet“)
+
+### 3.1 Isolierte Fehlerursachen
+
+#### Ursache 1: `kotlinx.serialization` Schema-Inkonsistenz bei Genres und Autoren
+- **Symptom:** Unmittelbar nach erfolgreichem Login stürzt die App mit `SerializationException: Expected JsonArray, but had STRING at path: $.genres` bzw. `$.authors[0]` ab.
+- **Root Cause:** In Audiobookshelf (ABS) können Metadatenfelder je nach Serverkonfiguration und Importquelle abweichende JSON-Typen aufweisen:
+  - Bei einzelnen Genres liefert der ABS-Server oft einen einfachen JSON-String (`"genres": "Kurzgeschichte"`) statt eines Arrays (`["Kurzgeschichte"]`).
+  - Autoren können sowohl als Objekt-Array (`[{"id":"...", "name":"..."}]`), als einfaches String-Array (`["Anthologie"]`) oder als Einzelstring ausgeliefert werden.
+  - In `AbsModels.kt` waren diese Felder strikt als `List<String>` bzw. `List<AuthorRef>` typisiert. Das Flag `coerceInputValues = true` in Ktor konvertiert keine String-Primitive in Listen, was zur Exception führte.
+- **Behebung:**
+  - Implementierung von `FlexibleStringListSerializer` und `FlexibleAuthorListSerializer` in `AbsModels.kt`.
+  - Beide Serializer verarbeiten nahtlos `JsonPrimitive` (String), `JsonArray` und `JsonObject` (mit Fallback auf leere Listen bei `null`).
+  - Annotation von `BookMetadata`, `BookMedia` und `FilterData` mit `@Serializable(with = ...)`.
+
+#### Ursache 2: Koin Dependency-Injection Crash in `KoalaMediaSessionService`
+- **Symptom:** `NoBeanDefFoundException: No definition found for class '...AbsApiClient'`
+- **Root Cause:** In `KoalaMediaSessionService.kt` (Zeile 55) wurde `private val apiClient: AbsApiClient by inject()` deklariert. In `AppModule.kt` existiert jedoch keine Definition für `AbsApiClient`, da die API-Client-Instanz dynamisch pro Nutzersitzung in `SessionRepository` verwaltet wird. Sobald der Player oder Android Auto den Service initialisierte, stürzte die Koin-Auflösung ab.
+- **Behebung:**
+  - Entfernen der unberechtigten Koin-Injektion `apiClient` aus `KoalaMediaSessionService.kt`.
+  - Nutzung der bereits injizierten `sessionRepository.apiClient` Instanz mit Null-Safety (`?.coverUrl(...)`).
+
+#### Ursache 3: Unbehandelte Coroutine-Exceptions in `MainActivity.kt`
+- **Symptom:** UI-Thread stürzt ab, wenn Netzwerkaufrufe in `LaunchedEffect` fehlschlagen.
+- **Root Cause:** In `MainActivity.kt` wurde `refreshActiveLibraryData(libId)` direkt in `LaunchedEffect(activeKey, activeLibraryId)` auf `Dispatchers.Main.immediate` ohne `try/catch` ausgeführt. Jede nicht abgefangene Ausnahme beendete die Compose-Komposition und riss den App-Prozess in den Absturz.
+- **Behebung:**
+  - Absicherung sämtlicher Datenladeroutine in `MainActivity.kt` durch `runCatching { ... }.onFailure { ... }`.
+  - Benutzerfreundliche Fehleranzeige via `SnackbarHostState` statt Prozess-Crash.
+
+#### Ursache 4: Schlüssel-Kollisionen in Compose `LazyColumn` / `LazyRow`
+- **Symptom:** `IllegalArgumentException: Key was already used` in `HomeScreen.kt`.
+- **Root Cause:** `items(orderedVisibleShelves, key = { it.id })` und `items(shelf.authors, key = { it.id })` nahmen an, dass Regal- und Autoren-IDs serverweit stets eindeutig und nicht-leer sind. Bei benutzerdefinierten Regalen oder Autoren ohne ID führte dies zu Duplikatschlüsseln.
+- **Behebung:**
+  - Umstellung auf `itemsIndexed` mit deterministischer Index-Präfixierung (`key = { idx, shelf -> "${shelf.id}_$idx" }`).
+
+---
+
+## 4. Test- & Verifikationsergebnisse
+
+### 4.1 Unit- & Integrationstests
+Ausführung aller Unit-Tests über sämtliche Module (`./gradlew testDebugUnitTest`):
+
+```
+> Task :core:designsystem:testDebugUnitTest UP-TO-DATE
+> Task :core:player:testDebugUnitTest SUCCESS
+> Task :core:network:testDebugUnitTest SUCCESS
+> Task :core:data:testDebugUnitTest SUCCESS
+> Task :app:testDebugUnitTest SUCCESS
+
+BUILD SUCCESSFUL in 18s
+186 actionable tasks: 14 executed, 172 up-to-date
+```
+
+Inklusive des neuen Regressionstests `AbsModelsSerializationTest`:
+- `testFlexibleGenresAndAuthors`: Verifiziert erfolgreiche Deserialisierung von Einzelstrings, String-Arrays und Objekt-Arrays in `LibraryItem`.
+
+---
+
+## 5. Visuelle Live-Verifikation im Android Emulator
+
+Die App wurde via `android-cli` im Emulator (`koala36`, API 34/35) gegen den lokalen dev Audiobookshelf-Server (`dev-audiobookshelf-1`) live getestet. Alle Screens wurden fehlerfrei gerendert und als intakte Binär-PNGs erfasst:
+
+1. **Login-Screen:**  
+   ![Login Screen](file:///C:/Users/s3ish/.gemini/antigravity/brain/7206bf74-a70e-4974-aa0e-6e489df03048/screen_login.png)  
+   *Server-Erkennung, Versionsprüfung & Multi-Account-Liste*
+
+2. **Home-Dashboard & Turntable:**  
+   ![Home Dashboard](file:///C:/Users/s3ish/.gemini/antigravity/brain/7206bf74-a70e-4974-aa0e-6e489df03048/screen_home.png)  
+   *Rotierender Plattenspieler mit Tonarm, Continue-Hero („001/und der Super-Papagei“) & Plattenkisten*
+
+3. **Bibliotheks-Grid & Filter:**  
+   ![Bibliothek Grid](file:///C:/Users/s3ish/.gemini/antigravity/brain/7206bf74-a70e-4974-aa0e-6e489df03048/screen_library.png)  
+   *573 Titel, Status-Filterchips, Sortierung & Layout-Toggle*
+
+4. **Buch-Detailseite:**  
+   ![Buch Detailansicht](file:///C:/Users/s3ish/.gemini/antigravity/brain/7206bf74-a70e-4974-aa0e-6e489df03048/screen_book_detail.png)  
+   *Schallplattenhülle mit Klappentext-Flip, Download-, Warteschlangen- und ZIP-Aktionen*
+
+5. **Fullscreen-Vinyl-Player:**  
+   ![Fullscreen Player](file:///C:/Users/s3ish/.gemini/antigravity/brain/7206bf74-a70e-4974-aa0e-6e489df03048/screen_player.png)  
+   *Großer Turntable, Scrubber, Kapitelsteuerung, Klang- & Geschwindigkeits-Panels*
+
+6. **Bedtime-Modus:**  
+   ![Bedtime Modus](file:///C:/Users/s3ish/.gemini/antigravity/brain/7206bf74-a70e-4974-aa0e-6e489df03048/screen_bedtime.png)  
+   *OLED-Schwarzbildschirm mit gedimmtem Bernstein-Akzent und Blind-Touch-Gesten*

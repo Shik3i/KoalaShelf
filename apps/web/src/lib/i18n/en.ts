@@ -96,7 +96,13 @@ export const en = {
 		recentActivity: 'Recent listening activity',
 		recentActivityHint: 'When and where you started and stopped listening',
 		viewAllHistory: 'View full history',
-		lastListened: 'Last listened'
+		lastListened: 'Last listened',
+		adminUserSelect: 'User',
+		viewingSelf: 'My profile',
+		adminBadge: 'Admin view',
+		viewingUser: (name: string) => `Statistics for ${name}`,
+		resetToMe: 'Back to my statistics',
+		userEmpty: 'This user has no listening sessions yet.'
 	},
 	signin: {
 		title: 'Sign in',

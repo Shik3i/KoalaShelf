@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { byId, unique } from '#lib/unique.ts';
 	import { untrack } from 'svelte';
-	import type { LibraryItem, ListeningSession } from '@koalashelf/abs-client';
+	import type { LibraryItem, ListeningSession, ServerUser } from '@koalashelf/abs-client';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
 	import { span } from '#lib/format.ts';
@@ -22,12 +22,22 @@
 	/** Books of the listed sessions (covers); ids already asked for, found or not. */
 	let items = $state.raw(new Map<string, LibraryItem>());
 	let checked = $state.raw(new Set<string>());
+	let users = $state.raw<ServerUser[]>([]);
+	let selectedUserId = $state<string | null>(null);
+	const selectedUser = $derived(users.find((u) => u.id === selectedUserId) ?? null);
+
+	$effect(() => {
+		if (!session.client) return;
+		if (session.isAdmin) {
+			session.api.users().then((u) => (users = u)).catch(() => (users = []));
+		}
+	});
 
 	async function load(next: number) {
 		loading = true;
 		error = false;
 		try {
-			const r = await session.api.listeningSessions(next, PAGE_SIZE);
+			const r = await session.api.listeningSessions(next, PAGE_SIZE, selectedUserId ?? undefined);
 			const fresh = r.sessions.filter(meaningful);
 			sessions = next ? [...sessions, ...fresh] : fresh;
 			page = next;
@@ -55,6 +65,7 @@
 
 	$effect(() => {
 		if (!session.client) return;
+		const _ = selectedUserId;
 		untrack(() => load(0));
 	});
 
@@ -65,7 +76,7 @@
 		try {
 			const all: ListeningSession[] = [];
 			for (let p = 0, n = 1; p < n && p < 200; p++) {
-				const r = await session.api.listeningSessions(p, 200);
+				const r = await session.api.listeningSessions(p, 200, selectedUserId ?? undefined);
 				all.push(...r.sessions);
 				n = r.numPages;
 			}
@@ -85,7 +96,8 @@
 					deviceLabel(s.deviceInfo) ?? ''
 				]);
 			}
-			saveFile(`koalashelf-history-${today()}.csv`, toCsv(rows), 'text/csv');
+			const prefix = selectedUser ? `${selectedUser.username}-` : '';
+			saveFile(`koalashelf-history-${prefix}${today()}.csv`, toCsv(rows), 'text/csv');
 		} finally {
 			exporting = false;
 		}
@@ -127,13 +139,37 @@
 <div class="top">
 	<div>
 		<h1>{t.title}</h1>
-		<p class="muted intro">{t.intro}</p>
+		{#if selectedUser && selectedUserId !== session.user?.id}
+			<p class="muted admin-viewing-subtitle">
+				<span class="admin-badge">{i18n.m.stats.adminBadge}</span>
+				<span>{i18n.m.stats.viewingUser(selectedUser.username)}</span>
+				<button type="button" class="link-btn" onclick={() => (selectedUserId = null)}>{i18n.m.stats.resetToMe}</button>
+			</p>
+		{:else}
+			<p class="muted intro">{t.intro}</p>
+		{/if}
 	</div>
-	{#if sessions.length}
-		<button class="chip outline" class:is-loading={exporting} onclick={exportCsv}>
-			<Sheet size={14} aria-hidden="true" />{i18n.m.exports.csv}
-		</button>
-	{/if}
+	<div class="actions">
+		{#if session.isAdmin && users.length > 1}
+			<select
+				class="select-user"
+				value={selectedUserId ?? ''}
+				onchange={(e) => (selectedUserId = e.currentTarget.value || null)}
+			>
+				<option value="">👤 {i18n.m.stats.viewingSelf} ({session.user?.username})</option>
+				{#each users as u (u.id)}
+					{#if u.id !== session.user?.id}
+						<option value={u.id}>👥 {u.username} {u.type === 'root' || u.type === 'admin' ? `(${u.type})` : ''}</option>
+					{/if}
+				{/each}
+			</select>
+		{/if}
+		{#if sessions.length}
+			<button class="chip outline" class:is-loading={exporting} onclick={exportCsv}>
+				<Sheet size={14} aria-hidden="true" />{i18n.m.exports.csv}
+			</button>
+		{/if}
+	</div>
 </div>
 
 {#if loading && !sessions.length}
@@ -194,6 +230,64 @@
 		justify-content: space-between;
 		gap: var(--sp-12) var(--sp-24);
 		max-width: 760px;
+	}
+
+	.actions {
+		display: flex;
+		align-items: center;
+		gap: var(--sp-8);
+		flex-wrap: wrap;
+	}
+
+	.admin-viewing-subtitle {
+		margin: var(--sp-6) 0 0;
+		display: inline-flex;
+		align-items: center;
+		gap: var(--sp-8);
+		font-size: var(--fs-14);
+	}
+
+	.admin-badge {
+		background: color-mix(in oklab, var(--c-amber) 25%, transparent);
+		color: var(--c-amber-high, var(--c-amber));
+		border: 1px solid color-mix(in oklab, var(--c-amber) 40%, transparent);
+		padding: 2px 8px;
+		border-radius: 999px;
+		font-size: var(--fs-12);
+		font-weight: var(--fw-semibold);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.link-btn {
+		background: none;
+		border: none;
+		padding: 0;
+		color: var(--c-ink);
+		text-decoration: underline;
+		cursor: pointer;
+		font-size: var(--fs-13);
+	}
+
+	.link-btn:hover {
+		color: var(--c-accent);
+	}
+
+	.select-user {
+		font: inherit;
+		font-size: var(--fs-14);
+		padding: var(--sp-6) var(--sp-12);
+		background: var(--c-card);
+		color: var(--c-ink);
+		border: 1px solid var(--c-line);
+		border-radius: var(--rad-pill, 999px);
+		cursor: pointer;
+		outline: none;
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+	}
+
+	.select-user:focus-visible {
+		border-color: var(--c-accent);
 	}
 
 	.days {

@@ -13,7 +13,7 @@ KoalaShelf can be released using a unified version tag (`vX.Y.Z`, building web, 
 
 1. Bump the version:
    - Web: `apps/web/package.json`
-   - Desktop: `apps/desktop/package.json`, `apps/desktop/src-tauri/tauri.conf.json`, `apps/desktop/src-tauri/Cargo.toml` (and `Cargo.lock` via `cargo update -p koalashelf`)
+   - Desktop: `apps/desktop/package.json`
    - Android: `apps/android/app/build.gradle.kts` (`versionName` and `versionCode`)
 2. Add a section `## Web X.Y.Z`, `## Desktop X.Y.Z`, or `## Android X.Y.Z` to [CHANGELOG.md](../CHANGELOG.md). It becomes the release notes.
 3. Check locally: `node scripts/release.mjs version web-vX.Y.Z` (or `node scripts/release.mjs version android-vX.Y.Z android`, `node scripts/release.mjs version desktop-vX.Y.Z desktop`)

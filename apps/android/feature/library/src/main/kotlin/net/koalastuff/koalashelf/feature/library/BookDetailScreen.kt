@@ -112,6 +112,8 @@ fun BookDetailScreen(
     onOpenAuthor: (String, String) -> Unit,
     onOpenOtherBook: (String) -> Unit,
     onSearch: (String) -> Unit = {},
+    canDownload: Boolean = true,
+    onDownloadZip: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val strings = currentKoalaStrings
@@ -361,6 +363,14 @@ fun BookDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(strings.bookAddToPlaylist)
+                    }
+
+                    if (canDownload && onDownloadZip != null) {
+                        OutlinedButton(onClick = onDownloadZip) {
+                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (book.isFile) strings.saveFile else strings.saveZip)
+                        }
                     }
                 }
             }

@@ -20,6 +20,18 @@ export interface User {
 	refreshToken: string | null;
 }
 
+export interface ServerUser {
+	id: string;
+	username: string;
+	type: 'root' | 'admin' | 'user' | 'guest';
+	isActive: boolean;
+	email?: string | null;
+	isLocked?: boolean;
+	lastSeen?: number | null;
+	createdAt?: number;
+	permissions?: { download?: boolean; update?: boolean; delete?: boolean; upload?: boolean };
+}
+
 export interface LoginResponse {
 	user: User;
 	userDefaultLibraryId: string;

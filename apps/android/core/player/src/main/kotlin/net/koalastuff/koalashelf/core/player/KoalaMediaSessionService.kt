@@ -31,7 +31,6 @@ import kotlinx.coroutines.guava.future
 import net.koalastuff.koalashelf.core.data.repository.DownloadRepository
 import net.koalastuff.koalashelf.core.data.repository.LibraryRepository
 import net.koalastuff.koalashelf.core.data.session.SessionRepository
-import net.koalastuff.koalashelf.core.network.AbsApiClient
 import net.koalastuff.koalashelf.core.network.LibraryItem
 import net.koalastuff.koalashelf.core.network.Shelf
 import org.koin.android.ext.android.inject
@@ -52,7 +51,6 @@ class KoalaMediaSessionService : MediaLibraryService() {
     private val libraryRepository: LibraryRepository by inject()
     private val downloadRepository: DownloadRepository by inject()
     private val sessionRepository: SessionRepository by inject()
-    private val apiClient: AbsApiClient by inject()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var mediaLibrarySession: MediaLibrarySession? = null
@@ -293,12 +291,17 @@ class KoalaMediaSessionService : MediaLibraryService() {
     }
 
     private fun buildBookItem(item: LibraryItem): MediaItem {
-        val coverUri = Uri.parse(apiClient.coverUrl(item.id, width = 400, updatedAt = item.updatedAt))
+        val coverUrl = sessionRepository.apiClient?.coverUrl(item.id, width = 400, updatedAt = item.updatedAt)
+        val coverUri = if (!coverUrl.isNullOrBlank()) Uri.parse(coverUrl) else null
         val metadata = MediaMetadata.Builder()
             .setTitle(item.title)
             .setArtist(item.author)
             .setAlbumTitle(item.seriesLabel.ifBlank { item.title })
-            .setArtworkUri(coverUri)
+            .apply {
+                if (coverUri != null) {
+                    setArtworkUri(coverUri)
+                }
+            }
             .setIsBrowsable(false)
             .setIsPlayable(true)
             .build()

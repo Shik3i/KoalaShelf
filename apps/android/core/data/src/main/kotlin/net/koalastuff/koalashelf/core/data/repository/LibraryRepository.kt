@@ -28,6 +28,7 @@ import net.koalastuff.koalashelf.core.network.ProgressUpdate
 import net.koalastuff.koalashelf.core.network.SearchBookEntry
 import net.koalastuff.koalashelf.core.network.SearchResult
 import net.koalastuff.koalashelf.core.network.Series
+import net.koalastuff.koalashelf.core.network.ServerUser
 import net.koalastuff.koalashelf.core.network.SeriesDetail
 import net.koalastuff.koalashelf.core.network.SessionPage
 import net.koalastuff.koalashelf.core.network.Shelf
@@ -620,8 +621,11 @@ class LibraryRepository(
 
     // --- Stats & History ---
 
-    suspend fun getListeningStats(): ListeningStats? =
-        runCatching { api?.listeningStats() }.getOrNull()
+    suspend fun getUsers(): List<ServerUser> =
+        runCatching { api?.users() ?: emptyList() }.getOrDefault(emptyList())
+
+    suspend fun getListeningStats(userId: String? = null): ListeningStats? =
+        runCatching { api?.listeningStats(userId) }.getOrNull()
 
     suspend fun getYearStats(year: Int): YearStats? =
         runCatching { api?.yearStats(year) }.getOrNull()
@@ -629,8 +633,8 @@ class LibraryRepository(
     suspend fun getLibraryStats(libraryId: String): LibraryStats? =
         runCatching { api?.libraryStats(libraryId) }.getOrNull()
 
-    suspend fun getListeningSessions(page: Int = 0, itemsPerPage: Int = 50): SessionPage =
-        runCatching { api?.listeningSessions(page, itemsPerPage) ?: SessionPage() }.getOrDefault(SessionPage())
+    suspend fun getListeningSessions(page: Int = 0, itemsPerPage: Int = 50, userId: String? = null): SessionPage =
+        runCatching { api?.listeningSessions(page, itemsPerPage, userId) ?: SessionPage() }.getOrDefault(SessionPage())
 
     suspend fun getItemListeningSessions(itemId: String): SessionPage =
         runCatching { api?.itemListeningSessions(itemId) ?: SessionPage() }.getOrDefault(SessionPage())

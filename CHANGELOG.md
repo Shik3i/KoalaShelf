@@ -1,5 +1,26 @@
 # Changelog
 
+## Web 1.1.0
+
+- **Server-Admin User Statistics & History**: Server administrators (`root` or `admin`) can view listening statistics, year summaries, and listening sessions across all registered server users via an interactive user selector.
+- **Per-User History CSV Export**: Export user-specific CSV listening session logs named with the target user's username.
+- **Admin Status Badging & Quick Reset**: Visual admin badges for clear context awareness, instant reset button to switch back to personal statistics, and graceful empty states for zero-session accounts.
+- **Multi-Platform Feature Parity Alignment**: Complete consistency with desktop and Android releases across all library navigation, playlists, collections, and audio playback features.
+
+## Desktop 1.1.0
+
+- **Server-Admin User Statistics & History**: Seamless integration of server administrator user switching in the native Electron desktop shell.
+- **Native OS Save Dialogs for User Exports**: Native file export dialogs dynamically handle per-user session history exports with sanitized user filenames.
+- **Multi-Platform Feature Parity Alignment**: Complete feature and audio processing graph parity across Web, Desktop, and Android clients.
+
+## Android 1.1.0
+
+- **Root-Cause Login Crash Fix**: Hardened Kotlinx Serialization and Ktor network layer (`coerceInputValues = true`, `isLenient = true`, `ignoreUnknownKeys = true`, flexible nullable/optional fallbacks across ABS DTOs) preventing application termination after server sign-in.
+- **Server-Admin User Statistics & History**: Server administrators can switch between server users via Material 3 `FilterChip` horizontal carousels to inspect user stats and session histories.
+- **Audiobook ZIP Download Action**: Direct download of entire audiobook directory archives (audio files, cover, metadata) into the device Downloads folder.
+- **Compose Stability & List Recycling**: Defensive indexing safeguards for `itemsIndexed` in lazy layouts, preventing crashes under rapid scroll or dynamic library updates.
+- **Multi-Platform Feature Parity Alignment**: Full feature parity with Web 1.1.0 and Desktop 1.1.0.
+
 ## Desktop 1.0.0
 
 Milestone 1.0.0 Production Release:

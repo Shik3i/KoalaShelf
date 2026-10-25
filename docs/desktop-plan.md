@@ -1,6 +1,6 @@
-# Desktop app: plan (branch `desktop`)
+# Desktop app: architecture & plan
 
-Status: planned 2026-10-21. Target: **Desktop 1.0.0** with complete feature parity to Web 1.0.0, built on **Electron & TypeScript**, packaged via `electron-builder`, released through `release-desktop.yml` with `desktop-vX.Y.Z` tags.
+Status: Released (v1.0.0 & v1.1.0) with complete feature parity to Web & Android, built on **Electron & TypeScript**, packaged via `electron-builder`, released through `release-desktop.yml` with `desktop-vX.Y.Z` or unified `vX.Y.Z` tags.
 
 The desktop app packages the web app (`apps/web`) locally inside a hardened Electron shell. By bundling Chromium, it provides **100% audio codec consistency** (AAC, M4B, MP3, Opus, FLAC, Web Audio) across Windows, macOS, and Linux, eliminating Host WebView codec dependencies (e.g. Linux GStreamer issues). **Audiobookshelf remains the only backend**: no custom server, no P2P sync, no telemetry.
 
