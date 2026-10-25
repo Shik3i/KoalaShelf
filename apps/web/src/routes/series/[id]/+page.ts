@@ -1,10 +1,10 @@
 import { encodeFilter } from '@koalashelf/abs-client';
 import type { PageLoad } from './$types';
 import { session } from '#lib/session.svelte.ts';
-import { isTauri } from '#lib/platform.ts';
+import { isTauri, isDesktop } from '#lib/platform.ts';
 
 export const load: PageLoad = async ({ params, fetch }) => {
-	const kit = isTauri ? undefined : fetch;
+	const kit = isDesktop || isTauri ? undefined : fetch;
 	await session.whenReady();
 	if (!session.client) return { series: null, items: [] };
 	// The current library first; a series found by searching every library may live elsewhere.

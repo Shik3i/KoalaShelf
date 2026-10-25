@@ -35,7 +35,7 @@ export interface ElectronBridge {
     status: number;
     statusText: string;
     headers: Record<string, string>;
-    body: string;
+    body: Uint8Array | string;
   }>;
 }
 

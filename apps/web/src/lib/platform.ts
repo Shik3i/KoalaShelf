@@ -54,7 +54,7 @@ export interface ElectronBridge {
 		status: number;
 		statusText: string;
 		headers: Record<string, string>;
-		body: string;
+		body: Uint8Array | string;
 	}>;
 }
 
@@ -142,7 +142,7 @@ export function apiFetch(): Promise<FetchFn> {
 				headers: headersRecord,
 				body
 			});
-			return new Response(res.body, {
+			return new Response(res.body as unknown as BodyInit, {
 				status: res.status,
 				statusText: res.statusText,
 				headers: new Headers(res.headers)

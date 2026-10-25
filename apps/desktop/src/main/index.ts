@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, powerSaveBlocker, Tray, Menu, nativeImage, protocol, net } from 'electron';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { existsSync, appendFileSync } from 'node:fs';
 import { setupSecurity, configureWindowSecurity } from './security.js';
 import { secureStorage } from './storage.js';
@@ -23,7 +23,11 @@ process.on('unhandledRejection', (reason) => {
   log(`UNHANDLED REJECTION: ${reason}`);
 });
 
-app.on('before-quit', (e) => log('app event: before-quit'));
+let isQuitting = false;
+app.on('before-quit', (e) => {
+  isQuitting = true;
+  log('app event: before-quit');
+});
 app.on('will-quit', (e) => log('app event: will-quit'));
 app.on('quit', (e, code) => log(`app event: quit (exitCode: ${code})`));
 
@@ -151,6 +155,11 @@ function createMainWindow(): BrowserWindow {
 
   win.on('close', (e) => {
     log('mainWindow event: close');
+    if (!isQuitting && miniWindow && !miniWindow.isDestroyed()) {
+      e.preventDefault();
+      win.hide();
+      log('mainWindow hidden while miniPlayer is active');
+    }
   });
 
   win.on('closed', () => {
@@ -226,24 +235,24 @@ function updateTrayMenu(): void {
       label: currentMediaState?.playing ? 'Pause' : 'Wiedergabe',
       enabled: !!currentMediaState,
       click: () => {
-        mainWindow?.webContents.send('media:command', 'play-pause');
-        miniWindow?.webContents.send('media:command', 'play-pause');
+        const target = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : miniWindow;
+        target?.webContents.send('media:command', 'play-pause');
       }
     },
     {
       label: '30s zurück',
       enabled: !!currentMediaState,
       click: () => {
-        mainWindow?.webContents.send('media:command', 'skip-back');
-        miniWindow?.webContents.send('media:command', 'skip-back');
+        const target = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : miniWindow;
+        target?.webContents.send('media:command', 'skip-back');
       }
     },
     {
       label: '30s vor',
       enabled: !!currentMediaState,
       click: () => {
-        mainWindow?.webContents.send('media:command', 'skip-forward');
-        miniWindow?.webContents.send('media:command', 'skip-forward');
+        const target = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : miniWindow;
+        target?.webContents.send('media:command', 'skip-forward');
       }
     },
     { type: 'separator' },
@@ -349,23 +358,28 @@ function registerIpcHandlers(): void {
     headers?: Record<string, string>;
     body?: string;
   }) => {
+    // Security: Only allow http: and https: protocols
+    if (!input.startsWith('http://') && !input.startsWith('https://')) {
+      throw new Error(`Forbidden protocol in net:fetch: ${input}`);
+    }
+
     const reqInit: RequestInit = {
       method: init?.method || 'GET',
       headers: init?.headers,
       body: init?.body
     };
     const res = await net.fetch(input, reqInit);
-    const text = await res.text();
+    const buffer = Buffer.from(await res.arrayBuffer());
     const headers: Record<string, string> = {};
     res.headers.forEach((value, key) => {
-      headers[key] = value;
+      headers[key.toLowerCase()] = value;
     });
     return {
       ok: res.ok,
       status: res.status,
       statusText: res.statusText,
       headers,
-      body: text
+      body: new Uint8Array(buffer)
     };
   });
 
@@ -425,11 +439,14 @@ app.whenReady().then(() => {
 
   protocol.handle('app', (request) => {
     const url = new URL(request.url);
-    const buildDir = getWebBuildDir();
+    const buildDir = resolve(getWebBuildDir());
     let pathname = decodeURIComponent(url.pathname);
     if (pathname.startsWith('/')) pathname = pathname.slice(1);
-    let filePath = join(buildDir, pathname);
-    if (!pathname || !existsSync(filePath)) {
+    const targetPath = resolve(buildDir, pathname);
+
+    // Security: strictly prevent directory traversal outside buildDir
+    let filePath = targetPath;
+    if (!targetPath.startsWith(buildDir) || !pathname || !existsSync(targetPath)) {
       filePath = join(buildDir, 'index.html');
     }
     return net.fetch(pathToFileURL(filePath).toString());

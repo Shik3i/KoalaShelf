@@ -52,8 +52,8 @@ async function run() {
   const { SecureStorage } = await import('../dist/main/storage.js');
   const storage = new SecureStorage(tempDir);
 
-  storage.set('test-token', JSON.stringify({ accessToken: 'access_123', refreshToken: 'refresh_456' }));
-  const retrieved = storage.get('test-token');
+  await storage.set('test-token', JSON.stringify({ accessToken: 'access_123', refreshToken: 'refresh_456' }));
+  const retrieved = await storage.get('test-token');
   assert(retrieved, 'Secret must be retrieved');
   const parsed = JSON.parse(retrieved);
   assert.strictEqual(parsed.accessToken, 'access_123');
@@ -63,15 +63,18 @@ async function run() {
   const vaultPath = join(tempDir, 'vault.enc');
   assert(existsSync(vaultPath), 'vault.enc must exist on disk');
   const rawDisk = readFileSync(vaultPath);
-  if (safeStorage.isEncryptionAvailable()) {
+  const isEncAvailable = typeof safeStorage.isAsyncEncryptionAvailable === 'function'
+    ? await safeStorage.isAsyncEncryptionAvailable()
+    : safeStorage.isEncryptionAvailable();
+  if (isEncAvailable) {
     assert(!rawDisk.includes('access_123'), 'Secrets must not be stored in plaintext');
     console.log('✔ safeStorage hardware encryption active and verified (no plaintext on disk)');
   } else {
     console.log('✔ safeStorage fallback active and verified');
   }
 
-  storage.delete('test-token');
-  assert.strictEqual(storage.get('test-token'), null);
+  await storage.delete('test-token');
+  assert.strictEqual(await storage.get('test-token'), null);
   console.log('✔ SecureStorage CRUD operations verified');
 
   // 3. Register IPC handlers for bridge testing
@@ -88,7 +91,7 @@ async function run() {
     status: 200,
     statusText: 'OK',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ mock: 'ok', url })
+    body: new Uint8Array(Buffer.from(JSON.stringify({ mock: 'ok', url })))
   }));
   ipcMain.on('media:updateState', (_e, state) => {
     mediaUpdateReceived = state;
@@ -154,6 +157,7 @@ async function run() {
       if (!e.netFetch) throw new Error('netFetch missing');
       const fetchRes = await e.netFetch('https://example.com/test');
       if (!fetchRes.ok || fetchRes.status !== 200) throw new Error('netFetch status mismatch');
+      if (!fetchRes.body) throw new Error('netFetch body missing');
 
       // Test power sleep inhibition through IPC
       const id = await e.power.inhibitSleep('test-playback');

@@ -12,16 +12,25 @@ export class SecureStorage {
     this.filePath = join(dir, 'vault.enc');
   }
 
-  private init() {
+  private async init(): Promise<void> {
     if (this.initialized) return;
     this.initialized = true;
 
     try {
       if (existsSync(this.filePath)) {
         const raw = readFileSync(this.filePath);
-        if (safeStorage.isEncryptionAvailable()) {
-          const decrypted = safeStorage.decryptString(raw);
-          this.cache = JSON.parse(decrypted);
+        const isAvail = typeof safeStorage.isAsyncEncryptionAvailable === 'function'
+          ? await safeStorage.isAsyncEncryptionAvailable()
+          : safeStorage.isEncryptionAvailable();
+
+        if (isAvail) {
+          if (typeof safeStorage.decryptStringAsync === 'function') {
+            const dec = await safeStorage.decryptStringAsync(raw);
+            this.cache = JSON.parse(dec.result);
+          } else {
+            const decrypted = safeStorage.decryptString(raw);
+            this.cache = JSON.parse(decrypted);
+          }
         } else {
           this.cache = JSON.parse(raw.toString('utf8'));
         }
@@ -31,15 +40,24 @@ export class SecureStorage {
     }
   }
 
-  private save() {
+  private async save(): Promise<void> {
     try {
       const dir = join(this.filePath, '..');
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
       const text = JSON.stringify(this.cache);
-      if (safeStorage.isEncryptionAvailable()) {
-        const encrypted = safeStorage.encryptString(text);
-        writeFileSync(this.filePath, encrypted);
+      const isAvail = typeof safeStorage.isAsyncEncryptionAvailable === 'function'
+        ? await safeStorage.isAsyncEncryptionAvailable()
+        : safeStorage.isEncryptionAvailable();
+
+      if (isAvail) {
+        if (typeof safeStorage.encryptStringAsync === 'function') {
+          const encrypted = await safeStorage.encryptStringAsync(text);
+          writeFileSync(this.filePath, encrypted);
+        } else {
+          const encrypted = safeStorage.encryptString(text);
+          writeFileSync(this.filePath, encrypted);
+        }
       } else {
         writeFileSync(this.filePath, Buffer.from(text, 'utf8'));
       }
@@ -48,21 +66,21 @@ export class SecureStorage {
     }
   }
 
-  get(key: string): string | null {
-    this.init();
+  async get(key: string): Promise<string | null> {
+    await this.init();
     return this.cache[key] ?? null;
   }
 
-  set(key: string, value: string): void {
-    this.init();
+  async set(key: string, value: string): Promise<void> {
+    await this.init();
     this.cache[key] = value;
-    this.save();
+    await this.save();
   }
 
-  delete(key: string): void {
-    this.init();
+  async delete(key: string): Promise<void> {
+    await this.init();
     delete this.cache[key];
-    this.save();
+    await this.save();
   }
 }
 

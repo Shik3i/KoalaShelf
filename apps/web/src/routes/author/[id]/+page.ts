@@ -1,9 +1,9 @@
 import type { PageLoad } from './$types';
 import { session } from '#lib/session.svelte.ts';
-import { isTauri } from '#lib/platform.ts';
+import { isTauri, isDesktop } from '#lib/platform.ts';
 
 export const load: PageLoad = async ({ params, fetch }) => {
-	const kit = isTauri ? undefined : fetch;
+	const kit = isDesktop || isTauri ? undefined : fetch;
 	await session.whenReady();
 	const lib = session.libraryId;
 	if (!session.client || !lib) return { author: null };
