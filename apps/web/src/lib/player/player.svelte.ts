@@ -25,7 +25,7 @@ import {
 import { clock } from '../format.ts';
 import { downloads, type LocalSession } from '../downloads.svelte.ts';
 import { queue } from '../queue.svelte.ts';
-import { isTauri } from '../platform.ts';
+import { getElectron } from '../platform.ts';
 import { needsGraph, SoundChain, type SoundSettings } from './sound.ts';
 import { forecast, type SleepForecast, type SleepTimer } from './sleep.ts';
 import { haptic } from '../haptics.ts';
@@ -219,6 +219,27 @@ class Player {
 		// Leaving an account (switch or sign-out): close its session, keep its last book.
 		session.onSignOut(() => void this.leave().catch(() => undefined));
 		document.addEventListener('visibilitychange', () => document.hidden && this.#sync(true));
+
+		const electron = getElectron();
+		if (electron?.media?.onMediaCommand) {
+			electron.media.onMediaCommand((cmd) => {
+				switch (cmd) {
+					case 'play-pause':
+						if (this.playing) this.pause();
+						else void this.play();
+						break;
+					case 'skip-back':
+						this.skip(-prefs.skipBack);
+						break;
+					case 'skip-forward':
+						this.skip(prefs.skipForward);
+						break;
+					case 'stop':
+						this.pause();
+						break;
+				}
+			});
+		}
 	}
 
 	/** Restores the last item (paused) so the mini player is there after a reload. */
@@ -261,7 +282,9 @@ class Player {
 				void this.#sound.resume();
 				this.#sound.setPlaybackState(true);
 				if (prefs.needleDrop) void this.#sound.playNeedleDrop();
+				if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 				this.#positionState();
+				this.#notifyDesktopMedia();
 			});
 			a.addEventListener('pause', () => {
 				this.#onSilence(false);
@@ -272,6 +295,8 @@ class Player {
 				this.#pausedAt = Date.now();
 				this.#holdSleep();
 				this.#sync();
+				if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
+				this.#notifyDesktopMedia();
 			});
 			a.addEventListener('waiting', () => (this.buffering = true));
 			a.addEventListener('canplay', () => (this.buffering = false));
@@ -626,9 +651,9 @@ class Player {
 
 	// --- Sound: volume, boost, leveling, voice, mono, silence ---------------------
 
-	/** Web Audio needs CORS for remote audio; the desktop shell cannot provide it. */
+	/** Web Audio leveling and DSP processing available. */
 	get levelingAvailable() {
-		return !isTauri && typeof AudioContext !== 'undefined';
+		return typeof AudioContext !== 'undefined';
 	}
 
 	/** Skipping silence also needs an audio worklet (https only). */
@@ -1092,6 +1117,20 @@ class Player {
 
 	#metaChapter: number | undefined = undefined;
 
+	#notifyDesktopMedia() {
+		const electron = getElectron();
+		if (!electron?.media || !this.item) return;
+		const v = view(this.item);
+		electron.media.updateState({
+			title: v.title,
+			author: v.author,
+			coverUrl: v.cover ? v.cover(256) : undefined,
+			playing: this.playing,
+			position: this.currentTime,
+			duration: this.duration
+		});
+	}
+
 	#updateMediaSession() {
 		if (!('mediaSession' in navigator) || !this.item) return;
 		const v = view(this.item);
@@ -1105,6 +1144,10 @@ class Player {
 				? [96, 256, 512].map((w) => ({ src: v.cover!(w), sizes: `${w}x${w}`, type: 'image/webp' }))
 				: []
 		});
+		if ('mediaSession' in navigator) {
+			navigator.mediaSession.playbackState = this.playing ? 'playing' : 'paused';
+		}
+		this.#notifyDesktopMedia();
 		const ms = navigator.mediaSession;
 		const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
 			['play', () => void this.play()],
@@ -1128,6 +1171,7 @@ class Player {
 	#positionState() {
 		if (!('mediaSession' in navigator) || !this.duration) return;
 		try {
+			navigator.mediaSession.playbackState = this.playing ? 'playing' : 'paused';
 			const { start, end } = this.scope;
 			navigator.mediaSession.setPositionState({
 				duration: Math.max(0.1, end - start),

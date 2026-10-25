@@ -1,6 +1,7 @@
 // Pop-out player: a small always-on-top window (Document Picture-in-Picture, Chromium desktop).
 import { mount, unmount } from 'svelte';
 import PipPlayer from './PipPlayer.svelte';
+import { getElectron } from '../platform.ts';
 
 interface DocumentPip {
 	requestWindow(options?: { width?: number; height?: number }): Promise<Window>;
@@ -10,10 +11,18 @@ interface DocumentPip {
 const api = () =>
 	(globalThis as unknown as { documentPictureInPicture?: DocumentPip }).documentPictureInPicture;
 
-export const pipAvailable = () => typeof window !== 'undefined' && !!api();
+export const pipAvailable = () =>
+	(typeof window !== 'undefined' && Boolean(getElectron())) ||
+	(typeof window !== 'undefined' && !!api());
 
 /** Opens the pop-out player, or closes it when it is already open. */
 export async function togglePip() {
+	const electron = getElectron();
+	if (electron?.window?.openMiniPlayer) {
+		electron.window.openMiniPlayer();
+		return;
+	}
+
 	const pip = api();
 	if (!pip) return;
 	if (pip.window) return pip.window.close();

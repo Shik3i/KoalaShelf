@@ -48,9 +48,10 @@ Own dependency-free, type-safe solution in `apps/web/src/lib/i18n/`: English is 
 
 ## Desktop
 
-| Package | Version |
-|---|---|
-| Tauri (crate, CLI, API) | 2.12 |
+| Package | Version | Note |
+|---|---|---|
+| Electron | 45.x | Hardened runtime with bundled Chromium (guaranteed AAC/M4B codecs) |
+| electron-builder | 26.x | Multi-platform packaging (NSIS, MSI, DMG, AppImage, deb, rpm) |
 
 ## Android
 

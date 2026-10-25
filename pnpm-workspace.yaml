@@ -2,3 +2,7 @@ packages:
   - apps/web
   - apps/desktop
   - packages/*
+minimumReleaseAgeExclude:
+  - electron@45.0.0
+allowBuilds:
+  electron-winstaller: true

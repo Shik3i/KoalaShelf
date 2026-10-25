@@ -49,6 +49,8 @@ jobs:
           pnpm --filter @koalashelf/abs-client test
       - name: Build
         run: pnpm --filter @koalashelf/web build
+      - name: Desktop compile
+        run: pnpm --filter @koalashelf/desktop compile
 
   android:
     name: Android checks (lint, test, build)

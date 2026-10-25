@@ -1,8 +1,7 @@
-# Release · Desktop: installers for Windows, macOS (universal) and Linux, each with a signed
+# Release · Desktop: installers for Windows, macOS and Linux (Electron), each with a signed
 # build provenance attestation, published as a GitHub pre-release with notes from CHANGELOG.md.
 #
-#   1. Bump the version in apps/desktop/package.json, src-tauri/tauri.conf.json and
-#      src-tauri/Cargo.toml, add "## Desktop X.Y.Z" to CHANGELOG.md, push to main.
+#   1. Bump the version in apps/desktop/package.json, add "## Desktop X.Y.Z" to CHANGELOG.md, push to main.
 #   2. git tag desktop-vX.Y.Z && git push origin desktop-vX.Y.Z
 #
 # Triggered by desktop-v* or unified v* tags. "Run workflow" by hand
@@ -74,23 +73,23 @@ jobs:
         include:
           - name: windows
             os: windows-latest
-            args: ''
+            flags: --win
             bundles: |
-              apps/desktop/src-tauri/target/release/bundle/msi/*.msi
-              apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+              apps/desktop/dist-release/*.exe
+              apps/desktop/dist-release/*.msi
           - name: macos
             os: macos-latest
-            args: --target universal-apple-darwin
-            targets: aarch64-apple-darwin,x86_64-apple-darwin
+            flags: --mac
             bundles: |
-              apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+              apps/desktop/dist-release/*.dmg
+              apps/desktop/dist-release/*.zip
           - name: linux
             os: ubuntu-22.04
-            args: ''
+            flags: --linux
             bundles: |
-              apps/desktop/src-tauri/target/release/bundle/deb/*.deb
-              apps/desktop/src-tauri/target/release/bundle/rpm/*.rpm
-              apps/desktop/src-tauri/target/release/bundle/appimage/*.AppImage
+              apps/desktop/dist-release/*.AppImage
+              apps/desktop/dist-release/*.deb
+              apps/desktop/dist-release/*.rpm
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -101,19 +100,13 @@ jobs:
           node-version-file: .node-version
           # Release builds never restore caches other runs could have written (cache poisoning).
           package-manager-cache: false
-      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249 # stable
-        with:
-          targets: ${{ matrix.targets }}
-      - name: Linux build dependencies
-        if: matrix.name == 'linux'
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
-            librsvg2-dev libxdo-dev libssl-dev patchelf
       - run: pnpm install --frozen-lockfile
-      - name: Build installers
-        shell: bash
-        run: pnpm --filter @koalashelf/desktop tauri build ${{ matrix.args }}
+      - name: Build web application
+        run: pnpm --filter @koalashelf/web build
+      - name: Compile desktop TypeScript
+        run: pnpm --filter @koalashelf/desktop compile
+      - name: Package installers (electron-builder)
+        run: pnpm --filter @koalashelf/desktop electron-builder ${{ matrix.flags }}
       - name: Attest build provenance
         if: github.ref_type == 'tag'
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2

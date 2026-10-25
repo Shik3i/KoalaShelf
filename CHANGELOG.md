@@ -1,5 +1,59 @@
 # Changelog
 
+## Desktop 1.0.0
+
+Milestone 1.0.0 Production Release:
+
+- **Universal Chromium Audio & Codec Consistency**: Bundles Chromium for 100% reliable playback of all audiobook formats (AAC, M4B, MP3, Opus, FLAC) across Windows, macOS, and Linux without external host WebView or GStreamer plugin dependencies.
+- **Full Web Audio DSP Suite Parity**: Complete Web Audio signal processing graph with Tape Warmth EQ, vinyl crackle simulation, voice boost, volume leveling, and skip-silence detection.
+- **Hardware & OS-Encrypted Secrets (`safeStorage`)**: All access and refresh tokens are encrypted using OS credential vaults (Windows DPAPI, macOS Keychain, Linux Secret Service) in a local protected vault (`vault.enc`), keeping web `localStorage` completely token-free.
+- **Native Sleep Prevention (`powerSaveBlocker`)**: Automated OS sleep inhibition (`prevent-app-suspension`) active during audio playback, preventing system standby while listening.
+- **Hardware Media Keys & OS Media Session Controls**: Integrated with Windows SMTC, macOS Now Playing, and Linux MPRIS; hardware media keys (Play/Pause, Skip, Prev/Next) respond immediately.
+- **Frameless Always-on-Top Mini-Player**: Floating pop-out mini player window with window drag region, cover art, track progress, chapter navigation, and playback controls.
+- **System Tray Integration**: Taskbar notification area tray icon with quick controls (Play/Pause, 30s skip back/forward), real-time metadata tooltips, and double-click window restore.
+- **Native Save Dialogs**: Direct export of listening history, bookmarks (CSV), and book file backups (ZIP) via native platform file picker dialogs.
+- **Multi-Platform Distribution & Provenance**: Packaged with `electron-builder` for Windows (NSIS, MSI), macOS (DMG, universal ZIP), and Linux (AppImage, deb, rpm) with signed cryptographic build provenance attestations.
+
+## Desktop 0.6.0
+
+Phase D4 packaging & CI pipeline release:
+
+- **Multi-Platform Electron-Builder Pipeline**: Configured production distribution targets for Windows (NSIS installer, MSI), macOS (DMG, ZIP universal), and Linux (AppImage, deb, rpm).
+- **Hardened Release Automation**: Integrated CI packaging workflows (`release-desktop.yml`) with cryptographic build provenance attestations, strict package manager supply-chain caching isolation, and automated release asset bundling.
+- **Packaging Scripts**: Standardized compilation, pack, and release scripts across the monorepo workspace.
+
+## Desktop 0.5.0
+
+Phase D3 native UX & tray release:
+
+- **Frameless Always-on-Top Mini-Player**: Pop-out mini-player window with drag regions and full playback, chapter, and seek controls that floats above all desktop applications.
+- **System Tray Controls**: Quick playback controls (Play/Pause, 30s skip back/forward), real-time track metadata tooltip, and window management directly from the OS taskbar notification area.
+- **Native Save Dialog for Data Export**: Direct file export (CSV history/bookmarks and ZIP backups) using OS native file chooser dialogs without intermediate web browser download prompts.
+
+## Desktop 0.4.0
+
+Phase D2 audio & media controls release:
+
+- **Full Web Audio DSP Parity**: Unlocked Web Audio DSP chain on desktop Chromium (Tape Warmth EQ, vinyl crackle simulation, voice boost, volume leveling, skip silence) without CORS or WebView restrictions.
+- **System Media Controls & Hardware Keys**: Integrated media session synchronization with Windows SMTC, macOS Now Playing, and Linux MPRIS; hardware media keys (Play/Pause, Seek, Prev/Next) respond immediately.
+- **Sleep Prevention (`powerSaveBlocker`)**: Automated OS sleep inhibition (`prevent-app-suspension`) engaged dynamically during active audiobook playback and cleanly released when paused or stopped.
+
+## Desktop 0.3.0
+
+Phase D1 secure session vault release:
+
+- **OS Keychain Integration (`safeStorage`)**: Refresh and access tokens encrypted using platform credential vaults (Windows DPAPI, macOS Keychain, Linux Secret Service) and persisted in a protected disk vault (`vault.enc`).
+- **Token Migration & Storage Hygiene**: Seamless migration of legacy plain tokens from local storage into the encrypted vault on startup; tokens are wiped from web `localStorage` so credentials are never stored in plaintext.
+- **Multi-Account Switching**: Transparent multi-account and multi-server persistence with instant session restoration and server token revocation on account forget.
+
+## Desktop 0.2.0
+
+Phase D0 foundation & hardening release:
+
+- **Electron & TypeScript Foundation**: Sandboxed main and preload process architecture with strict `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
+- **Security & Navigation Hardening**: Restrictive Content Security Policy (`default-src 'self'`), unconditional permission denial, webview blocking, and safe external navigation via OS default browser.
+- **CI Pipeline Integration**: Strict TypeScript type checking and compilation verified in continuous integration.
+
 ## Android 1.0.0
 
 Milestone 1.0.0 Production Release:

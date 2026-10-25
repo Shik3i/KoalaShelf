@@ -9,7 +9,7 @@ import {
 	type FetchFn,
 	type Tokens
 } from '@koalashelf/abs-client';
-import { apiFetch, isTauri } from './platform.ts';
+import { apiFetch, isDesktop, vault } from './platform.ts';
 import { invalidate } from './cache.ts';
 
 /**
@@ -76,6 +76,17 @@ function load(): Stored {
 
 function save(s: Stored) {
 	try {
+		if (isDesktop) {
+			const sanitized: Stored = {
+				active: s.active,
+				accounts: s.accounts.map((a) => ({
+					...a,
+					tokens: null
+				}))
+			};
+			localStorage.setItem(KEY, JSON.stringify(sanitized));
+			return;
+		}
 		localStorage.setItem(KEY, JSON.stringify(s));
 	} catch {
 		/* storage blocked: accounts live in memory only */
@@ -111,7 +122,7 @@ export class ServerTooOldError extends Error {
  * Signing in to exactly this server then goes through the proxy: no CORS, httpOnly cookie.
  */
 export async function presetServer(): Promise<string | null> {
-	if (isTauri) return null;
+	if (isDesktop) return null;
 	try {
 		const res = await fetch('/koalashelf.json', { signal: AbortSignal.timeout(2500) });
 		if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null;
@@ -183,8 +194,15 @@ class Session {
 	#persist() {
 		const key = this.activeKey;
 		if (!key || !this.client || !this.user) return;
+		const tokens: Tokens = {
+			accessToken: this.client.accessToken,
+			refreshToken: this.#refreshToken
+		};
+		if (isDesktop) {
+			void vault.set(`ks.tokens.${key}`, JSON.stringify(tokens));
+		}
 		this.#update(key, {
-			tokens: { accessToken: this.client.accessToken, refreshToken: this.#refreshToken },
+			tokens,
 			libraryId: this.libraryId,
 			libraries: this.libraries
 		});
@@ -211,7 +229,12 @@ class Session {
 				const key = this.activeKey;
 				this.expired = true;
 				this.#leave();
-				if (key) this.#update(key, { tokens: null });
+				if (key) {
+					if (isDesktop) {
+						void vault.delete(`ks.tokens.${key}`);
+					}
+					this.#update(key, { tokens: null });
+				}
 			}
 		});
 		return client;
@@ -231,7 +254,29 @@ class Session {
 		const stored = load();
 		this.accounts = stored.accounts;
 		this.activeKey = stored.active;
-		this.#store();
+
+		if (isDesktop) {
+			for (const acc of this.accounts) {
+				// Migrate any legacy tokens from localStorage into secure storage
+				if (acc.tokens) {
+					await vault.set(`ks.tokens.${acc.key}`, JSON.stringify(acc.tokens));
+				}
+				// Retrieve decrypted tokens from safeStorage
+				const secret = await vault.get(`ks.tokens.${acc.key}`);
+				if (secret) {
+					try {
+						acc.tokens = JSON.parse(secret) as Tokens;
+					} catch {
+						acc.tokens = null;
+					}
+				} else if (!acc.tokens) {
+					acc.tokens = null;
+				}
+			}
+			// Persist sanitized state to ensure localStorage has no plaintext tokens
+			this.#store();
+		}
+
 		const account = this.active;
 		if (account?.tokens) {
 			this.#enter(account);
@@ -271,14 +316,18 @@ class Session {
 		const cookieMode = baseUrl === '' && !this.#cookieTaken(known?.key ?? '');
 		const res = await login(baseUrl, username, password, { cookieMode, fetchFn: this.#fetch });
 		const key = probeKey(res.user.id);
+		const tokens: Tokens = {
+			accessToken: res.user.accessToken,
+			refreshToken: cookieMode ? null : res.user.refreshToken
+		};
+		if (isDesktop) {
+			await vault.set(`ks.tokens.${key}`, JSON.stringify(tokens));
+		}
 		const account: SavedAccount = {
 			key,
 			baseUrl,
 			user: { id: res.user.id, username: res.user.username },
-			tokens: {
-				accessToken: res.user.accessToken,
-				refreshToken: cookieMode ? null : res.user.refreshToken
-			},
+			tokens,
 			libraryId:
 				this.accounts.find((a) => a.key === key)?.libraryId ?? res.userDefaultLibraryId ?? null,
 			lastUsed: Date.now()
@@ -288,15 +337,30 @@ class Session {
 		this.activeKey = key;
 		this.expired = false;
 		this.#enter(account);
-		await this.#loadLibraries();
 		this.#persist();
+		try {
+			await this.#loadLibraries();
+		} finally {
+			this.#persist();
+		}
 	}
 
 	/** Makes another saved account the active one. False when it needs its password again. */
 	async switchTo(key: string) {
 		if (key === this.activeKey) return true;
 		const target = this.accounts.find((a) => a.key === key);
-		if (!target?.tokens) return false;
+		if (!target) return false;
+		if (isDesktop && !target.tokens) {
+			const secret = await vault.get(`ks.tokens.${key}`);
+			if (secret) {
+				try {
+					target.tokens = JSON.parse(secret) as Tokens;
+				} catch {
+					target.tokens = null;
+				}
+			}
+		}
+		if (!target.tokens) return false;
 		this.switching = true;
 		try {
 			this.#leave();
@@ -319,7 +383,12 @@ class Session {
 		const key = this.activeKey;
 		await this.client?.logout();
 		this.#leave();
-		if (key) this.#forgetLocal(key);
+		if (key) {
+			if (isDesktop) {
+				void vault.delete(`ks.tokens.${key}`);
+			}
+			this.#forgetLocal(key);
+		}
 	}
 
 	/** Signs a saved account out and forgets it (the active one or any other). */
@@ -333,6 +402,9 @@ class Session {
 				tokens: account.tokens
 			});
 			await client.logout();
+		}
+		if (isDesktop) {
+			void vault.delete(`ks.tokens.${key}`);
 		}
 		this.#forgetLocal(key);
 	}

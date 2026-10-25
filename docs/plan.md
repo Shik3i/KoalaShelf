@@ -21,7 +21,7 @@ Every decision is checked against: **performance, quality-of-life features, self
 | 4 | Web: home with crates, series, authors, search, theme, i18n, PWA, Docker image | done |
 | 4b | Web extras: downloads and offline listening, statistics, collections, live progress, queue, smart sleep timer, volume leveling, listening history, ZIP download, chapter timeline, settings for nearly everything, responsive and accessibility audits | done |
 | 4c | Web parity: combined filters, search, quick search, author/series/narrator pages, playlists, bookmarks, year in review, devices; fine speed, sound tools (boost, voices, mono, skip silence), jump back, sleep timer extras, Cast, pop-out player; multi-select, collections management, book actions; daily goal, year picture, exports and settings backup | done |
-| 5 | Desktop: Tauri 2 shell (HTTP via Rust, OS keychain, media keys, installers) | scaffolded, paused until the web app is signed off |
+| 5 | Desktop: Electron shell (Chromium audio engine, OS keychain via safeStorage, media keys, installers) | planned on branch `desktop`: [desktop-plan.md](desktop-plan.md) |
 | 6 | Android & Web 1.0: Compose with tokens, Media3 service, background playback, downloads with HTTP Range resume, WorkManager offline sessions sync, vinyl aesthetic, faceted search, tactile haptics, Android Auto, live turntable widget, bedtime mode, tape warmth EQ, R8 optimization | done ([`apps/android`](../apps/android), release 1.0.0) |
 
 Later (native roadmap): Driving mode, Wear OS tiles, iOS native client.

@@ -14,7 +14,7 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 |---|---|
 | Web app / PWA ([`apps/web`](apps/web)) | Feature-complete, verified (see [docs/audit.md](docs/audit.md)) |
 | Android ([`apps/android`](apps/android), Compose, Media3) | Feature-complete native client with Vinyl player, background playback, downloads, and dedicated release cycle (see [`apps/android/README.md`](apps/android/README.md)) |
-| Desktop ([`apps/desktop`](apps/desktop), Tauri 2) | Scaffolded; continues once the web app is signed off |
+| Desktop ([`apps/desktop`](apps/desktop), Electron) | Feature-complete native client with Chromium codec consistency, OS Keychain security, System Tray, Mini-Player and dedicated release cycle |
 
 ## Principles
 
@@ -67,7 +67,7 @@ Design language: **KoalaShelf Vinyl**: covers first, the record as a motif, crat
 | Folder | Contents |
 |---|---|
 | [`apps/web`](apps/web) | Web app / PWA (SvelteKit 3, Svelte 5), Docker image |
-| [`apps/desktop`](apps/desktop) | Native desktop app (Tauri 2) |
+| [`apps/desktop`](apps/desktop) | Native desktop app (Electron, TypeScript) |
 | [`apps/android`](apps/android) | Native Android app (Kotlin, Compose, Media3) |
 | [`packages/design-tokens`](packages/design-tokens) | Colors, accents, type, spacing, motion: one source for every platform |
 | [`packages/abs-client`](packages/abs-client) | Typed Audiobookshelf API client |

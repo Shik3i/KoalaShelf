@@ -1,8 +1,33 @@
 // Your data as files: bookmarks, listening history and settings. Built on this device and
 // saved directly; nothing is uploaded anywhere.
+import { getElectron } from './platform.ts';
 
-/** Saves text as a file (the browser's normal download). */
-export function saveFile(name: string, text: string | Blob, type = 'text/plain') {
+/** Saves text or binary data as a file (native save dialog on desktop, browser download otherwise). */
+export async function saveFile(name: string, text: string | Blob, type = 'text/plain') {
+	const electron = getElectron();
+	if (electron?.dialog?.saveFile) {
+		const ext = name.split('.').pop() ?? 'txt';
+		let content: string;
+		let isBase64 = false;
+		if (typeof text === 'string') {
+			content = text;
+		} else {
+			const buffer = await text.arrayBuffer();
+			const bytes = new Uint8Array(buffer);
+			let binary = '';
+			for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+			content = btoa(binary);
+			isBase64 = true;
+		}
+		const saved = await electron.dialog.saveFile({
+			name,
+			content,
+			isBase64,
+			filters: [{ name: ext.toUpperCase(), extensions: [ext] }]
+		});
+		if (saved) return;
+	}
+
 	const blob =
 		typeof text === 'string' ? new Blob([text], { type: `${type};charset=utf-8` }) : text;
 	const url = URL.createObjectURL(blob);
