@@ -33,5 +33,9 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# Test outputs
+test-results/
+playwright-report/
+
 # Local browser profile with a signed-in session for testing against a real server (never commit)
 dev/.auth/

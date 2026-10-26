@@ -43,7 +43,8 @@ export async function probeServer(input: string, signal?: AbortSignal) {
 		} catch (e) {
 			if (signal?.aborted || e instanceof ProbeError) throw e;
 			if (e instanceof AbsError) failure = 'not-abs';
-			else if (!isTauri && !isDesktop && (await reachableWithoutCors(url, signal))) failure = 'cors';
+			else if (!isTauri && !isDesktop && (await reachableWithoutCors(url, signal)))
+				failure = 'cors';
 		}
 	}
 	throw new ProbeError(failure);

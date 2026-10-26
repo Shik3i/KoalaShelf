@@ -466,12 +466,15 @@ class Session {
 		this.libraries = account.libraries ?? [];
 		this.librariesLoaded = false;
 		if (!account.user.type && this.client) {
-			void this.client.me().then((me) => {
-				if (this.activeKey === account.key) {
-					this.user = { id: me.id, username: me.username, type: me.type };
-					this.#update(account.key, { user: this.user });
-				}
-			}).catch(() => undefined);
+			void this.client
+				.me()
+				.then((me) => {
+					if (this.activeKey === account.key) {
+						this.user = { id: me.id, username: me.username, type: me.type };
+						this.#update(account.key, { user: this.user });
+					}
+				})
+				.catch(() => undefined);
 		}
 		for (const fn of this.#enterHooks) {
 			try {

@@ -19,6 +19,7 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
@@ -226,7 +227,7 @@ class KoalaMediaSessionService : MediaLibraryService() {
                     if (book != null) {
                         LibraryResult.ofItem(buildBookItem(book), null)
                     } else {
-                        LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                        LibraryResult.ofError(SessionError.ERROR_BAD_VALUE)
                     }
                 }
             }

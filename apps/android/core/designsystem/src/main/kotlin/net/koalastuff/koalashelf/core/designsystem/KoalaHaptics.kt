@@ -1,5 +1,6 @@
 package net.koalastuff.koalashelf.core.designsystem
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.os.SystemClock
@@ -33,6 +34,7 @@ object NoOpKoalaHaptics : KoalaHaptics {
     override fun boundary() {}
 }
 
+@SuppressLint("MissingPermission")
 class AndroidKoalaHaptics(
     private val context: Context,
     private val enabledProvider: () -> Boolean = { true },

@@ -314,7 +314,12 @@
 		/>
 	</div>
 	<Toggle label={t.spin} hint={t.spinHint} checked={prefs.spin} onchange={choose('spin')} />
-	<Toggle label={t.haptics} hint={t.hapticsHint} checked={prefs.haptics} onchange={choose('haptics')} />
+	<Toggle
+		label={t.haptics}
+		hint={t.hapticsHint}
+		checked={prefs.haptics}
+		onchange={choose('haptics')}
+	/>
 	<div class="row stacked">
 		<span>{t.coverSize}</span>
 		<Segmented

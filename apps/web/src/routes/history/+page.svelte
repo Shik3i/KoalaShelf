@@ -29,7 +29,10 @@
 	$effect(() => {
 		if (!session.client) return;
 		if (session.isAdmin) {
-			session.api.users().then((u) => (users = u)).catch(() => (users = []));
+			session.api
+				.users()
+				.then((u) => (users = u))
+				.catch(() => (users = []));
 		}
 	});
 
@@ -65,7 +68,7 @@
 
 	$effect(() => {
 		if (!session.client) return;
-		const _ = selectedUserId;
+		void selectedUserId;
 		untrack(() => load(0));
 	});
 
@@ -143,7 +146,9 @@
 			<p class="muted admin-viewing-subtitle">
 				<span class="admin-badge">{i18n.m.stats.adminBadge}</span>
 				<span>{i18n.m.stats.viewingUser(selectedUser.username)}</span>
-				<button type="button" class="link-btn" onclick={() => (selectedUserId = null)}>{i18n.m.stats.resetToMe}</button>
+				<button type="button" class="link-btn" onclick={() => (selectedUserId = null)}
+					>{i18n.m.stats.resetToMe}</button
+				>
 			</p>
 		{:else}
 			<p class="muted intro">{t.intro}</p>
@@ -151,15 +156,21 @@
 	</div>
 	<div class="actions">
 		{#if session.isAdmin && users.length > 1}
+			<label for="admin-user-select-history" class="sr-only">{i18n.m.stats.adminUserSelect}</label>
 			<select
+				id="admin-user-select-history"
 				class="select-user"
+				aria-label={i18n.m.stats.adminUserSelect}
 				value={selectedUserId ?? ''}
 				onchange={(e) => (selectedUserId = e.currentTarget.value || null)}
 			>
 				<option value="">👤 {i18n.m.stats.viewingSelf} ({session.user?.username})</option>
 				{#each users as u (u.id)}
 					{#if u.id !== session.user?.id}
-						<option value={u.id}>👥 {u.username} {u.type === 'root' || u.type === 'admin' ? `(${u.type})` : ''}</option>
+						<option value={u.id}
+							>👥 {u.username}
+							{u.type === 'root' || u.type === 'admin' ? `(${u.type})` : ''}</option
+						>
 					{/if}
 				{/each}
 			</select>

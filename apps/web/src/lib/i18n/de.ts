@@ -487,7 +487,8 @@ export const de: Messages = {
 		spin: 'Drehende Schallplatte',
 		spinHint: 'Die Platte dreht sich, solange ein Buch läuft.',
 		haptics: 'Haptisches Feedback',
-		hapticsHint: 'Feine Vibrationen für Nadelaufsetzen, Plattenkisten-Stöbern und Tonarm-Scrubbing.',
+		hapticsHint:
+			'Feine Vibrationen für Nadelaufsetzen, Plattenkisten-Stöbern und Tonarm-Scrubbing.',
 		coverSize: 'Covergröße',
 		coverSizes: { sm: 'Klein', md: 'Mittel', lg: 'Groß' },
 		navItems: 'Navigationsleiste',

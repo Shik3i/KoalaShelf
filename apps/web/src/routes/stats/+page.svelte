@@ -1,7 +1,12 @@
 <script lang="ts">
 	/* eslint-disable svelte/prefer-svelte-reactivity -- local date math inside $derived, not state */
 	import EmptyState from '#lib/components/EmptyState.svelte';
-	import type { LibraryItem, ListeningStats, ListeningSession, ServerUser } from '@koalashelf/abs-client';
+	import type {
+		LibraryItem,
+		ListeningStats,
+		ListeningSession,
+		ServerUser
+	} from '@koalashelf/abs-client';
 	import { coverSrc } from '#lib/items.ts';
 	import { session } from '#lib/session.svelte.ts';
 	import { i18n } from '#lib/i18n/index.svelte.ts';
@@ -29,7 +34,10 @@
 	$effect(() => {
 		if (!session.client) return;
 		if (session.isAdmin) {
-			session.api.users().then((u) => (users = u)).catch(() => (users = []));
+			session.api
+				.users()
+				.then((u) => (users = u))
+				.catch(() => (users = []));
 		}
 	});
 
@@ -178,7 +186,9 @@
 			<p class="muted admin-viewing-subtitle">
 				<span class="admin-badge">{t.adminBadge}</span>
 				<span>{t.viewingUser(selectedUser.username)}</span>
-				<button type="button" class="link-btn" onclick={() => (selectedUserId = null)}>{t.resetToMe}</button>
+				<button type="button" class="link-btn" onclick={() => (selectedUserId = null)}
+					>{t.resetToMe}</button
+				>
 			</p>
 		{/if}
 	</div>
@@ -188,13 +198,17 @@
 			<select
 				id="admin-user-select"
 				class="select-user"
+				aria-label={t.adminUserSelect}
 				value={selectedUserId ?? ''}
 				onchange={(e) => (selectedUserId = e.currentTarget.value || null)}
 			>
 				<option value="">👤 {t.viewingSelf} ({session.user?.username})</option>
 				{#each users as u (u.id)}
 					{#if u.id !== session.user?.id}
-						<option value={u.id}>👥 {u.username} {u.type === 'root' || u.type === 'admin' ? `(${u.type})` : ''}</option>
+						<option value={u.id}
+							>👥 {u.username}
+							{u.type === 'root' || u.type === 'admin' ? `(${u.type})` : ''}</option
+						>
 					{/if}
 				{/each}
 			</select>

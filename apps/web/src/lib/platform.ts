@@ -59,10 +59,16 @@ export interface ElectronBridge {
 }
 
 export function getElectron(): ElectronBridge | null {
-	if (typeof window !== 'undefined' && (window as unknown as { electron?: ElectronBridge }).electron) {
+	if (
+		typeof window !== 'undefined' &&
+		(window as unknown as { electron?: ElectronBridge }).electron
+	) {
 		return (window as unknown as { electron?: ElectronBridge }).electron!;
 	}
-	if (typeof globalThis !== 'undefined' && (globalThis as unknown as { electron?: ElectronBridge }).electron) {
+	if (
+		typeof globalThis !== 'undefined' &&
+		(globalThis as unknown as { electron?: ElectronBridge }).electron
+	) {
 		return (globalThis as unknown as { electron?: ElectronBridge }).electron!;
 	}
 	return null;
@@ -120,7 +126,8 @@ export function apiFetch(): Promise<FetchFn> {
 	const netFetch = electron?.netFetch;
 	if (netFetch) {
 		const desktopFetch: FetchFn = async (input, init) => {
-			const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+			const url =
+				typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
 			let body: string | undefined;
 			if (typeof init?.body === 'string') {
 				body = init.body;

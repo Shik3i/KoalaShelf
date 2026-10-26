@@ -2,7 +2,9 @@ package net.koalastuff.koalashelf.core.player
 
 import android.media.audiofx.Equalizer
 import android.media.audiofx.LoudnessEnhancer
+import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import net.koalastuff.koalashelf.core.data.prefs.KoalaPrefs
 
 import kotlin.math.roundToInt
@@ -12,6 +14,7 @@ import kotlin.math.roundToInt
  * - `LoudnessEnhancer` for volume boost and leveling/commute dynamics.
  * - `Equalizer` for voice boost, high-pass rumble reduction, and night whisper EQ curves.
  */
+@OptIn(UnstableApi::class)
 class AudioEffectsController {
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var equalizer: Equalizer? = null
