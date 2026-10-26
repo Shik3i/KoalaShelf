@@ -37,6 +37,7 @@
     "target": ["AppImage", "deb", "rpm"],
     "icon": "resources/icons",
     "category": "Audio",
-    "executableName": "koalashelf"
+    "executableName": "koalashelf",
+    "maintainer": "KoalaShelf Contributors <contact@koalashelf.dev>"
   }
 }

@@ -2,6 +2,8 @@
   "name": "@koalashelf/desktop",
   "version": "1.1.0",
   "description": "KoalaShelf Desktop – private client for Audiobookshelf",
+  "author": "KoalaShelf Contributors <contact@koalashelf.dev>",
+  "homepage": "https://github.com/Shik3i/KoalaShelf",
   "license": "MIT",
   "private": true,
   "type": "module",
