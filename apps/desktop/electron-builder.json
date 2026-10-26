@@ -37,6 +37,6 @@
     "target": ["AppImage", "deb", "rpm"],
     "icon": "resources/icons",
     "category": "Audio",
-    "desktopName": "koalashelf.desktop"
+    "executableName": "koalashelf"
   }
 }
