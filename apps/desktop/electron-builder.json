@@ -3,6 +3,7 @@
   "appId": "net.koalastuff.koalashelf",
   "productName": "KoalaShelf",
   "executableName": "koalashelf",
+  "artifactName": "${productName}-${version}.${ext}",
   "copyright": "Copyright © 2026 KoalaShelf contributors",
   "directories": {
     "output": "dist-release",
@@ -38,6 +39,7 @@
     "icon": "resources/icons",
     "category": "Audio",
     "executableName": "koalashelf",
-    "maintainer": "KoalaShelf Contributors <contact@koalashelf.dev>"
+    "maintainer": "KoalaShelf Contributors <contact@koalashelf.dev>",
+    "artifactName": "${productName}-${version}.${ext}"
   }
 }
