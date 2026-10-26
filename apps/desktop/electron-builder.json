@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "net.koalastuff.koalashelf",
   "productName": "KoalaShelf",
+  "executableName": "koalashelf",
   "copyright": "Copyright © 2026 KoalaShelf contributors",
   "directories": {
     "output": "dist-release",
@@ -35,6 +36,7 @@
   "linux": {
     "target": ["AppImage", "deb", "rpm"],
     "icon": "resources/icons",
-    "category": "Audio"
+    "category": "Audio",
+    "desktopName": "koalashelf.desktop"
   }
 }
