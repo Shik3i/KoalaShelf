@@ -15,7 +15,10 @@ class RealServerIntegrationTest {
         org.junit.Assume.assumeTrue("Local test server at $baseUrl not reachable, skipping integration test", status != null)
         println("Status: $status")
 
-        val loginRes = login(baseUrl, "koala", "51PNL-NzK481S3Nn", client)
+        val testUser = System.getenv("ABS_TEST_USER") ?: "koala"
+        val testPassword = System.getenv("ABS_TEST_PASSWORD") ?: ""
+        org.junit.Assume.assumeTrue("ABS_TEST_PASSWORD not set, skipping integration test", testPassword.isNotBlank())
+        val loginRes = login(baseUrl, testUser, testPassword, client)
         println("Login success: user=${loginRes.user.username}, library=${loginRes.userDefaultLibraryId}")
         val tokens = Tokens(loginRes.user.accessToken, loginRes.user.refreshToken)
 

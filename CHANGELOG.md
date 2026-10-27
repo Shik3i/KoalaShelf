@@ -1,5 +1,25 @@
 # Changelog
 
+## Web 1.1.1
+
+- **Atomic Library Preload on Sign-In**: Prefetches accessible book libraries before activating the client session, preventing transient null-library states during navigation from `/signin` to the home dashboard.
+- **Defensive Metadata & Cover Resolution**: Hardened `view()` and `coverSrc()` against sparse or incomplete Audiobookshelf server payloads (missing `authors`, `narrators`, `series`, or `coverPath`), avoiding unnecessary 404 cover requests and runtime exceptions.
+- **Extended Desktop Media Bridge**: Added `prev-chapter` and `next-chapter` IPC media command handling in the audio player engine.
+
+## Desktop 1.1.1
+
+- **System Tray Chapter Navigation**: Added direct Previous Chapter and Next Chapter controls to the OS taskbar tray menu alongside Play/Pause and 30-second skip actions.
+- **Clean Shutdown & Resource Hygiene**: Automatically releases active `powerSaveBlocker` instances and destroys system tray handles on application exit (`will-quit`), while routing diagnostic logs to `userData` instead of the installation directory.
+- **Synchronized Web 1.1.1 Engine**: Includes atomic library preload on sign-in and defensive metadata normalization.
+
+## Android 1.1.1
+
+- **Definitive Post-Login Freeze & Cancellation Fix**: Executed `signIn`, `restore`, and `switchTo` on `Dispatchers.IO` with `NonCancellable` and resolved libraries + user profile before emitting `_activeAccount`, eliminating `LeftCompositionCancellationException` when `SignInScreen` leaves the composition.
+- **R8 / ProGuard Serialization Hardening**: Preserved Kotlin `Metadata`, generic `Signature` attributes, `**$$serializer`, `$Companion`, `KSerializer`, and Guava `ListenableFuture` classes in release builds, and added safe default values across all network DTOs.
+- **Authenticated Cover URLs & 404 Prevention**: Appended access token query authentication (`token=...`) for cover and author artwork requests and gated remote cover loading on `item.hasCover`.
+- **Media3 System Controls & Android Auto Browse Tree**: Added full `Player.COMMAND_*` support on `ForwardingPlayer`, registered `MediaButtonReceiver`, supported `isRecent` resumption, and expanded the Android Auto browse tree with Series and Authors navigation.
+- **Smooth Compose Animations & Main-Thread I/O Removal**: Added directional screen transitions, animated player drawers and progress rings (respecting `reducedMotion`), replaced eager chapter loops with lazy `itemsIndexed`, switched all state collection to `collectAsStateWithLifecycle()`, and moved all repository/JSON/Room operations to `Dispatchers.IO`.
+
 ## Web 1.1.0
 
 - **Server-Admin User Statistics & History**: Server administrators (`root` or `admin`) can view listening statistics, year summaries, and listening sessions across all registered server users via an interactive user selector.

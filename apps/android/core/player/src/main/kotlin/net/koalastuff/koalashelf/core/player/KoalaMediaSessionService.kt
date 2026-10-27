@@ -214,6 +214,8 @@ class KoalaMediaSessionService : MediaLibraryService() {
                                 buildFolderItem(MEDIA_ID_CONTINUE, "Continue Listening", "Resume your recent audiobooks"),
                                 buildFolderItem(MEDIA_ID_DOWNLOADED, "Downloaded", "Offline listening on the road"),
                                 buildFolderItem(MEDIA_ID_RECENT, "Recently Added", "Newest audiobooks in your shelf"),
+                                buildFolderItem(MEDIA_ID_SERIES, "Series", "Browse audiobooks by series"),
+                                buildFolderItem(MEDIA_ID_AUTHORS, "Authors", "Browse audiobooks by author"),
                             )
                         }
                         MEDIA_ID_CONTINUE -> {
@@ -256,7 +258,66 @@ class KoalaMediaSessionService : MediaLibraryService() {
                             }
                             list
                         }
-                        else -> emptyList()
+                        MEDIA_ID_SERIES -> {
+                            val activeLibId = sessionRepository.activeLibraryId.value
+                            if (!activeLibId.isNullOrBlank()) {
+                                runCatching {
+                                    libraryRepository.getSeriesList(activeLibId).map { series ->
+                                        buildFolderItem(
+                                            id = "$MEDIA_ID_SERIES_PREFIX${series.id}",
+                                            title = series.name.ifBlank { "Untitled Series" },
+                                            subtitle = if (series.books.isNotEmpty()) "${series.books.size} books" else null,
+                                        )
+                                    }
+                                }.getOrDefault(emptyList())
+                            } else {
+                                emptyList()
+                            }
+                        }
+                        MEDIA_ID_AUTHORS -> {
+                            val activeLibId = sessionRepository.activeLibraryId.value
+                            if (!activeLibId.isNullOrBlank()) {
+                                runCatching {
+                                    libraryRepository.getAuthors(activeLibId).map { author ->
+                                        val count = author.numBooks ?: 0
+                                        buildFolderItem(
+                                            id = "$MEDIA_ID_AUTHOR_PREFIX${author.id}",
+                                            title = author.name.ifBlank { "Unknown Author" },
+                                            subtitle = if (count > 0) "$count books" else null,
+                                        )
+                                    }
+                                }.getOrDefault(emptyList())
+                            } else {
+                                emptyList()
+                            }
+                        }
+                        else -> when {
+                            parentId.startsWith(MEDIA_ID_SERIES_PREFIX) -> {
+                                val seriesId = parentId.removePrefix(MEDIA_ID_SERIES_PREFIX)
+                                val activeLibId = sessionRepository.activeLibraryId.value
+                                if (!activeLibId.isNullOrBlank() && seriesId.isNotBlank()) {
+                                    runCatching {
+                                        val (_, books) = libraryRepository.getSeriesDetail(activeLibId, seriesId)
+                                        books.map { buildBookItem(it) }
+                                    }.getOrDefault(emptyList())
+                                } else {
+                                    emptyList()
+                                }
+                            }
+                            parentId.startsWith(MEDIA_ID_AUTHOR_PREFIX) -> {
+                                val authorId = parentId.removePrefix(MEDIA_ID_AUTHOR_PREFIX)
+                                val activeLibId = sessionRepository.activeLibraryId.value
+                                if (!activeLibId.isNullOrBlank() && authorId.isNotBlank()) {
+                                    runCatching {
+                                        val detail = libraryRepository.getAuthorDetail(authorId, activeLibId)
+                                        detail?.libraryItems?.map { buildBookItem(it) }.orEmpty()
+                                    }.getOrDefault(emptyList())
+                                } else {
+                                    emptyList()
+                                }
+                            }
+                            else -> emptyList()
+                        }
                     }
                     LibraryResult.ofItemList(ImmutableList.copyOf(items), params)
                 }
@@ -402,5 +463,9 @@ class KoalaMediaSessionService : MediaLibraryService() {
         const val MEDIA_ID_CONTINUE = "koala_continue"
         const val MEDIA_ID_DOWNLOADED = "koala_downloaded"
         const val MEDIA_ID_RECENT = "koala_recent"
+        const val MEDIA_ID_SERIES = "koala_series"
+        const val MEDIA_ID_AUTHORS = "koala_authors"
+        const val MEDIA_ID_SERIES_PREFIX = "koala_series:"
+        const val MEDIA_ID_AUTHOR_PREFIX = "koala_author:"
     }
 }

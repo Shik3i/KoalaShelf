@@ -234,6 +234,12 @@ class Player {
 					case 'skip-forward':
 						this.skip(prefs.skipForward);
 						break;
+					case 'prev-chapter':
+						this.prevChapter();
+						break;
+					case 'next-chapter':
+						this.nextChapter();
+						break;
 					case 'stop':
 						this.pause();
 						break;

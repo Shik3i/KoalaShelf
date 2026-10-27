@@ -8,10 +8,13 @@ import { secureStorage } from './storage.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const logFile = join(__dirname, '../../debug.log');
 function log(msg: string) {
   const line = `[${new Date().toISOString()}] ${msg}\n`;
-  try { appendFileSync(logFile, line); } catch {}
+  try {
+    if (app.isReady()) {
+      appendFileSync(join(app.getPath('userData'), 'debug.log'), line);
+    }
+  } catch {}
   console.log(msg);
 }
 
@@ -24,11 +27,21 @@ process.on('unhandledRejection', (reason) => {
 });
 
 let isQuitting = false;
-app.on('before-quit', (e) => {
+app.on('before-quit', () => {
   isQuitting = true;
   log('app event: before-quit');
 });
-app.on('will-quit', (e) => log('app event: will-quit'));
+app.on('will-quit', () => {
+  log('app event: will-quit');
+  if (sleepBlockerId !== null && powerSaveBlocker.isStarted(sleepBlockerId)) {
+    powerSaveBlocker.stop(sleepBlockerId);
+    sleepBlockerId = null;
+  }
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+});
 app.on('quit', (e, code) => log(`app event: quit (exitCode: ${code})`));
 
 log('Electron main process starting...');
@@ -253,6 +266,22 @@ function updateTrayMenu(): void {
       click: () => {
         const target = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : miniWindow;
         target?.webContents.send('media:command', 'skip-forward');
+      }
+    },
+    {
+      label: 'Vorheriges Kapitel',
+      enabled: !!currentMediaState,
+      click: () => {
+        const target = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : miniWindow;
+        target?.webContents.send('media:command', 'prev-chapter');
+      }
+    },
+    {
+      label: 'Nächstes Kapitel',
+      enabled: !!currentMediaState,
+      click: () => {
+        const target = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : miniWindow;
+        target?.webContents.send('media:command', 'next-chapter');
       }
     },
     { type: 'separator' },

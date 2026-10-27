@@ -43,7 +43,9 @@ export interface ElectronBridge {
 			duration: number;
 		}) => void;
 		onMediaCommand?: (
-			callback: (cmd: 'play-pause' | 'skip-back' | 'skip-forward' | 'stop') => void
+			callback: (
+				cmd: 'play-pause' | 'skip-back' | 'skip-forward' | 'prev-chapter' | 'next-chapter' | 'stop'
+			) => void
 		) => () => void;
 	};
 	netFetch?: (

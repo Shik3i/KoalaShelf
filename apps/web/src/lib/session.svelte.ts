@@ -327,13 +327,35 @@ class Session {
 		if (isDesktop) {
 			await vault.set(`ks.tokens.${key}`, JSON.stringify(tokens));
 		}
+		const existingAccount = this.accounts.find((a) => a.key === key);
+		const initialLibraryId = existingAccount?.libraryId ?? res.userDefaultLibraryId ?? null;
+		const prefetchClient = new AbsClient({
+			baseUrl,
+			fetch: this.#fetch,
+			tokens
+		});
+		let prefetchedLibs: Library[] | undefined;
+		try {
+			const rawLibs = await prefetchClient.libraries();
+			prefetchedLibs = rawLibs
+				.filter((l) => l.mediaType === 'book')
+				.sort((a, b) => a.displayOrder - b.displayOrder);
+		} catch {
+			prefetchedLibs = existingAccount?.libraries;
+		}
+		const resolvedLibraryId = prefetchedLibs
+			? prefetchedLibs.some((l) => l.id === initialLibraryId)
+				? initialLibraryId
+				: (prefetchedLibs[0]?.id ?? null)
+			: initialLibraryId;
+
 		const account: SavedAccount = {
 			key,
 			baseUrl,
 			user: { id: res.user.id, username: res.user.username, type: res.user.type },
 			tokens,
-			libraryId:
-				this.accounts.find((a) => a.key === key)?.libraryId ?? res.userDefaultLibraryId ?? null,
+			libraryId: resolvedLibraryId,
+			libraries: prefetchedLibs,
 			lastUsed: Date.now()
 		};
 		this.#leave();
@@ -341,12 +363,16 @@ class Session {
 		this.activeKey = key;
 		this.expired = false;
 		this.#enter(account);
-		this.#persist();
-		try {
-			await this.#loadLibraries();
-		} finally {
-			this.#persist();
+		if (prefetchedLibs !== undefined) {
+			this.librariesLoaded = true;
+		} else {
+			try {
+				await this.#loadLibraries();
+			} catch {
+				/* offline fallback */
+			}
 		}
+		this.#persist();
 	}
 
 	/** Makes another saved account the active one. False when it needs its password again. */
