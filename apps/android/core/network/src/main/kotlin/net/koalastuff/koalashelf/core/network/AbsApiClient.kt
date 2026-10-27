@@ -299,12 +299,16 @@ class AbsApiClient(
 
     fun coverUrl(itemId: String, width: Int = 400, updatedAt: Long? = null): String {
         val tsPart = if (updatedAt != null && updatedAt > 0L) "&ts=$updatedAt" else ""
-        return "${this.baseUrl}/api/items/$itemId/cover?width=$width&format=webp$tsPart"
+        val tokenPart = tokens.accessToken.takeIf { it.isNotBlank() }
+            ?.let { "&token=${it.encodeURLQueryComponent()}" } ?: ""
+        return "${this.baseUrl}/api/items/$itemId/cover?width=$width&format=webp$tsPart$tokenPart"
     }
 
     fun authorImageUrl(authorId: String, width: Int = 200, updatedAt: Long? = null): String {
         val tsPart = if (updatedAt != null && updatedAt > 0L) "&ts=$updatedAt" else ""
-        return "${this.baseUrl}/api/authors/$authorId/image?width=$width&format=webp$tsPart"
+        val tokenPart = tokens.accessToken.takeIf { it.isNotBlank() }
+            ?.let { "&token=${it.encodeURLQueryComponent()}" } ?: ""
+        return "${this.baseUrl}/api/authors/$authorId/image?width=$width&format=webp$tsPart$tokenPart"
     }
 
     fun downloadUrl(itemId: String): String {

@@ -1,5 +1,13 @@
 package net.koalastuff.koalashelf.feature.library
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -363,101 +371,112 @@ fun AuthorsScreen(
             )
         }
 
-        if (selectedTab == 0) {
-            val filteredAuthors = remember(authors, query) {
-                val q = query.trim().lowercase()
-                if (q.isEmpty()) authors else authors.filter { it.name.lowercase().contains(q) }
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 160.dp),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(filteredAuthors, key = { it.id }) { author ->
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = colors.card,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, colors.line, RoundedCornerShape(14.dp))
-                            .clickable { onOpenAuthor(author.id, author.name) },
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        AnimatedContent(
+            targetState = selectedTab,
+            transitionSpec = {
+                fadeIn(tween(180)) togetherWith fadeOut(tween(140))
+            },
+            modifier = Modifier.fillMaxSize(),
+            label = "authors_narrators_tab_transition",
+        ) { tab ->
+            if (tab == 0) {
+                val filteredAuthors = remember(authors, query) {
+                    val q = query.trim().lowercase()
+                    if (q.isEmpty()) authors else authors.filter { it.name.lowercase().contains(q) }
+                }
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(filteredAuthors, key = { it.id }) { author ->
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = colors.card,
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth()
+                                .border(1.dp, colors.line, RoundedCornerShape(14.dp))
+                                .clickable { onOpenAuthor(author.id, author.name) },
                         ) {
-                            AuthorPortrait(
-                                name = author.name,
-                                size = 48.dp,
-                            )
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text(
-                                    text = author.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                AuthorPortrait(
+                                    name = author.name,
+                                    size = 48.dp,
                                 )
-                                Text(
-                                    text = strings.booksCount(author.numBooks ?: 0),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.muted,
-                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = author.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = strings.booksCount(author.numBooks ?: 0),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.muted,
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
-        } else {
-            val filteredNarrators = remember(narrators, query) {
-                val q = query.trim().lowercase()
-                if (q.isEmpty()) narrators else narrators.filter { it.name.lowercase().contains(q) }
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 160.dp),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(filteredNarrators, key = { it.name }) { narrator ->
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = colors.card,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .border(1.dp, colors.line, RoundedCornerShape(14.dp))
-                            .clickable { onSelectNarratorBooks(narrator.name) },
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            } else {
+                val filteredNarrators = remember(narrators, query) {
+                    val q = query.trim().lowercase()
+                    if (q.isEmpty()) narrators else narrators.filter { it.name.lowercase().contains(q) }
+                }
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(filteredNarrators, key = { it.name }) { narrator ->
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = colors.card,
+                            modifier = Modifier
+                                .animateItem()
+                                .fillMaxWidth()
+                                .border(1.dp, colors.line, RoundedCornerShape(14.dp))
+                                .clickable { onSelectNarratorBooks(narrator.name) },
                         ) {
-                            AuthorPortrait(
-                                name = narrator.name,
-                                size = 48.dp,
-                            )
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text(
-                                    text = narrator.name,
-                                    style = MaterialTheme.typography.titleMedium,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
+                                AuthorPortrait(
+                                    name = narrator.name,
+                                    size = 48.dp,
                                 )
-                                Text(
-                                    text = strings.booksCount(narrator.numBooks),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.muted,
-                                )
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                                ) {
+                                    Text(
+                                        text = narrator.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        text = strings.booksCount(narrator.numBooks),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.muted,
+                                    )
+                                }
                             }
                         }
                     }
@@ -1810,7 +1829,11 @@ fun SettingsScreen(
                     }
                 }
 
-                if (prefs.accent == KoalaAccentPreset.CUSTOM.id) {
+                AnimatedVisibility(
+                    visible = prefs.accent == KoalaAccentPreset.CUSTOM.id,
+                    enter = expandVertically(tween(200)) + fadeIn(tween(180)),
+                    exit = shrinkVertically(tween(160)) + fadeOut(tween(140)),
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),

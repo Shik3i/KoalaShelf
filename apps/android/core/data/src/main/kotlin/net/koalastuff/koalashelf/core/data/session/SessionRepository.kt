@@ -8,14 +8,17 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import net.koalastuff.koalashelf.core.network.AbsApiClient
@@ -155,11 +158,11 @@ class SessionRepository(
         model = Build.MODEL,
     )
 
-    suspend fun probeServer(serverUrl: String): ServerStatus {
-        return getServerStatus(normalizeBaseUrl(serverUrl), httpClient)
+    suspend fun probeServer(serverUrl: String): ServerStatus = withContext(Dispatchers.IO) {
+        getServerStatus(normalizeBaseUrl(serverUrl), httpClient)
     }
 
-    suspend fun restore() {
+    suspend fun restore() = withContext(Dispatchers.IO) {
         val prefs = context.accountsDataStore.data.first()
         val raw = prefs[KEY_ACCOUNTS_JSON]
         val stored = if (raw != null) {
@@ -184,54 +187,84 @@ class SessionRepository(
         _ready.value = true
     }
 
-    suspend fun signIn(serverUrl: String, username: String, password: String): SavedAccount {
+    suspend fun signIn(serverUrl: String, username: String, password: String): SavedAccount = withContext(Dispatchers.IO) {
         val baseUrl = normalizeBaseUrl(serverUrl)
         val status = getServerStatus(baseUrl, httpClient)
         if (!isVersionAtLeast(status.serverVersion, MIN_SERVER_VERSION)) {
             throw ServerTooOldException(status.serverVersion, MIN_SERVER_VERSION)
         }
         val res = login(baseUrl, username.trim(), password, httpClient)
-        val key = "$baseUrl|${res.user.id}"
-        val existingLibId = _accounts.value.find { it.key == key }?.libraryId
-        val account = SavedAccount(
-            key = key,
-            baseUrl = baseUrl,
-            user = AccountUser(id = res.user.id, username = res.user.username, type = res.user.type),
-            tokens = Tokens(
+        withContext(NonCancellable) {
+            val key = "$baseUrl|${res.user.id}"
+            val tokens = Tokens(
                 accessToken = res.user.accessToken,
                 refreshToken = res.user.refreshToken,
-            ),
-            libraryId = existingLibId ?: res.userDefaultLibraryId,
-            libraries = _accounts.value.find { it.key == key }?.libraries ?: emptyList(),
-            lastUsed = System.currentTimeMillis(),
-        )
+            )
+            val existingAccount = _accounts.value.find { it.key == key }
+            val probeClient = AbsApiClient(
+                baseUrl = baseUrl,
+                initialTokens = tokens,
+                httpClient = httpClient,
+            )
+            val fetchedLibs = runCatching {
+                val allLibs = probeClient.libraries()
+                val bookLibs = allLibs.filter { it.mediaType == "book" }.sortedBy { it.displayOrder }
+                bookLibs.ifEmpty { allLibs.sortedBy { it.displayOrder } }
+            }.getOrElse { existingAccount?.libraries ?: emptyList() }
 
-        leaveCurrentAccount()
-        val updatedList = listOf(account) + _accounts.value.filterNot { it.key == key }
-        _accounts.value = updatedList
-        _activeKey.value = key
-        _expired.value = false
-        _recentServers.value = (listOf(baseUrl) + _recentServers.value.filterNot { it == baseUrl }).take(6)
+            val meUser = runCatching { probeClient.me() }.getOrNull()
+            val candidateLibId = existingAccount?.libraryId ?: res.userDefaultLibraryId
+            val resolvedLibId = if (fetchedLibs.isNotEmpty() && fetchedLibs.none { it.id == candidateLibId }) {
+                fetchedLibs.first().id
+            } else {
+                candidateLibId ?: fetchedLibs.firstOrNull()?.id
+            }
 
-        enterAccount(account)
-        runCatching { refreshLibrariesAndMe() }
-        persist()
-        return _activeAccount.value ?: account
+            val resolvedType = meUser?.type?.ifBlank { res.user.type } ?: res.user.type
+            val account = SavedAccount(
+                key = key,
+                baseUrl = baseUrl,
+                user = AccountUser(id = res.user.id, username = res.user.username, type = resolvedType),
+                tokens = tokens,
+                libraryId = resolvedLibId,
+                libraries = fetchedLibs,
+                lastUsed = System.currentTimeMillis(),
+            )
+
+            leaveCurrentAccount()
+            val updatedList = listOf(account) + _accounts.value.filterNot { it.key == key }
+            _accounts.value = updatedList
+            _activeKey.value = key
+            _expired.value = false
+            _recentServers.value = (listOf(baseUrl) + _recentServers.value.filterNot { it == baseUrl }).take(6)
+
+            val perms = meUser?.permissions ?: res.user.permissions
+            _canDownload.value = perms?.download != false
+            _canUpdate.value = resolvedType != "guest" && perms?.update == true
+            _canDelete.value = resolvedType != "guest" && perms?.delete == true
+
+            enterAccount(account)
+            if (fetchedLibs.isEmpty()) {
+                runCatching { refreshLibrariesAndMe() }
+            }
+            persist()
+            _activeAccount.value ?: account
+        }
     }
 
-    suspend fun switchTo(key: String): Boolean {
-        if (key == _activeKey.value && apiClient != null) return true
-        val target = _accounts.value.find { it.key == key } ?: return false
-        if (target.tokens == null) return false
+    suspend fun switchTo(key: String): Boolean = withContext(Dispatchers.IO + NonCancellable) {
+        if (key == _activeKey.value && apiClient != null) return@withContext true
+        val target = _accounts.value.find { it.key == key } ?: return@withContext false
+        if (target.tokens == null) return@withContext false
 
         leaveCurrentAccount()
         val updatedTarget = target.copy(lastUsed = System.currentTimeMillis())
         _accounts.value = _accounts.value.map { if (it.key == key) updatedTarget else it }
         _activeKey.value = key
         enterAccount(updatedTarget)
-        persist()
         runCatching { refreshLibrariesAndMe() }
-        return apiClient != null
+        persist()
+        apiClient != null
     }
 
     suspend fun signOut() {

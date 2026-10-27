@@ -1,5 +1,11 @@
 package net.koalastuff.koalashelf.feature.home
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -201,7 +207,7 @@ fun HomeScreen(
 
         // Hero "Continue Listening" Card with TurntableDeck (`+page.svelte`)
         if (heroBook != null) {
-            item {
+            item(key = "hero_${heroBook.id}") {
                 val prog = progressMap[heroBook.id] ?: heroBook.userMediaProgress
                 val fraction = (prog?.progress ?: 0.0).toFloat().coerceIn(0f, 1f)
                 val currentSec = prog?.currentTime ?: (heroBook.durationSeconds * fraction)
@@ -213,6 +219,7 @@ fun HomeScreen(
                     shape = RoundedCornerShape(22.dp),
                     color = colors.card,
                     modifier = Modifier
+                        .animateItem()
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                         .border(1.dp, colors.line, RoundedCornerShape(22.dp))
@@ -311,18 +318,28 @@ fun HomeScreen(
                                     contentColor = colors.onAccent,
                                 ),
                             ) {
-                                Icon(
-                                    imageVector = if (isHeroPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                                Spacer(Modifier.width(6.dp))
-                                val btnText = if (isHeroPlaying) {
-                                    strings.playerPause
-                                } else {
-                                    strings.bookResumeAt(formatClock(currentSec))
+                                AnimatedContent(
+                                    targetState = isHeroPlaying,
+                                    transitionSpec = {
+                                        fadeIn(tween(150)) togetherWith fadeOut(tween(120))
+                                    },
+                                    label = "hero_play_button",
+                                ) { playingHero ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = if (playingHero) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                        Spacer(Modifier.width(6.dp))
+                                        val btnText = if (playingHero) {
+                                            strings.playerPause
+                                        } else {
+                                            strings.bookResumeAt(formatClock(currentSec))
+                                        }
+                                        Text(btnText, style = MaterialTheme.typography.bodySmall)
+                                    }
                                 }
-                                Text(btnText, style = MaterialTheme.typography.bodySmall)
                             }
                         }
                     }
@@ -588,8 +605,13 @@ private fun GoalRingBadge(
 ) {
     val colors = KoalaTheme.colors
     val todayMin = (todaySeconds / 60.0).roundToInt()
-    val progress = if (goalMinutes > 0) (todaySeconds / (goalMinutes * 60.0)).toFloat().coerceIn(0f, 1f) else 0f
-    val reached = progress >= 1f
+    val rawProgress = if (goalMinutes > 0) (todaySeconds / (goalMinutes * 60.0)).toFloat().coerceIn(0f, 1f) else 0f
+    val progress by animateFloatAsState(
+        targetValue = rawProgress,
+        animationSpec = tween(durationMillis = 500),
+        label = "goal_ring_progress",
+    )
+    val reached = rawProgress >= 1f
 
     Surface(
         shape = RoundedCornerShape(999.dp),

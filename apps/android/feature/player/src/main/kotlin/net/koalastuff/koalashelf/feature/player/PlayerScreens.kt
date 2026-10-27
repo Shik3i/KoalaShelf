@@ -1,6 +1,16 @@
 package net.koalastuff.koalashelf.feature.player
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -71,13 +81,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -132,12 +142,11 @@ fun MiniPlayerBar(
     onExpand: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val item by playerController.item.collectAsState()
-    val activeItem = item ?: return
-    val playing by playerController.playing.collectAsState()
-    val currentTime by playerController.currentTime.collectAsState()
-    val duration by playerController.duration.collectAsState()
-    val chapters by playerController.chapters.collectAsState()
+    val item by playerController.item.collectAsStateWithLifecycle()
+    val playing by playerController.playing.collectAsStateWithLifecycle()
+    val currentTime by playerController.currentTime.collectAsStateWithLifecycle()
+    val duration by playerController.duration.collectAsStateWithLifecycle()
+    val chapters by playerController.chapters.collectAsStateWithLifecycle()
 
     val strings = currentKoalaStrings
     val colors = KoalaTheme.colors
@@ -150,95 +159,112 @@ fun MiniPlayerBar(
         (currentTime / duration).toFloat().coerceIn(0f, 1f)
     } else 0f
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(colors.panel)
-            .border(width = 1.dp, color = colors.line)
+    AnimatedVisibility(
+        visible = item != null,
+        enter = expandVertically(tween(240)) + fadeIn(tween(220)),
+        exit = shrinkVertically(tween(200)) + fadeOut(tween(180)),
+        modifier = modifier.fillMaxWidth(),
     ) {
-        LinearProgressIndicator(
-            progress = { progress },
+        val activeItem = item ?: return@AnimatedVisibility
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(3.dp),
-            color = colors.accent,
-            trackColor = colors.track,
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onExpand)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .background(colors.panel)
+                .border(width = 1.dp, color = colors.line)
         ) {
-            if (prefs.spin) {
-                VinylDisc(
-                    title = activeItem.title,
-                    author = activeItem.author,
-                    coverUrl = coverUrlProvider(activeItem),
-                    playing = playing,
-                    modifier = Modifier.size(46.dp),
-                )
-            } else {
-                BookCover(
-                    title = activeItem.title,
-                    author = activeItem.author,
-                    coverUrl = coverUrlProvider(activeItem),
-                    modifier = Modifier.size(46.dp),
-                    cornerRadius = 8.dp,
-                )
-            }
-
-            Spacer(Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = activeItem.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = colors.ink,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val subtitle = currentChapter?.title?.takeIf { it.isNotBlank() } ?: activeItem.author
-                Text(
-                    text = "$subtitle · ${formatClock(currentTime)} / ${formatClock(duration)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.muted,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-
-            IconButton(onClick = { playerController.back() }) {
-                Icon(
-                    imageVector = Icons.Default.FastRewind,
-                    contentDescription = strings.settingsSkipBack,
-                    tint = colors.ink,
-                )
-            }
-
-            Surface(
-                shape = CircleShape,
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp),
                 color = colors.accent,
-                contentColor = colors.onAccent,
-                modifier = Modifier.size(42.dp),
-                onClick = { playerController.toggle() },
+                trackColor = colors.track,
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onExpand)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (playing) strings.playerPause else strings.playerPlay,
+                if (prefs.spin) {
+                    VinylDisc(
+                        title = activeItem.title,
+                        author = activeItem.author,
+                        coverUrl = coverUrlProvider(activeItem),
+                        playing = playing,
+                        modifier = Modifier.size(46.dp),
+                    )
+                } else {
+                    BookCover(
+                        title = activeItem.title,
+                        author = activeItem.author,
+                        coverUrl = coverUrlProvider(activeItem),
+                        modifier = Modifier.size(46.dp),
+                        cornerRadius = 8.dp,
                     )
                 }
-            }
 
-            IconButton(onClick = { playerController.forward() }) {
-                Icon(
-                    imageVector = Icons.Default.FastForward,
-                    contentDescription = strings.settingsSkipForward,
-                    tint = colors.ink,
-                )
+                Spacer(Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = activeItem.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = colors.ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val subtitle = currentChapter?.title?.takeIf { it.isNotBlank() } ?: activeItem.author
+                    Text(
+                        text = "$subtitle · ${formatClock(currentTime)} / ${formatClock(duration)}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.muted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+
+                IconButton(onClick = { playerController.back() }) {
+                    Icon(
+                        imageVector = Icons.Default.FastRewind,
+                        contentDescription = strings.settingsSkipBack,
+                        tint = colors.ink,
+                    )
+                }
+
+                Surface(
+                    shape = CircleShape,
+                    color = colors.accent,
+                    contentColor = colors.onAccent,
+                    modifier = Modifier.size(42.dp),
+                    onClick = { playerController.toggle() },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        AnimatedContent(
+                            targetState = playing,
+                            transitionSpec = {
+                                (fadeIn(tween(150)) + scaleIn(initialScale = 0.75f, animationSpec = tween(150))) togetherWith
+                                    (fadeOut(tween(120)) + scaleOut(targetScale = 0.75f, animationSpec = tween(120)))
+                            },
+                            label = "mini_play_pause",
+                        ) { isPlayingNow ->
+                            Icon(
+                                imageVector = if (isPlayingNow) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlayingNow) strings.playerPause else strings.playerPlay,
+                            )
+                        }
+                    }
+                }
+
+                IconButton(onClick = { playerController.forward() }) {
+                    Icon(
+                        imageVector = Icons.Default.FastForward,
+                        contentDescription = strings.settingsSkipForward,
+                        tint = colors.ink,
+                    )
+                }
             }
         }
     }
@@ -254,21 +280,21 @@ fun FullPlayerSheet(
     onDismiss: () -> Unit,
     onOpenBookDetail: (String) -> Unit,
 ) {
-    val item by playerController.item.collectAsState()
+    val item by playerController.item.collectAsStateWithLifecycle()
     val activeItem = item ?: return
-    val playing by playerController.playing.collectAsState()
-    val currentTime by playerController.currentTime.collectAsState()
-    val duration by playerController.duration.collectAsState()
-    val chapters by playerController.chapters.collectAsState()
-    val bookmarks by playerController.bookmarks.collectAsState()
-    val rate by playerController.rate.collectAsState()
-    val sleep by playerController.sleep.collectAsState()
-    val sleepRemaining by playerController.sleepRemainingSeconds.collectAsState()
-    val lastJump by playerController.lastJump.collectAsState()
-    val prefs by prefsRepository.prefs.collectAsState()
-    val silenceSaved by prefsRepository.silenceSavedTotalSec.collectAsState()
-    val queueItems by queueRepository.items.collectAsState()
-    val remoteHandoff by playerController.remoteHandoff.collectAsState()
+    val playing by playerController.playing.collectAsStateWithLifecycle()
+    val currentTime by playerController.currentTime.collectAsStateWithLifecycle()
+    val duration by playerController.duration.collectAsStateWithLifecycle()
+    val chapters by playerController.chapters.collectAsStateWithLifecycle()
+    val bookmarks by playerController.bookmarks.collectAsStateWithLifecycle()
+    val rate by playerController.rate.collectAsStateWithLifecycle()
+    val sleep by playerController.sleep.collectAsStateWithLifecycle()
+    val sleepRemaining by playerController.sleepRemainingSeconds.collectAsStateWithLifecycle()
+    val lastJump by playerController.lastJump.collectAsStateWithLifecycle()
+    val prefs by prefsRepository.prefs.collectAsStateWithLifecycle()
+    val silenceSaved by prefsRepository.silenceSavedTotalSec.collectAsStateWithLifecycle()
+    val queueItems by queueRepository.items.collectAsStateWithLifecycle()
+    val remoteHandoff by playerController.remoteHandoff.collectAsStateWithLifecycle()
 
     val scope = rememberCoroutineScope()
     val strings = currentKoalaStrings
@@ -669,11 +695,20 @@ fun FullPlayerSheet(
                     onClick = { playerController.toggle() },
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (playing) strings.playerPause else strings.playerPlay,
-                            modifier = Modifier.size(34.dp),
-                        )
+                        AnimatedContent(
+                            targetState = playing,
+                            transitionSpec = {
+                                (fadeIn(tween(150)) + scaleIn(initialScale = 0.75f, animationSpec = tween(150))) togetherWith
+                                    (fadeOut(tween(120)) + scaleOut(targetScale = 0.75f, animationSpec = tween(120)))
+                            },
+                            label = "full_play_pause",
+                        ) { isPlayingNow ->
+                            Icon(
+                                imageVector = if (isPlayingNow) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlayingNow) strings.playerPause else strings.playerPlay,
+                                modifier = Modifier.size(34.dp),
+                            )
+                        }
                     }
                 }
 
@@ -741,82 +776,95 @@ fun FullPlayerSheet(
             Spacer(Modifier.height(12.dp))
 
             // Expandable Drawer Panel
-            AnimatedVisibility(visible = activePanel != PlayerPanel.NONE) {
+            AnimatedVisibility(
+                visible = activePanel != PlayerPanel.NONE,
+                enter = expandVertically(tween(240)) + fadeIn(tween(220)),
+                exit = shrinkVertically(tween(200)) + fadeOut(tween(180)),
+            ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = colors.card,
                     modifier = Modifier
                         .fillMaxWidth()
+                        .animateContentSize(animationSpec = tween(220))
                         .border(1.dp, colors.line, RoundedCornerShape(16.dp))
                         .padding(16.dp),
                 ) {
-                    when (activePanel) {
-                        PlayerPanel.SPEED -> SpeedPanel(
-                            currentRate = rate,
-                            isGerman = strings.isGerman,
-                            onRateChange = { playerController.setRate(it) },
-                        )
-                        PlayerPanel.SLEEP -> SleepTimerPanel(
-                            playerController = playerController,
-                            prefsRepository = prefsRepository,
-                            prefs = prefs,
-                            sleep = sleep,
-                            onOpenBedtime = { activePanel = PlayerPanel.BEDTIME },
-                        )
-                        PlayerPanel.SOUND -> SoundEnginePanel(
-                            prefs = prefs,
-                            silenceSavedSeconds = silenceSaved,
-                            onUpdatePrefs = { transform ->
-                                prefsRepository.update(transform)
-                                playerController.refreshSoundSettings()
-                            },
-                        )
-                        PlayerPanel.CHAPTERS -> ChaptersPanel(
-                            chapters = chapters,
-                            currentChapterIndex = currentChapterIndex,
-                            currentTime = currentTime,
-                            playbackRate = rate,
-                            onSeekTo = { target ->
-                                playerController.jump(
-                                    timeSeconds = target,
-                                    jumpedLabelFormat = { from -> strings.playerJumpedFrom(formatClock(from)) },
-                                    undoLabel = strings.playerJumpBack,
-                                )
-                            },
-                        )
-                        PlayerPanel.BOOKMARKS -> BookmarksPanel(
-                            bookmarks = bookmarks,
-                            onAddClick = {
-                                bookmarkNoteInput = currentChapter?.title ?: ""
-                                showBookmarkDialog = true
-                            },
-                            onJumpTo = { bm ->
-                                playerController.jump(
-                                    timeSeconds = bm.time,
-                                    jumpedLabelFormat = { from -> strings.playerJumpedFrom(formatClock(from)) },
-                                    undoLabel = strings.playerJumpBack,
-                                )
-                            },
-                            onDelete = { bm ->
-                                scope.launch { playerController.deleteBookmark(bm.time) }
-                            },
-                        )
-                        PlayerPanel.QUEUE -> QueuePanel(
-                            entries = queueItems,
-                            onPlayBook = { id -> playerController.play(id) },
-                            onMove = { id, delta -> queueRepository.move(id, delta) },
-                            onRemove = { id -> queueRepository.remove(id) },
-                            onClear = { queueRepository.clear() },
-                        )
-                        PlayerPanel.BEDTIME -> {
-                            BedtimeBlindGestureOverlay(
-                                playerController = playerController,
-                                playing = playing,
-                                sleepRemainingSeconds = sleepRemaining,
-                                onDismiss = { activePanel = PlayerPanel.NONE },
+                    AnimatedContent(
+                        targetState = activePanel,
+                        transitionSpec = {
+                            fadeIn(tween(180)) togetherWith fadeOut(tween(140))
+                        },
+                        label = "player_panel_transition",
+                    ) { panel ->
+                        when (panel) {
+                            PlayerPanel.SPEED -> SpeedPanel(
+                                currentRate = rate,
+                                isGerman = strings.isGerman,
+                                onRateChange = { playerController.setRate(it) },
                             )
+                            PlayerPanel.SLEEP -> SleepTimerPanel(
+                                playerController = playerController,
+                                prefsRepository = prefsRepository,
+                                prefs = prefs,
+                                sleep = sleep,
+                                onOpenBedtime = { activePanel = PlayerPanel.BEDTIME },
+                            )
+                            PlayerPanel.SOUND -> SoundEnginePanel(
+                                prefs = prefs,
+                                silenceSavedSeconds = silenceSaved,
+                                onUpdatePrefs = { transform ->
+                                    prefsRepository.update(transform)
+                                    playerController.refreshSoundSettings()
+                                },
+                            )
+                            PlayerPanel.CHAPTERS -> ChaptersPanel(
+                                chapters = chapters,
+                                currentChapterIndex = currentChapterIndex,
+                                currentTime = currentTime,
+                                playbackRate = rate,
+                                onSeekTo = { target ->
+                                    playerController.jump(
+                                        timeSeconds = target,
+                                        jumpedLabelFormat = { from -> strings.playerJumpedFrom(formatClock(from)) },
+                                        undoLabel = strings.playerJumpBack,
+                                    )
+                                },
+                            )
+                            PlayerPanel.BOOKMARKS -> BookmarksPanel(
+                                bookmarks = bookmarks,
+                                onAddClick = {
+                                    bookmarkNoteInput = currentChapter?.title ?: ""
+                                    showBookmarkDialog = true
+                                },
+                                onJumpTo = { bm ->
+                                    playerController.jump(
+                                        timeSeconds = bm.time,
+                                        jumpedLabelFormat = { from -> strings.playerJumpedFrom(formatClock(from)) },
+                                        undoLabel = strings.playerJumpBack,
+                                    )
+                                },
+                                onDelete = { bm ->
+                                    scope.launch { playerController.deleteBookmark(bm.time) }
+                                },
+                            )
+                            PlayerPanel.QUEUE -> QueuePanel(
+                                entries = queueItems,
+                                onPlayBook = { id -> playerController.play(id) },
+                                onMove = { id, delta -> queueRepository.move(id, delta) },
+                                onRemove = { id -> queueRepository.remove(id) },
+                                onClear = { queueRepository.clear() },
+                            )
+                            PlayerPanel.BEDTIME -> {
+                                BedtimeBlindGestureOverlay(
+                                    playerController = playerController,
+                                    playing = playing,
+                                    sleepRemainingSeconds = sleepRemaining,
+                                    onDismiss = { activePanel = PlayerPanel.NONE },
+                                )
+                            }
+                            PlayerPanel.NONE -> {}
                         }
-                        PlayerPanel.NONE -> {}
                     }
                 }
             }

@@ -5,6 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -57,7 +67,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -70,9 +79,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import net.koalastuff.koalashelf.core.data.i18n.AppLocale
 import net.koalastuff.koalashelf.core.data.i18n.LocalKoalaStrings
 import net.koalastuff.koalashelf.core.data.i18n.currentKoalaStrings
@@ -164,7 +179,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val prefs by prefsRepository.prefs.collectAsState()
+            val prefs by prefsRepository.prefs.collectAsStateWithLifecycle()
             val locale = AppLocale.fromTag(prefs.locale)
             val strings = stringsForLocale(locale)
 
@@ -218,19 +233,19 @@ private fun KoalaAppShell(
     val strings = currentKoalaStrings
     val colors = KoalaTheme.colors
 
-    val prefs by prefsRepository.prefs.collectAsState()
-    val activeAccount by sessionRepository.activeAccount.collectAsState()
-    val activeKey by sessionRepository.activeKey.collectAsState()
-    val libraries by sessionRepository.libraries.collectAsState()
-    val activeLibraryId by sessionRepository.activeLibraryId.collectAsState()
-    val progressMap by progressRepository.byItem.collectAsState()
-    val queueEntries by queueRepository.items.collectAsState()
-    val downloadedBooksMap by downloadRepository.books.collectAsState()
-    val downloadJobsMap by downloadRepository.jobs.collectAsState()
+    val prefs by prefsRepository.prefs.collectAsStateWithLifecycle()
+    val activeAccount by sessionRepository.activeAccount.collectAsStateWithLifecycle()
+    val activeKey by sessionRepository.activeKey.collectAsStateWithLifecycle()
+    val libraries by sessionRepository.libraries.collectAsStateWithLifecycle()
+    val activeLibraryId by sessionRepository.activeLibraryId.collectAsStateWithLifecycle()
+    val progressMap by progressRepository.byItem.collectAsStateWithLifecycle()
+    val queueEntries by queueRepository.items.collectAsStateWithLifecycle()
+    val downloadedBooksMap by downloadRepository.books.collectAsStateWithLifecycle()
+    val downloadJobsMap by downloadRepository.jobs.collectAsStateWithLifecycle()
 
-    val playingItem by playerController.item.collectAsState()
-    val isPlaying by playerController.playing.collectAsState()
-    val playerExpanded by playerController.expanded.collectAsState()
+    val playingItem by playerController.item.collectAsStateWithLifecycle()
+    val isPlaying by playerController.playing.collectAsStateWithLifecycle()
+    val playerExpanded by playerController.expanded.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val initialRoute = remember {
@@ -313,13 +328,26 @@ private fun KoalaAppShell(
         }
     }
 
-    suspend fun refreshActiveLibraryData(libId: String) {
+    suspend fun refreshActiveLibraryData(libId: String, includeBooks: Boolean = true) {
         runCatching {
-            homeShelves = libraryRepository.getHomeShelves(libId)
-            filterData = libraryRepository.getFilterData(libId)
-            libraryBooks = libraryRepository.queryLibraryItems(libId, libraryQueryState)
-            listeningStats = libraryRepository.getListeningStats() ?: ListeningStats()
+            coroutineScope {
+                val shelvesDef = async { libraryRepository.getHomeShelves(libId) }
+                val filterDef = async { libraryRepository.getFilterData(libId) }
+                val statsDef = async { libraryRepository.getListeningStats() ?: ListeningStats() }
+                val booksDef = if (includeBooks) {
+                    async { libraryRepository.queryLibraryItems(libId, libraryQueryState) }
+                } else {
+                    null
+                }
+                homeShelves = shelvesDef.await()
+                filterData = filterDef.await()
+                listeningStats = statsDef.await()
+                if (booksDef != null) {
+                    libraryBooks = booksDef.await()
+                }
+            }
         }.onFailure { err ->
+            if (err is CancellationException) throw err
             android.util.Log.e("KoalaShelf", "Failed to refresh library data for $libId", err)
             snackbarHostState.showSnackbar(
                 message = "Bibliothek konnte nicht geladen werden: ${err.message ?: "Verbindungsfehler"}",
@@ -338,19 +366,20 @@ private fun KoalaAppShell(
         }
     }
 
-    // Load library data when authenticated or active library changes
+    // Load library shelves, filterData, and stats when authenticated or active library changes
     LaunchedEffect(activeKey, activeLibraryId) {
         val libId = activeLibraryId ?: return@LaunchedEffect
         addingAccountFromAuthed = false
-        refreshActiveLibraryData(libId)
+        refreshActiveLibraryData(libId, includeBooks = false)
     }
 
-    // Re-query library items when queryState changes
-    LaunchedEffect(activeLibraryId, libraryQueryState) {
+    // Query library items when active library or queryState changes
+    LaunchedEffect(activeKey, activeLibraryId, libraryQueryState) {
         val libId = activeLibraryId ?: return@LaunchedEffect
         runCatching {
             libraryBooks = libraryRepository.queryLibraryItems(libId, libraryQueryState)
         }.onFailure { err ->
+            if (err is CancellationException) throw err
             android.util.Log.e("KoalaShelf", "Query items failed", err)
         }
     }
@@ -406,7 +435,9 @@ private fun KoalaAppShell(
                         }
                     }
                     detailBookmarks = runCatching {
-                        sessionRepository.apiClient?.bookmarks(r.bookId) ?: emptyList()
+                        withContext(Dispatchers.IO) {
+                            sessionRepository.apiClient?.bookmarks(r.bookId) ?: emptyList()
+                        }
                     }.getOrDefault(emptyList())
                     bookSessions = libraryRepository.getItemListeningSessions(r.bookId).sessions
                     collections = libraryRepository.getCollections(libId)
@@ -415,6 +446,7 @@ private fun KoalaAppShell(
                 else -> {}
             }
         }.onFailure { err ->
+            if (err is CancellationException) throw err
             android.util.Log.e("KoalaShelf", "Failed loading data for route $currentRoute", err)
         }
     }
@@ -445,103 +477,150 @@ private fun KoalaAppShell(
     val coverUrlProvider: (LibraryItem) -> String? = remember(activeKey, downloadedBooksMap) {
         { item ->
             downloadRepository.localCoverFile(item.id)?.absolutePath
-                ?: sessionRepository.apiClient?.coverUrl(item.id, width = 400, updatedAt = item.updatedAt)
+                ?: if (item.hasCover) {
+                    sessionRepository.apiClient?.coverUrl(item.id, width = 400, updatedAt = item.updatedAt)
+                } else {
+                    null
+                }
         }
     }
 
-    if (activeAccount == null || addingAccountFromAuthed) {
-        SignInScreen(
-            sessionRepository = sessionRepository,
-            prefsRepository = prefsRepository,
-            isAddingAccount = addingAccountFromAuthed,
-            onSignedIn = { addingAccountFromAuthed = false },
-            onCancelAdd = { addingAccountFromAuthed = false },
-        )
-        return
-    }
+    val reducedMotion = KoalaTheme.reducedMotion
+    val isShowingAuth = activeAccount == null || addingAccountFromAuthed
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.bg)
-            .windowInsetsPadding(WindowInsets.safeDrawing),
-        containerColor = colors.bg,
-        contentColor = colors.ink,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        bottomBar = {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                MiniPlayerBar(
-                    playerController = playerController,
-                    prefs = prefs,
-                    coverUrlProvider = coverUrlProvider,
-                    onExpand = { playerController.setExpanded(true) },
-                )
-
-                // Mobile bottom navigation bar matching AppNav.svelte: Home, Library, Downloads, Search, More
-                NavigationBar(
-                    containerColor = colors.panel,
-                    contentColor = colors.ink,
-                ) {
-                    val navItemColors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = colors.accent,
-                        selectedTextColor = colors.ink,
-                        indicatorColor = colors.sel,
-                        unselectedIconColor = colors.muted,
-                        unselectedTextColor = colors.muted,
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute is KoalaRoute.Home,
-                        onClick = { navigateRoot(KoalaRoute.Home) },
-                        icon = { Icon(Icons.Default.Home, contentDescription = strings.navHome) },
-                        label = { Text(strings.navHome) },
-                        colors = navItemColors,
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute is KoalaRoute.Library,
-                        onClick = { navigateRoot(KoalaRoute.Library) },
-                        icon = { Icon(Icons.AutoMirrored.Filled.LibraryBooks, contentDescription = strings.navLibrary) },
-                        label = { Text(strings.navLibrary) },
-                        colors = navItemColors,
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute is KoalaRoute.Downloads,
-                        onClick = { navigateRoot(KoalaRoute.Downloads) },
-                        icon = { Icon(Icons.Default.Download, contentDescription = strings.navDownloads) },
-                        label = { Text(strings.navDownloads) },
-                        colors = navItemColors,
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute is KoalaRoute.Search,
-                        onClick = { navigateRoot(KoalaRoute.Search) },
-                        icon = { Icon(Icons.Default.Search, contentDescription = strings.navSearch) },
-                        label = { Text(strings.navSearch) },
-                        colors = navItemColors,
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute in listOf(
-                            KoalaRoute.Series,
-                            KoalaRoute.Authors,
-                            KoalaRoute.Collections,
-                            KoalaRoute.Playlists,
-                            KoalaRoute.Bookmarks,
-                            KoalaRoute.Stats,
-                            KoalaRoute.Settings,
-                        ) || currentRoute is KoalaRoute.SeriesDetail || currentRoute is KoalaRoute.AuthorDetailRoute,
-                        onClick = { showMoreMenuSheet = true },
-                        icon = { Icon(Icons.Default.MoreHoriz, contentDescription = strings.navMore) },
-                        label = { Text(strings.navMore) },
-                        colors = navItemColors,
-                    )
-                }
+    AnimatedContent(
+        targetState = isShowingAuth,
+        transitionSpec = {
+            if (reducedMotion) {
+                EnterTransition.None togetherWith ExitTransition.None
+            } else {
+                (fadeIn(tween(240)) + scaleIn(initialScale = 0.98f, animationSpec = tween(240))) togetherWith
+                    fadeOut(tween(180))
             }
         },
-    ) { innerPadding ->
-        Box(
+        label = "auth_shell_transition",
+    ) { showAuth ->
+        if (showAuth) {
+            SignInScreen(
+                sessionRepository = sessionRepository,
+                prefsRepository = prefsRepository,
+                isAddingAccount = addingAccountFromAuthed,
+                onSignedIn = { addingAccountFromAuthed = false },
+                onCancelAdd = { addingAccountFromAuthed = false },
+            )
+            return@AnimatedContent
+        }
+
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-        ) {
-            when (val route = currentRoute) {
+                .background(colors.bg)
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+            containerColor = colors.bg,
+            contentColor = colors.ink,
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            bottomBar = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    MiniPlayerBar(
+                        playerController = playerController,
+                        prefs = prefs,
+                        coverUrlProvider = coverUrlProvider,
+                        onExpand = { playerController.setExpanded(true) },
+                    )
+
+                    // Mobile bottom navigation bar matching AppNav.svelte: Home, Library, Downloads, Search, More
+                    NavigationBar(
+                        containerColor = colors.panel,
+                        contentColor = colors.ink,
+                    ) {
+                        val navItemColors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = colors.accent,
+                            selectedTextColor = colors.ink,
+                            indicatorColor = colors.sel,
+                            unselectedIconColor = colors.muted,
+                            unselectedTextColor = colors.muted,
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute is KoalaRoute.Home,
+                            onClick = { navigateRoot(KoalaRoute.Home) },
+                            icon = { Icon(Icons.Default.Home, contentDescription = strings.navHome) },
+                            label = { Text(strings.navHome) },
+                            colors = navItemColors,
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute is KoalaRoute.Library,
+                            onClick = { navigateRoot(KoalaRoute.Library) },
+                            icon = { Icon(Icons.AutoMirrored.Filled.LibraryBooks, contentDescription = strings.navLibrary) },
+                            label = { Text(strings.navLibrary) },
+                            colors = navItemColors,
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute is KoalaRoute.Downloads,
+                            onClick = { navigateRoot(KoalaRoute.Downloads) },
+                            icon = { Icon(Icons.Default.Download, contentDescription = strings.navDownloads) },
+                            label = { Text(strings.navDownloads) },
+                            colors = navItemColors,
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute is KoalaRoute.Search,
+                            onClick = { navigateRoot(KoalaRoute.Search) },
+                            icon = { Icon(Icons.Default.Search, contentDescription = strings.navSearch) },
+                            label = { Text(strings.navSearch) },
+                            colors = navItemColors,
+                        )
+                        NavigationBarItem(
+                            selected = currentRoute in listOf(
+                                KoalaRoute.Series,
+                                KoalaRoute.Authors,
+                                KoalaRoute.Collections,
+                                KoalaRoute.Playlists,
+                                KoalaRoute.Bookmarks,
+                                KoalaRoute.Stats,
+                                KoalaRoute.Settings,
+                            ) || currentRoute is KoalaRoute.SeriesDetail || currentRoute is KoalaRoute.AuthorDetailRoute,
+                            onClick = { showMoreMenuSheet = true },
+                            icon = { Icon(Icons.Default.MoreHoriz, contentDescription = strings.navMore) },
+                            label = { Text(strings.navMore) },
+                            colors = navItemColors,
+                        )
+                    }
+                }
+            },
+        ) { innerPadding ->
+            val canDownloadBook by sessionRepository.canDownload.collectAsStateWithLifecycle()
+            AnimatedContent(
+                targetState = currentRoute,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                transitionSpec = {
+                    if (reducedMotion) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        val isPush = targetState is KoalaRoute.BookDetail ||
+                            targetState is KoalaRoute.SeriesDetail ||
+                            targetState is KoalaRoute.AuthorDetailRoute
+                        val isPop = initialState is KoalaRoute.BookDetail ||
+                            initialState is KoalaRoute.SeriesDetail ||
+                            initialState is KoalaRoute.AuthorDetailRoute
+                        when {
+                            isPush && !isPop -> {
+                                (fadeIn(tween(220)) + slideInHorizontally(tween(240)) { it / 10 }) togetherWith
+                                    (fadeOut(tween(180)) + slideOutHorizontally(tween(220)) { -it / 20 })
+                            }
+                            isPop && !isPush -> {
+                                (fadeIn(tween(220)) + slideInHorizontally(tween(240)) { -it / 20 }) togetherWith
+                                    (fadeOut(tween(180)) + slideOutHorizontally(tween(220)) { it / 10 })
+                            }
+                            else -> {
+                                fadeIn(tween(200)) togetherWith fadeOut(tween(160))
+                            }
+                        }
+                    }
+                },
+                label = "route_transition",
+            ) { route ->
+                when (route) {
                 is KoalaRoute.Home -> {
                     val todayKey = remember { formatLocalDay(System.currentTimeMillis()) }
                     val todayListeningSeconds = listeningStats.days[todayKey] ?: listeningStats.today
@@ -682,7 +761,7 @@ private fun KoalaAppShell(
                                 searchQuery = query
                                 navigateTo(KoalaRoute.Search)
                             },
-                            canDownload = sessionRepository.canDownload.collectAsState().value,
+                            canDownload = canDownloadBook,
                             onDownloadZip = {
                                 val url = sessionRepository.apiClient?.downloadUrl(book.id)
                                 if (!url.isNullOrBlank()) {
@@ -951,6 +1030,7 @@ private fun KoalaAppShell(
                         },
                     )
                 }
+            }
             }
         }
     }

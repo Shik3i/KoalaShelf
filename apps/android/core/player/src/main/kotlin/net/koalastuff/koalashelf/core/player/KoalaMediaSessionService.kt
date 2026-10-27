@@ -61,11 +61,46 @@ class KoalaMediaSessionService : MediaLibraryService() {
         val exoPlayer = playerController.getOrCreateExoPlayer()
 
         val forwardingPlayer = object : ForwardingPlayer(exoPlayer) {
+            override fun getAvailableCommands(): Player.Commands {
+                return super.getAvailableCommands().buildUpon()
+                    .add(COMMAND_PLAY_PAUSE)
+                    .add(COMMAND_STOP)
+                    .add(COMMAND_SEEK_TO_PREVIOUS)
+                    .add(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    .add(COMMAND_SEEK_TO_NEXT)
+                    .add(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                    .add(COMMAND_SEEK_BACK)
+                    .add(COMMAND_SEEK_FORWARD)
+                    .build()
+            }
+
+            override fun isCommandAvailable(command: Int): Boolean {
+                return when (command) {
+                    COMMAND_PLAY_PAUSE,
+                    COMMAND_STOP,
+                    COMMAND_SEEK_TO_PREVIOUS,
+                    COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                    COMMAND_SEEK_TO_NEXT,
+                    COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                    COMMAND_SEEK_BACK,
+                    COMMAND_SEEK_FORWARD -> true
+                    else -> super.isCommandAvailable(command)
+                }
+            }
+
             override fun seekToPrevious() {
                 playerController.handleMediaKeyPrevious()
             }
 
+            override fun seekToPreviousMediaItem() {
+                playerController.handleMediaKeyPrevious()
+            }
+
             override fun seekToNext() {
+                playerController.handleMediaKeyNext()
+            }
+
+            override fun seekToNextMediaItem() {
                 playerController.handleMediaKeyNext()
             }
 
@@ -109,8 +144,19 @@ class KoalaMediaSessionService : MediaLibraryService() {
                     .add(skipBackCommand)
                     .add(skipFwdCommand)
                     .build()
+                val playerCommands = MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
+                    .add(Player.COMMAND_PLAY_PAUSE)
+                    .add(Player.COMMAND_STOP)
+                    .add(Player.COMMAND_SEEK_TO_PREVIOUS)
+                    .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                    .add(Player.COMMAND_SEEK_TO_NEXT)
+                    .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                    .add(Player.COMMAND_SEEK_BACK)
+                    .add(Player.COMMAND_SEEK_FORWARD)
+                    .build()
                 return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
                     .setAvailableSessionCommands(sessionCommands)
+                    .setAvailablePlayerCommands(playerCommands)
                     .setCustomLayout(ImmutableList.of(skipBackButton, skipForwardButton))
                     .build()
             }
@@ -133,8 +179,15 @@ class KoalaMediaSessionService : MediaLibraryService() {
                 browser: MediaSession.ControllerInfo,
                 params: LibraryParams?,
             ): ListenableFuture<LibraryResult<MediaItem>> {
+                val isRecentRequest = params?.isRecent == true
+                val rootId = if (isRecentRequest) MEDIA_ID_CONTINUE else MEDIA_ID_ROOT
+                val rootParams = if (isRecentRequest) {
+                    LibraryParams.Builder().setRecent(true).build()
+                } else {
+                    params
+                }
                 val rootItem = MediaItem.Builder()
-                    .setMediaId(MEDIA_ID_ROOT)
+                    .setMediaId(rootId)
                     .setMediaMetadata(
                         MediaMetadata.Builder()
                             .setTitle("KoalaShelf")
@@ -143,7 +196,7 @@ class KoalaMediaSessionService : MediaLibraryService() {
                             .build(),
                     )
                     .build()
-                return Futures.immediateFuture(LibraryResult.ofItem(rootItem, params))
+                return Futures.immediateFuture(LibraryResult.ofItem(rootItem, rootParams))
             }
 
             override fun onGetChildren(
@@ -292,8 +345,17 @@ class KoalaMediaSessionService : MediaLibraryService() {
     }
 
     private fun buildBookItem(item: LibraryItem): MediaItem {
-        val coverUrl = sessionRepository.apiClient?.coverUrl(item.id, width = 400, updatedAt = item.updatedAt)
-        val coverUri = if (!coverUrl.isNullOrBlank()) Uri.parse(coverUrl) else null
+        val localCover = downloadRepository.localCoverFile(item.id)
+        val coverUrl = if (item.hasCover) {
+            sessionRepository.apiClient?.coverUrl(item.id, width = 400, updatedAt = item.updatedAt)
+        } else {
+            null
+        }
+        val coverUri = when {
+            localCover != null -> Uri.fromFile(localCover)
+            !coverUrl.isNullOrBlank() -> Uri.parse(coverUrl)
+            else -> null
+        }
         val metadata = MediaMetadata.Builder()
             .setTitle(item.title)
             .setArtist(item.author)

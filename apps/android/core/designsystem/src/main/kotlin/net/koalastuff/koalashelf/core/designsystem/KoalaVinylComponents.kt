@@ -1402,7 +1402,7 @@ fun BookCrateShelf(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 26.dp),
             horizontalArrangement = Arrangement.spacedBy(0.dp),
         ) {
-            items(records.size, key = { records[it].id }) { idx ->
+            items(records.size, key = { "${records[it].id}_$it" }) { idx ->
                 val rec = records[idx]
                 Box(
                     modifier = Modifier

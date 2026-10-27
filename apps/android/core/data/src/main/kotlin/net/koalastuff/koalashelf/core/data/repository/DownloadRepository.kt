@@ -127,8 +127,7 @@ class DownloadRepository(
     fun localCoverFile(itemId: String): File? {
         val book = _books.value[itemId] ?: return null
         if (!book.hasCover) return null
-        val file = File(bookDir(itemId), "cover.webp")
-        return file.takeIf { it.exists() }
+        return File(bookDir(itemId), "cover.webp")
     }
 
     fun enqueueDownload(itemId: String) {

@@ -1,8 +1,11 @@
 package net.koalastuff.koalashelf.core.data.repository
 
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import net.koalastuff.koalashelf.core.data.local.CachedBookEntity
 import net.koalastuff.koalashelf.core.data.local.KoalaDao
@@ -115,13 +118,13 @@ class LibraryRepository(
     private val api: AbsApiClient?
         get() = sessionRepository.apiClient
 
-    suspend fun getHomeShelves(libraryId: String): List<Shelf> {
-        val client = api ?: return emptyList()
-        return client.personalized(libraryId, limit = 16)
+    suspend fun getHomeShelves(libraryId: String): List<Shelf> = withContext(Dispatchers.IO) {
+        val client = api ?: return@withContext emptyList()
+        client.personalized(libraryId, limit = 16)
     }
 
-    suspend fun getFilterData(libraryId: String): FilterData {
-        return api?.filterData(libraryId) ?: FilterData()
+    suspend fun getFilterData(libraryId: String): FilterData = withContext(Dispatchers.IO) {
+        api?.filterData(libraryId) ?: FilterData()
     }
 
     /**
@@ -132,12 +135,12 @@ class LibraryRepository(
     suspend fun queryLibraryItems(
         libraryId: String,
         query: LibraryQueryState,
-    ): List<LibraryItem> = coroutineScope {
+    ): List<LibraryItem> = withContext(Dispatchers.IO) {
         val client = api
         val accountKey = sessionRepository.activeKey.value ?: "offline"
 
         if (client == null) {
-            return@coroutineScope loadCachedBooks(accountKey, libraryId, query)
+            return@withContext loadCachedBooks(accountKey, libraryId, query)
         }
 
         try {
@@ -236,6 +239,8 @@ class LibraryRepository(
                 dao.upsertCachedBooks(entities)
             }
             items
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             loadCachedBooks(accountKey, libraryId, query)
         }
@@ -320,9 +325,9 @@ class LibraryRepository(
         ids
     }
 
-    suspend fun getBookDetail(itemId: String): LibraryItem? {
+    suspend fun getBookDetail(itemId: String): LibraryItem? = withContext(Dispatchers.IO) {
         val accountKey = sessionRepository.activeKey.value ?: "offline"
-        return try {
+        try {
             val item = api?.item(itemId)
             if (item != null) {
                 item.userMediaProgress?.let { progressRepository.mergeRemote(it) }
@@ -346,6 +351,8 @@ class LibraryRepository(
                     runCatching { AbsJson.decodeFromString<LibraryItem>(it.itemJson) }.getOrNull()
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) {
             dao.getCachedBook("$accountKey|$itemId")?.let {
                 runCatching { AbsJson.decodeFromString<LibraryItem>(it.itemJson) }.getOrNull()
@@ -353,12 +360,12 @@ class LibraryRepository(
         }
     }
 
-    suspend fun getSeriesList(libraryId: String): List<Series> {
-        return api?.series(libraryId = libraryId, limit = 100)?.results ?: emptyList()
+    suspend fun getSeriesList(libraryId: String): List<Series> = withContext(Dispatchers.IO) {
+        api?.series(libraryId = libraryId, limit = 100)?.results ?: emptyList()
     }
 
-    suspend fun getSeriesDetail(libraryId: String, seriesId: String): Pair<SeriesDetail?, List<LibraryItem>> = coroutineScope {
-        val client = api ?: return@coroutineScope null to emptyList()
+    suspend fun getSeriesDetail(libraryId: String, seriesId: String): Pair<SeriesDetail?, List<LibraryItem>> = withContext(Dispatchers.IO) {
+        val client = api ?: return@withContext null to emptyList()
         val detailDef = async { runCatching { client.seriesDetail(libraryId, seriesId) }.getOrNull() }
         val booksDef = async {
             runCatching {
@@ -373,24 +380,27 @@ class LibraryRepository(
         detailDef.await() to booksDef.await()
     }
 
-    suspend fun getAuthors(libraryId: String): List<Author> =
+    suspend fun getAuthors(libraryId: String): List<Author> = withContext(Dispatchers.IO) {
         api?.authors(libraryId) ?: emptyList()
+    }
 
-    suspend fun getNarrators(libraryId: String): List<Narrator> =
+    suspend fun getNarrators(libraryId: String): List<Narrator> = withContext(Dispatchers.IO) {
         api?.narrators(libraryId) ?: emptyList()
+    }
 
-    suspend fun getAuthorDetail(authorId: String, libraryId: String): AuthorDetail? =
+    suspend fun getAuthorDetail(authorId: String, libraryId: String): AuthorDetail? = withContext(Dispatchers.IO) {
         runCatching { api?.author(authorId, libraryId) }.getOrNull()
+    }
 
     suspend fun search(
         libraryId: String,
         query: String,
         allLibraries: Boolean = false,
         includeChapters: Boolean = false,
-    ): Pair<SearchResult, List<ChapterSearchHit>> = coroutineScope {
-        val client = api ?: return@coroutineScope SearchResult() to emptyList()
+    ): Pair<SearchResult, List<ChapterSearchHit>> = withContext(Dispatchers.IO) {
+        val client = api ?: return@withContext SearchResult() to emptyList()
         val q = query.trim()
-        if (q.isBlank()) return@coroutineScope SearchResult() to emptyList()
+        if (q.isBlank()) return@withContext SearchResult() to emptyList()
 
         val targetLibs = if (allLibraries) {
             sessionRepository.libraries.value.map { it.id }.ifEmpty { listOf(libraryId) }
@@ -533,51 +543,62 @@ class LibraryRepository(
 
     // --- Collections & Playlists ---
 
-    suspend fun getCollections(libraryId: String): List<Collection> =
+    suspend fun getCollections(libraryId: String): List<Collection> = withContext(Dispatchers.IO) {
         runCatching { api?.collections(libraryId) ?: emptyList() }.getOrDefault(emptyList())
+    }
 
-    suspend fun getCollection(id: String): Collection? =
+    suspend fun getCollection(id: String): Collection? = withContext(Dispatchers.IO) {
         runCatching { api?.collection(id) }.getOrNull()
+    }
 
-    suspend fun createCollection(libraryId: String, name: String, bookIds: List<String>, description: String? = null): Collection? =
+    suspend fun createCollection(libraryId: String, name: String, bookIds: List<String>, description: String? = null): Collection? = withContext(Dispatchers.IO) {
         runCatching { api?.createCollection(libraryId, name, bookIds, description) }.getOrNull()
+    }
 
-    suspend fun addToCollection(collectionId: String, itemId: String): Collection? =
+    suspend fun addToCollection(collectionId: String, itemId: String): Collection? = withContext(Dispatchers.IO) {
         runCatching { api?.addToCollection(collectionId, itemId) }.getOrNull()
+    }
 
-    suspend fun removeFromCollection(collectionId: String, itemId: String): Collection? =
+    suspend fun removeFromCollection(collectionId: String, itemId: String): Collection? = withContext(Dispatchers.IO) {
         runCatching { api?.removeFromCollection(collectionId, itemId) }.getOrNull()
+    }
 
-    suspend fun deleteCollection(collectionId: String) {
+    suspend fun deleteCollection(collectionId: String) = withContext(Dispatchers.IO) {
         runCatching { api?.deleteCollection(collectionId) }
     }
 
-    suspend fun getPlaylists(libraryId: String): List<Playlist> =
+    suspend fun getPlaylists(libraryId: String): List<Playlist> = withContext(Dispatchers.IO) {
         runCatching { api?.playlists(libraryId) ?: emptyList() }.getOrDefault(emptyList())
+    }
 
-    suspend fun getPlaylist(id: String): Playlist? =
+    suspend fun getPlaylist(id: String): Playlist? = withContext(Dispatchers.IO) {
         runCatching { api?.playlist(id) }.getOrNull()
+    }
 
-    suspend fun createPlaylist(libraryId: String, name: String, itemIds: List<String>): Playlist? =
+    suspend fun createPlaylist(libraryId: String, name: String, itemIds: List<String>): Playlist? = withContext(Dispatchers.IO) {
         runCatching { api?.createPlaylist(libraryId, name, itemIds) }.getOrNull()
+    }
 
-    suspend fun addToPlaylist(playlistId: String, itemId: String): Playlist? =
+    suspend fun addToPlaylist(playlistId: String, itemId: String): Playlist? = withContext(Dispatchers.IO) {
         runCatching { api?.addToPlaylist(playlistId, itemId) }.getOrNull()
+    }
 
-    suspend fun removeFromPlaylist(playlistId: String, itemId: String): Playlist? =
+    suspend fun removeFromPlaylist(playlistId: String, itemId: String): Playlist? = withContext(Dispatchers.IO) {
         runCatching { api?.removeFromPlaylist(playlistId, itemId) }.getOrNull()
+    }
 
-    suspend fun deletePlaylist(playlistId: String) {
+    suspend fun deletePlaylist(playlistId: String) = withContext(Dispatchers.IO) {
         runCatching { api?.deletePlaylist(playlistId) }
     }
 
-    suspend fun createPlaylistFromCollection(collectionId: String): Playlist? =
+    suspend fun createPlaylistFromCollection(collectionId: String): Playlist? = withContext(Dispatchers.IO) {
         runCatching { api?.playlistFromCollection(collectionId) }.getOrNull()
+    }
 
     // --- Bookmarks & Export ---
 
-    suspend fun getAllBookmarksWithBooks(): List<Pair<Bookmark, LibraryItem?>> {
-        val client = api ?: return emptyList()
+    suspend fun getAllBookmarksWithBooks(): List<Pair<Bookmark, LibraryItem?>> = withContext(Dispatchers.IO) {
+        val client = api ?: return@withContext emptyList()
         val bookmarks = runCatching { client.allBookmarks() }.getOrDefault(emptyList())
         val itemIds = bookmarks.map { it.libraryItemId }.distinct()
         val booksById = if (itemIds.isNotEmpty()) {
@@ -585,7 +606,7 @@ class LibraryRepository(
         } else {
             emptyMap()
         }
-        return bookmarks
+        bookmarks
             .sortedWith(compareBy<Bookmark> { it.libraryItemId }.thenBy { it.time })
             .map { b -> b to booksById[b.libraryItemId] }
     }
@@ -621,23 +642,29 @@ class LibraryRepository(
 
     // --- Stats & History ---
 
-    suspend fun getUsers(): List<ServerUser> =
+    suspend fun getUsers(): List<ServerUser> = withContext(Dispatchers.IO) {
         runCatching { api?.users() ?: emptyList() }.getOrDefault(emptyList())
+    }
 
-    suspend fun getListeningStats(userId: String? = null): ListeningStats? =
+    suspend fun getListeningStats(userId: String? = null): ListeningStats? = withContext(Dispatchers.IO) {
         runCatching { api?.listeningStats(userId) }.getOrNull()
+    }
 
-    suspend fun getYearStats(year: Int): YearStats? =
+    suspend fun getYearStats(year: Int): YearStats? = withContext(Dispatchers.IO) {
         runCatching { api?.yearStats(year) }.getOrNull()
+    }
 
-    suspend fun getLibraryStats(libraryId: String): LibraryStats? =
+    suspend fun getLibraryStats(libraryId: String): LibraryStats? = withContext(Dispatchers.IO) {
         runCatching { api?.libraryStats(libraryId) }.getOrNull()
+    }
 
-    suspend fun getListeningSessions(page: Int = 0, itemsPerPage: Int = 50, userId: String? = null): SessionPage =
+    suspend fun getListeningSessions(page: Int = 0, itemsPerPage: Int = 50, userId: String? = null): SessionPage = withContext(Dispatchers.IO) {
         runCatching { api?.listeningSessions(page, itemsPerPage, userId) ?: SessionPage() }.getOrDefault(SessionPage())
+    }
 
-    suspend fun getItemListeningSessions(itemId: String): SessionPage =
+    suspend fun getItemListeningSessions(itemId: String): SessionPage = withContext(Dispatchers.IO) {
         runCatching { api?.itemListeningSessions(itemId) ?: SessionPage() }.getOrDefault(SessionPage())
+    }
 
     suspend fun hideFromContinueListening(progressId: String) {
         runCatching { api?.hideFromContinueListening(progressId) }

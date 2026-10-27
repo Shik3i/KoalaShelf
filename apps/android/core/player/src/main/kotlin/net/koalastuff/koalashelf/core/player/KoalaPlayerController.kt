@@ -472,7 +472,11 @@ class KoalaPlayerController(
         val p = getOrCreateExoPlayer()
         val api = sessionRepository.apiClient
         val coverUri = downloadRepository.localCoverFile(libItem.id)?.let { Uri.fromFile(it) }
-            ?: api?.coverUrl(libItem.id, width = 512, updatedAt = libItem.updatedAt)?.let { Uri.parse(it) }
+            ?: if (libItem.hasCover) {
+                api?.coverUrl(libItem.id, width = 512, updatedAt = libItem.updatedAt)?.let { Uri.parse(it) }
+            } else {
+                null
+            }
 
         val mediaItems = tracks.map { track ->
             val uri = localFiles?.get(track.index)?.let { Uri.fromFile(it) }
@@ -1013,6 +1017,10 @@ class KoalaPlayerController(
      * Completely releases player resources, audio effects, and background jobs.
      */
     fun release() {
+        tickJob?.cancel()
+        tickJob = null
+        syncJob?.cancel()
+        syncJob = null
         releaseAudioEffects()
         ambienceEngine.release()
         exoPlayer?.run {

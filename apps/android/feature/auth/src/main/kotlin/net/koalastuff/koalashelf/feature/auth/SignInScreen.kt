@@ -50,13 +50,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.CancellationException
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,9 +104,9 @@ fun SignInScreen(
     val strings = currentKoalaStrings
     val scope = rememberCoroutineScope()
 
-    val accounts by sessionRepository.accounts.collectAsState()
-    val recentServers by sessionRepository.recentServers.collectAsState()
-    val expired by sessionRepository.expired.collectAsState()
+    val accounts by sessionRepository.accounts.collectAsStateWithLifecycle()
+    val recentServers by sessionRepository.recentServers.collectAsStateWithLifecycle()
+    val expired by sessionRepository.expired.collectAsStateWithLifecycle()
 
     var serverUrl by rememberSaveable(prefillServer) {
         mutableStateOf(prefillServer.ifBlank { recentServers.firstOrNull() ?: "" })
@@ -156,6 +157,8 @@ fun SignInScreen(
                 sessionRepository.signIn(cleanUrl, username.trim(), password)
                 submitting = false
                 onSignedIn()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: ServerTooOldException) {
                 submitting = false
                 submitError = strings.errTooOld(e.version, e.minVersion)
@@ -494,7 +497,7 @@ fun SignInScreen(
 
                 // Direct Locale & Theme Switcher on Sign-In screen
                 if (prefsRepository != null) {
-                    val currentPrefs by prefsRepository.prefs.collectAsState()
+                    val currentPrefs by prefsRepository.prefs.collectAsStateWithLifecycle()
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -574,8 +577,8 @@ fun AccountSwitcherSheet(
     val strings = currentKoalaStrings
     val scope = rememberCoroutineScope()
 
-    val activeKey by sessionRepository.activeKey.collectAsState()
-    val groups = remember(sessionRepository.accounts.collectAsState().value, activeKey) {
+    val activeKey by sessionRepository.activeKey.collectAsStateWithLifecycle()
+    val groups = remember(sessionRepository.accounts.collectAsStateWithLifecycle().value, activeKey) {
         sessionRepository.accountsGroupedByServer()
     }
 

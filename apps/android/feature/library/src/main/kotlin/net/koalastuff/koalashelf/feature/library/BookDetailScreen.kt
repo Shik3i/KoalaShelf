@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -404,234 +405,243 @@ fun BookDetailScreen(
         }
 
         // Tab Body
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                when (selectedTab) {
-                    0 -> {
-                        book.media.chapters.forEachIndexed { idx, ch ->
-                            val isCurrent = currentTime >= ch.start && currentTime < ch.end
-                            val chDur = max(0.0, ch.end - ch.start)
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isCurrent) colors.curBg else colors.card,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.dp, colors.line, RoundedCornerShape(12.dp))
-                                    .clickable { onPlayBook(ch.start) },
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "${idx + 1}. ${ch.title}",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-                                            color = if (isCurrent) colors.curInk else colors.ink,
-                                        )
-                                        Text(
-                                            text = "${formatClock(ch.start)} · ${formatDuration(chDur, strings)}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = colors.muted,
-                                        )
-                                    }
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = strings.bookPlay,
-                                        tint = colors.accent,
-                                    )
-                                }
+        when (selectedTab) {
+            0 -> {
+                itemsIndexed(
+                    items = book.media.chapters,
+                    key = { idx, ch -> "ch_${ch.id}_${ch.start}_$idx" },
+                ) { idx, ch ->
+                    val isCurrent = currentTime >= ch.start && currentTime < ch.end
+                    val chDur = max(0.0, ch.end - ch.start)
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isCurrent) colors.curBg else colors.card,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .border(1.dp, colors.line, RoundedCornerShape(12.dp))
+                            .clickable { onPlayBook(ch.start) },
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${idx + 1}. ${ch.title}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (isCurrent) colors.curInk else colors.ink,
+                                )
+                                Text(
+                                    text = "${formatClock(ch.start)} · ${formatDuration(chDur, strings)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.muted,
+                                )
                             }
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = strings.bookPlay,
+                                tint = colors.accent,
+                            )
                         }
                     }
+                }
+            }
 
-                    1 -> {
-                        OutlinedButton(onClick = { showAddBookmarkDialog = true }) {
-                            Icon(Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("${strings.playerAddBookmark} (${formatClock(currentTime)})")
-                        }
-                        bookmarks.sortedBy { it.time }.forEach { bm ->
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.card,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onPlayBook(bm.time) },
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(bm.title.ifBlank { formatClock(bm.time) }, style = MaterialTheme.typography.bodyMedium)
-                                        Text(
-                                            text = formatClock(bm.time),
-                                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
-                                            color = colors.accent,
-                                        )
-                                    }
-                                    IconButton(onClick = { onDeleteBookmark(bm.time) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = null, tint = colors.muted)
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    2 -> {
-                        // History Tab with SessionRow span visualization & start/end jump pills (`SessionRow.svelte`)
-                        bookSessions.forEach { sess ->
-                            val dur = max(1.0, if (sess.duration > 0.0) sess.duration else book.durationSeconds)
-                            val loFrac = (kotlin.math.min(sess.startTime, sess.currentTime) / dur).toFloat().coerceIn(0f, 1f)
-                            val hiFrac = (max(sess.startTime, sess.currentTime) / dur).toFloat().coerceIn(0f, 1f)
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.card,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.dp, colors.line, RoundedCornerShape(12.dp)),
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                    ) {
-                                        Text(
-                                            text = sess.date.ifBlank { formatClock(sess.currentTime) },
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium,
-                                        )
-                                        Text(
-                                            text = "+${formatDuration(sess.timeListening, strings)}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = colors.accent,
-                                        )
-                                    }
-                                    // Span bar
-                                    androidx.compose.foundation.layout.Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(4.dp)
-                                            .clip(RoundedCornerShape(999.dp))
-                                            .border(0.5.dp, colors.line, RoundedCornerShape(999.dp)),
-                                    ) {
-                                        LinearProgressIndicator(
-                                            progress = { max(0.02f, hiFrac - loFrac) },
-                                            modifier = Modifier.fillMaxSize(),
-                                            color = colors.accent,
-                                            trackColor = colors.track,
-                                        )
-                                    }
-                                    // Jump pills: startTime -> currentTime
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    ) {
-                                        FilterChip(
-                                            selected = false,
-                                            onClick = { onPlayBook(sess.startTime) },
-                                            leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                                            label = { Text(formatClock(sess.startTime), fontFamily = FontFamily.Monospace) },
-                                        )
-                                        Text("→", color = colors.muted)
-                                        FilterChip(
-                                            selected = false,
-                                            onClick = { onPlayBook(sess.currentTime) },
-                                            leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                                            label = { Text(formatClock(sess.currentTime), fontFamily = FontFamily.Monospace) },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    3 -> {
-                        // Audio Files Tab (`book.media.audioFiles` in `routes/book/[id]/+page.svelte`)
-                        book.media.audioFiles.forEachIndexed { idx, file ->
-                            val fname = file.metadata?.filename?.ifBlank { null } ?: "Track ${idx + 1}"
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = colors.card,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .border(1.dp, colors.line, RoundedCornerShape(12.dp)),
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "${idx + 1}. $fname",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
-                                        val codecInfo = listOfNotNull(
-                                            file.codec?.uppercase()?.takeIf { it.isNotBlank() },
-                                            file.bitRate?.takeIf { it > 0 }?.let { "${(it / 1000)} kbps" },
-                                        ).joinToString(" · ")
-                                        if (codecInfo.isNotEmpty()) {
-                                            Text(
-                                                text = codecInfo,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = colors.muted,
-                                            )
-                                        }
-                                    }
+            3 -> {
+                itemsIndexed(
+                    items = book.media.audioFiles,
+                    key = { idx, file -> "af_${file.ino}_${file.index}_$idx" },
+                ) { idx, file ->
+                    val fname = file.metadata?.filename?.ifBlank { null } ?: "Track ${idx + 1}"
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = colors.card,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .border(1.dp, colors.line, RoundedCornerShape(12.dp)),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${idx + 1}. $fname",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                val codecInfo = listOfNotNull(
+                                    file.codec?.uppercase()?.takeIf { it.isNotBlank() },
+                                    file.bitRate?.takeIf { it > 0 }?.let { "${(it / 1000)} kbps" },
+                                ).joinToString(" · ")
+                                if (codecInfo.isNotEmpty()) {
                                     Text(
-                                        text = "${formatDuration(file.duration, strings)} · ${formatBytes(file.metadata?.size ?: 0L, strings.isGerman)}",
-                                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                        text = codecInfo,
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = colors.muted,
                                     )
                                 }
                             }
+                            Text(
+                                text = "${formatDuration(file.duration, strings)} · ${formatBytes(file.metadata?.size ?: 0L, strings.isGerman)}",
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                color = colors.muted,
+                            )
                         }
                     }
+                }
+            }
 
-                    4 -> {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            items(moreByAuthor, key = { it.id }) { other ->
-                                Column(
-                                    modifier = Modifier
-                                        .width(136.dp)
-                                        .clickable { onOpenOtherBook(other.id) },
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    BookCover(
-                                        title = other.title,
-                                        author = other.author,
-                                        coverUrl = coverUrlProvider(other),
-                                        modifier = Modifier.size(136.dp),
-                                        cornerRadius = 12.dp,
-                                    )
-                                    Text(
-                                        text = other.title,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
+            else -> {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        when (selectedTab) {
+                            1 -> {
+                                OutlinedButton(onClick = { showAddBookmarkDialog = true }) {
+                                    Icon(Icons.Default.BookmarkBorder, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("${strings.playerAddBookmark} (${formatClock(currentTime)})")
+                                }
+                                bookmarks.sortedBy { it.time }.forEach { bm ->
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = colors.card,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { onPlayBook(bm.time) },
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(bm.title.ifBlank { formatClock(bm.time) }, style = MaterialTheme.typography.bodyMedium)
+                                                Text(
+                                                    text = formatClock(bm.time),
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                                    color = colors.accent,
+                                                )
+                                            }
+                                            IconButton(onClick = { onDeleteBookmark(bm.time) }) {
+                                                Icon(Icons.Default.Delete, contentDescription = null, tint = colors.muted)
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
 
-                    5 -> {
+                            2 -> {
+                                // History Tab with SessionRow span visualization & start/end jump pills (`SessionRow.svelte`)
+                                bookSessions.forEach { sess ->
+                                    val dur = max(1.0, if (sess.duration > 0.0) sess.duration else book.durationSeconds)
+                                    val loFrac = (kotlin.math.min(sess.startTime, sess.currentTime) / dur).toFloat().coerceIn(0f, 1f)
+                                    val hiFrac = (max(sess.startTime, sess.currentTime) / dur).toFloat().coerceIn(0f, 1f)
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = colors.card,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .border(1.dp, colors.line, RoundedCornerShape(12.dp)),
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Text(
+                                                    text = sess.date.ifBlank { formatClock(sess.currentTime) },
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Medium,
+                                                )
+                                                Text(
+                                                    text = "+${formatDuration(sess.timeListening, strings)}",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = colors.accent,
+                                                )
+                                            }
+                                            // Span bar
+                                            androidx.compose.foundation.layout.Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(4.dp)
+                                                    .clip(RoundedCornerShape(999.dp))
+                                                    .border(0.5.dp, colors.line, RoundedCornerShape(999.dp)),
+                                            ) {
+                                                LinearProgressIndicator(
+                                                    progress = { max(0.02f, hiFrac - loFrac) },
+                                                    modifier = Modifier.fillMaxSize(),
+                                                    color = colors.accent,
+                                                    trackColor = colors.track,
+                                                )
+                                            }
+                                            // Jump pills: startTime -> currentTime
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            ) {
+                                                FilterChip(
+                                                    selected = false,
+                                                    onClick = { onPlayBook(sess.startTime) },
+                                                    leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                                                    label = { Text(formatClock(sess.startTime), fontFamily = FontFamily.Monospace) },
+                                                )
+                                                Text("→", color = colors.muted)
+                                                FilterChip(
+                                                    selected = false,
+                                                    onClick = { onPlayBook(sess.currentTime) },
+                                                    leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp)) },
+                                                    label = { Text(formatClock(sess.currentTime), fontFamily = FontFamily.Monospace) },
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            4 -> {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    itemsIndexed(moreByAuthor, key = { idx, other -> "${other.id}_$idx" }) { _, other ->
+                                        Column(
+                                            modifier = Modifier
+                                                .width(136.dp)
+                                                .clickable { onOpenOtherBook(other.id) },
+                                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        ) {
+                                            BookCover(
+                                                title = other.title,
+                                                author = other.author,
+                                                coverUrl = coverUrlProvider(other),
+                                                modifier = Modifier.size(136.dp),
+                                                cornerRadius = 12.dp,
+                                            )
+                                            Text(
+                                                text = other.title,
+                                                style = MaterialTheme.typography.titleMedium,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            5 -> {
                         if (cleanDescription.isNotBlank()) {
                             Text(
                                 text = cleanDescription,
@@ -680,6 +690,9 @@ fun BookDetailScreen(
                                     FilterChip(selected = false, onClick = { onSearch(t) }, label = { Text(t) })
                                 }
                             }
+                        }
+                            }
+                            else -> Unit
                         }
                     }
                 }

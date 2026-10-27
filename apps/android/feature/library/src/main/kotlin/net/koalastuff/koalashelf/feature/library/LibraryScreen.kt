@@ -1,5 +1,13 @@
 package net.koalastuff.koalashelf.feature.library
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -301,7 +309,11 @@ fun LibraryScreen(
             }
 
             // Multi-select batch action bar
-            if (multiSelectMode) {
+            AnimatedVisibility(
+                visible = multiSelectMode,
+                enter = expandVertically(tween(220)) + fadeIn(tween(200)),
+                exit = shrinkVertically(tween(180)) + fadeOut(tween(150)),
+            ) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = colors.sel,
@@ -368,71 +380,84 @@ fun LibraryScreen(
         }
 
         // Grid or List Content
-        if (isGridView) {
-            val minGridCellSize = when (prefs.coverSize) {
-                "sm" -> 124.dp
-                "lg" -> 184.dp
-                else -> 150.dp
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = minGridCellSize),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(books, key = { it.id }) { book ->
-                    val prog = progressMap[book.id] ?: book.userMediaProgress
-                    val isDownloaded = downloadedBooks.containsKey(book.id)
-                    val isSelected = book.id in selectedBookIds
-
-                    LibraryGridItem(
-                        book = book,
-                        progress = prog,
-                        isDownloaded = isDownloaded,
-                        coverUrl = coverUrlProvider(book),
-                        inPlayer = isPlayingItemId == book.id,
-                        isPlaying = isPlaying && isPlayingItemId == book.id,
-                        multiSelectMode = multiSelectMode,
-                        isSelected = isSelected,
-                        onClick = {
-                            if (multiSelectMode) {
-                                selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
-                            } else {
-                                onOpenBook(book.id)
-                            }
-                        },
-                        onPlay = { onPlayBook(book.id) },
-                    )
+        AnimatedContent(
+            targetState = isGridView,
+            transitionSpec = {
+                fadeIn(tween(200)) togetherWith fadeOut(tween(160))
+            },
+            modifier = Modifier.fillMaxSize(),
+            label = "library_view_mode_transition",
+        ) { gridMode ->
+            if (gridMode) {
+                val minGridCellSize = when (prefs.coverSize) {
+                    "sm" -> 124.dp
+                    "lg" -> 184.dp
+                    else -> 150.dp
                 }
-            }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(books, key = { it.id }) { book ->
-                    val prog = progressMap[book.id] ?: book.userMediaProgress
-                    val isDownloaded = downloadedBooks.containsKey(book.id)
-                    val isSelected = book.id in selectedBookIds
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = minGridCellSize),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(books, key = { it.id }) { book ->
+                        val prog = progressMap[book.id] ?: book.userMediaProgress
+                        val isDownloaded = downloadedBooks.containsKey(book.id)
+                        val isSelected = book.id in selectedBookIds
 
-                    LibraryListItem(
-                        book = book,
-                        progress = prog,
-                        isDownloaded = isDownloaded,
-                        coverUrl = coverUrlProvider(book),
-                        multiSelectMode = multiSelectMode,
-                        isSelected = isSelected,
-                        onClick = {
-                            if (multiSelectMode) {
-                                selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
-                            } else {
-                                onOpenBook(book.id)
-                            }
-                        },
-                        onPlay = { onPlayBook(book.id) },
-                    )
+                        Box(modifier = Modifier.animateItem()) {
+                            LibraryGridItem(
+                                book = book,
+                                progress = prog,
+                                isDownloaded = isDownloaded,
+                                coverUrl = coverUrlProvider(book),
+                                inPlayer = isPlayingItemId == book.id,
+                                isPlaying = isPlaying && isPlayingItemId == book.id,
+                                multiSelectMode = multiSelectMode,
+                                isSelected = isSelected,
+                                onClick = {
+                                    if (multiSelectMode) {
+                                        selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
+                                    } else {
+                                        onOpenBook(book.id)
+                                    }
+                                },
+                                onPlay = { onPlayBook(book.id) },
+                            )
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(books, key = { it.id }) { book ->
+                        val prog = progressMap[book.id] ?: book.userMediaProgress
+                        val isDownloaded = downloadedBooks.containsKey(book.id)
+                        val isSelected = book.id in selectedBookIds
+
+                        Box(modifier = Modifier.animateItem()) {
+                            LibraryListItem(
+                                book = book,
+                                progress = prog,
+                                isDownloaded = isDownloaded,
+                                coverUrl = coverUrlProvider(book),
+                                multiSelectMode = multiSelectMode,
+                                isSelected = isSelected,
+                                onClick = {
+                                    if (multiSelectMode) {
+                                        selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
+                                    } else {
+                                        onOpenBook(book.id)
+                                    }
+                                },
+                                onPlay = { onPlayBook(book.id) },
+                            )
+                        }
+                    }
                 }
             }
         }

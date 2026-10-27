@@ -97,7 +97,7 @@ object FlexibleAuthorListSerializer : KSerializer<List<AuthorRef>> {
 
 @Serializable
 data class Tokens(
-    val accessToken: String,
+    val accessToken: String = "",
     val refreshToken: String? = null,
 )
 
@@ -120,8 +120,8 @@ data class UserPermissions(
 
 @Serializable
 data class User(
-    val id: String,
-    val username: String,
+    val id: String = "",
+    val username: String = "",
     val type: String = "user",
     val mediaProgress: List<MediaProgress> = emptyList(),
     val bookmarks: List<Bookmark> = emptyList(),
@@ -133,8 +133,8 @@ data class User(
 
 @Serializable
 data class ServerUser(
-    val id: String,
-    val username: String,
+    val id: String = "",
+    val username: String = "",
     val type: String = "user",
     val isActive: Boolean = true,
     val email: String? = null,
@@ -156,19 +156,19 @@ data class LoginRequest(
 
 @Serializable
 data class LoginResponse(
-    val user: User,
+    val user: User = User(),
     val userDefaultLibraryId: String? = null,
 )
 
 @Serializable
 data class RefreshResponse(
-    val user: User,
+    val user: User = User(),
 )
 
 @Serializable
 data class Library(
-    val id: String,
-    val name: String,
+    val id: String = "",
+    val name: String = "",
     val displayOrder: Int = 0,
     val icon: String = "database",
     val mediaType: String = "book",
@@ -319,7 +319,7 @@ data class CollapsedSeries(
 
 @Serializable
 data class LibraryItem(
-    val id: String,
+    val id: String = "",
     val libraryId: String = "",
     val mediaType: String = "book",
     val addedAt: Long = 0L,
@@ -339,6 +339,7 @@ data class LibraryItem(
     val seriesLabel: String get() = media.metadata.displaySeries
     val durationSeconds: Double get() = media.duration
     val totalBytes: Long get() = if (size > 0L) size else media.size
+    val hasCover: Boolean get() = !media.coverPath.isNullOrBlank()
 
     fun resolvedTracks(): List<AudioTrack> {
         if (media.tracks.isNotEmpty()) return media.tracks.sortedBy { it.startOffset }
@@ -403,7 +404,7 @@ data class Paged<T>(
 
 @Serializable
 data class Series(
-    val id: String,
+    val id: String = "",
     val name: String = "",
     val nameIgnorePrefix: String? = null,
     val addedAt: Long = 0L,
@@ -419,7 +420,7 @@ data class SeriesProgress(
 
 @Serializable
 data class SeriesDetail(
-    val id: String,
+    val id: String = "",
     val name: String = "",
     val description: String? = null,
     val progress: SeriesProgress? = null,
@@ -427,7 +428,7 @@ data class SeriesDetail(
 
 @Serializable
 data class Author(
-    val id: String,
+    val id: String = "",
     val name: String = "",
     val description: String? = null,
     val imagePath: String? = null,
@@ -442,14 +443,14 @@ data class AuthorsResponse(
 
 @Serializable
 data class AuthorSeriesGroup(
-    val id: String,
+    val id: String = "",
     val name: String = "",
     val items: List<LibraryItem> = emptyList(),
 )
 
 @Serializable
 data class AuthorDetail(
-    val id: String,
+    val id: String = "",
     val name: String = "",
     val description: String? = null,
     val imagePath: String? = null,
@@ -499,12 +500,12 @@ data class FilterData(
 
 @Serializable
 data class SearchBookEntry(
-    val libraryItem: LibraryItem,
+    val libraryItem: LibraryItem = LibraryItem(),
 )
 
 @Serializable
 data class SearchSeriesEntry(
-    val series: Series,
+    val series: Series = Series(),
     val books: List<LibraryItem> = emptyList(),
 )
 
@@ -532,19 +533,19 @@ data class SearchResult(
 
 @Serializable
 data class PlaylistItem(
-    val libraryItemId: String,
+    val libraryItemId: String = "",
     val episodeId: String? = null,
     val libraryItem: LibraryItem? = null,
 )
 
 @Serializable
 data class PlaylistItemRef(
-    val libraryItemId: String,
+    val libraryItemId: String = "",
 )
 
 @Serializable
 data class Playlist(
-    val id: String,
+    val id: String = "",
     val name: String = "",
     val libraryId: String = "",
     val userId: String = "",
@@ -575,7 +576,7 @@ data class BatchPlaylistPayload(
 
 @Serializable
 data class Collection(
-    val id: String,
+    val id: String = "",
     val libraryId: String = "",
     val name: String = "",
     val description: String? = null,
@@ -610,7 +611,7 @@ data class BatchCollectionPayload(
 
 @Serializable
 data class RawShelf(
-    val id: String,
+    val id: String = "",
     val label: String = "",
     val type: String = "book",
     val entities: JsonArray = JsonArray(emptyList()),
@@ -659,7 +660,7 @@ data class PlayRequest(
 
 @Serializable
 data class PlaybackSession(
-    val id: String,
+    val id: String = "",
     val libraryItemId: String = "",
     val displayTitle: String = "",
     val displayAuthor: String = "",
@@ -718,7 +719,7 @@ data class ListeningSessionDeviceInfo(
 
 @Serializable
 data class ListeningSession(
-    val id: String,
+    val id: String = "",
     val libraryItemId: String = "",
     val libraryId: String = "",
     val displayTitle: String = "",
@@ -843,7 +844,7 @@ data class LibraryStats(
 
 @Serializable
 data class AuthSession(
-    val id: String,
+    val id: String = "",
     val ipAddress: String? = null,
     val userAgent: String? = null,
     val createdAt: Long = 0L,
