@@ -27,20 +27,25 @@
 	const selectedUser = $derived(users.find((u) => u.id === selectedUserId) ?? null);
 
 	$effect(() => {
-		if (!session.client) return;
-		if (session.isAdmin) {
-			session.api
-				.users()
-				.then((u) => (users = u))
-				.catch(() => (users = []));
+		void session.activeKey;
+		if (!session.client || !session.isAdmin) {
+			users = [];
+			selectedUserId = null;
+			return;
 		}
+		selectedUserId = null;
+		session.api
+			.users()
+			.then((u) => (users = u))
+			.catch(() => (users = []));
 	});
 
 	async function load(next: number) {
 		loading = true;
 		error = false;
 		try {
-			const r = await session.api.listeningSessions(next, PAGE_SIZE, selectedUserId ?? undefined);
+			const uid = session.isAdmin ? (selectedUserId ?? undefined) : undefined;
+			const r = await session.api.listeningSessions(next, PAGE_SIZE, uid);
 			const fresh = r.sessions.filter(meaningful);
 			sessions = next ? [...sessions, ...fresh] : fresh;
 			page = next;
@@ -77,9 +82,10 @@
 	async function exportCsv() {
 		exporting = true;
 		try {
+			const uid = session.isAdmin ? (selectedUserId ?? undefined) : undefined;
 			const all: ListeningSession[] = [];
 			for (let p = 0, n = 1; p < n && p < 200; p++) {
-				const r = await session.api.listeningSessions(p, 200, selectedUserId ?? undefined);
+				const r = await session.api.listeningSessions(p, 200, uid);
 				all.push(...r.sessions);
 				n = r.numPages;
 			}

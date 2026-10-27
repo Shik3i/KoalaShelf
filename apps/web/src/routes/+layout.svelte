@@ -28,7 +28,7 @@
 	const isPublic = $derived(page.url.pathname.startsWith('/signin'));
 	let isMini = $state(typeof window !== 'undefined' && window.location.hash.includes('/mini'));
 
-	if (typeof window !== 'undefined') {
+	if (typeof window !== 'undefined' && (dev || isDesktop)) {
 		(window as unknown as { __ks_player?: typeof player }).__ks_player = player;
 	}
 

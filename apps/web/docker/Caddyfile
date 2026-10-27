@@ -12,7 +12,10 @@
 
 	# Audiobookshelf API, auth, websockets and streams go to the server.
 	# Covers and author pictures are public images and may be cached as the server says.
-	@images path_regexp ^/api/(items/[^/]+/cover|authors/[^/]+/image)$
+	@images {
+		method GET HEAD
+		path_regexp ^/api/(items/[^/]+/cover|authors/[^/]+/image)$
+	}
 	@abs path /api/* /auth/* /logout /status /socket.io/* /hls/* /public/* /feed/*
 	@login {
 		method POST
@@ -21,6 +24,7 @@
 	handle @images {
 		reverse_proxy {$ABS_URL} {
 			header_up Host {upstream_hostport}
+			header_down -Set-Cookie
 			transport http {
 				versions 1.1
 			}

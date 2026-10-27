@@ -16,9 +16,10 @@ let starting: Promise<void> | null = null;
 
 export function startLive() {
 	if (socket || starting || !session.client) return;
+	const api = session.api;
 	starting = (async () => {
 		const { io } = await import('socket.io-client');
-		const api = session.api;
+		if (session.client !== api) return;
 		const s = io(api.baseUrl || undefined, { path: '/socket.io', transports: ['websocket'] });
 		let retried = false;
 

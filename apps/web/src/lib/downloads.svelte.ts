@@ -155,15 +155,21 @@ class Downloads {
 	}
 
 	async download(id: string) {
+		if (!session.canDownload) return;
 		if (this.jobs.get(id)?.state === 'running' || this.books.has(id)) return;
-		// Already on this device for another account: share the copy instead of downloading.
+		// Already on this device for another account: verify server access first, then share the copy.
 		const other = this.#all.get(id);
 		const me = session.user?.id;
 		if (other && me) {
-			const book = { ...other, owners: [...new Set([...(other.owners ?? []), me])] };
-			await this.#writeMeta(book);
-			this.books.set(id, book);
-			toasts.show(i18n.m.toast.downloaded(book.item.media.metadata.title));
+			try {
+				await session.api.item(id);
+				const book = { ...other, owners: [...new Set([...(other.owners ?? []), me])] };
+				await this.#writeMeta(book);
+				this.books.set(id, book);
+				toasts.show(i18n.m.toast.downloaded(book.item.media.metadata.title));
+			} catch {
+				/* account does not have server permission for this item */
+			}
 			return;
 		}
 		const ctrl = new AbortController();

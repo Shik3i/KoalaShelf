@@ -32,18 +32,22 @@
 	const selectedUser = $derived(users.find((u) => u.id === selectedUserId) ?? null);
 
 	$effect(() => {
-		if (!session.client) return;
-		if (session.isAdmin) {
-			session.api
-				.users()
-				.then((u) => (users = u))
-				.catch(() => (users = []));
+		void session.activeKey;
+		if (!session.client || !session.isAdmin) {
+			users = [];
+			selectedUserId = null;
+			return;
 		}
+		selectedUserId = null;
+		session.api
+			.users()
+			.then((u) => (users = u))
+			.catch(() => (users = []));
 	});
 
 	$effect(() => {
 		if (!session.client) return;
-		const uid = selectedUserId ?? undefined;
+		const uid = session.isAdmin ? (selectedUserId ?? undefined) : undefined;
 		stats = null;
 		error = null;
 		session.api

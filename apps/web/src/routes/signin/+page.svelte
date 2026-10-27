@@ -56,8 +56,11 @@
 	/** Set once this form signed in (adding an account starts while already signed in). */
 	let signedIn = $state(false);
 	$effect(() => {
-		if (session.ready && session.client && (!adding || signedIn))
-			goto(page.url.searchParams.get('next') ?? '/', { replace: true });
+		if (session.ready && session.client && (!adding || signedIn)) {
+			const rawNext = page.url.searchParams.get('next') ?? '/';
+			const safeNext = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
+			goto(safeNext, { replace: true });
+		}
 	});
 
 	/** A saved account: open it, or ask for its password when its session ended. */
