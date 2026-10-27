@@ -11,7 +11,7 @@
 
 	/** Sessions that were opened but barely played are noise in a history. */
 	export const meaningful = (s: ListeningSession) =>
-		s.timeListening >= 5 || Math.abs(s.currentTime - s.startTime) >= 5;
+		(s?.timeListening ?? 0) >= 5 || Math.abs((s?.currentTime ?? 0) - (s?.startTime ?? 0)) >= 5;
 </script>
 
 <script lang="ts">
@@ -37,12 +37,26 @@
 
 	const t = $derived(i18n.m.history);
 	const cover = $derived(item ? view(item).cover : null);
-	const time = $derived(
-		new Intl.DateTimeFormat(i18n.locale, { hour: 'numeric', minute: '2-digit' }).format(s.startedAt)
+	const safeStartedAt = $derived(
+		typeof s?.startedAt === 'number'
+			? s.startedAt
+			: typeof s?.startedAt === 'string'
+				? Date.parse(s.startedAt) || Date.now()
+				: Date.now()
 	);
-	const device = $derived(deviceLabel(s.deviceInfo));
-	const at = (sec: number) => (s.duration ? Math.min(1, Math.max(0, sec / s.duration)) : 0);
-	const [lo, hi] = $derived([s.startTime, s.currentTime].sort((a, b) => a - b));
+	const time = $derived.by(() => {
+		try {
+			return new Intl.DateTimeFormat(i18n.locale, {
+				hour: 'numeric',
+				minute: '2-digit'
+			}).format(safeStartedAt);
+		} catch {
+			return '';
+		}
+	});
+	const device = $derived(deviceLabel(s?.deviceInfo));
+	const at = (sec: number) => (s?.duration ? Math.min(1, Math.max(0, sec / s.duration)) : 0);
+	const [lo, hi] = $derived([s?.startTime ?? 0, s?.currentTime ?? 0].sort((a, b) => a - b));
 </script>
 
 <li class="session" class:with-book={withBook}>

@@ -151,6 +151,22 @@
 	);
 	const dateFmt = $derived(new Intl.DateTimeFormat(i18n.tag, { dateStyle: 'medium' }));
 
+	function parseSessionDate(s: ListeningSession): Date {
+		if (typeof s?.startedAt === 'number') {
+			const d = new Date(s.startedAt);
+			if (!isNaN(d.getTime())) return d;
+		}
+		if (typeof s?.startedAt === 'string') {
+			const parsed = Date.parse(s.startedAt);
+			if (!isNaN(parsed)) return new Date(parsed);
+		}
+		if (typeof s?.date === 'string') {
+			const parsed = Date.parse(s.date);
+			if (!isNaN(parsed)) return new Date(parsed);
+		}
+		return new Date();
+	}
+
 	const recentDays = $derived.by(() => {
 		const today = new Date();
 		const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
@@ -161,20 +177,26 @@
 		});
 		const groups: { date: string; label: string; total: number; list: ListeningSession[] }[] = [];
 		for (const s of recentSessions) {
-			const when = new Date(s.startedAt);
+			if (!s) continue;
+			const when = parseSessionDate(s);
 			const date = key(when);
 			let g = groups.at(-1);
 			if (g?.date !== date) {
-				const label =
-					date === key(today)
-						? i18n.m.history.today
-						: date === key(yesterday)
-							? i18n.m.history.yesterday
-							: fmt.format(when);
+				const label = (() => {
+					try {
+						return date === key(today)
+							? i18n.m.history.today
+							: date === key(yesterday)
+								? i18n.m.history.yesterday
+								: fmt.format(when);
+					} catch {
+						return date;
+					}
+				})();
 				g = { date, label, total: 0, list: [] };
 				groups.push(g);
 			}
-			g.total += s.timeListening;
+			g.total += s.timeListening ?? 0;
 			g.list.push(s);
 		}
 		return groups;

@@ -12,9 +12,23 @@ export class ProbeError extends Error {
 
 const RECENT_KEY = 'ks.servers';
 
+export function unwrapServerUrl(url: string): string {
+	if (url.startsWith('/_abs/')) {
+		const rest = url.slice('/_abs/'.length);
+		const slash = rest.indexOf('/');
+		const encoded = slash >= 0 ? rest.slice(0, slash) : rest;
+		try {
+			return decodeURIComponent(encoded);
+		} catch {
+			return url;
+		}
+	}
+	return url;
+}
+
 /** "nas:13378" -> try https first, then http (home servers often run without TLS). */
 function candidates(input: string) {
-	const raw = normalizeBaseUrl(input);
+	const raw = normalizeBaseUrl(unwrapServerUrl(input));
 	if (/^https?:\/\//i.test(raw)) return [raw];
 	return [`https://${raw}`, `http://${raw}`];
 }
@@ -42,9 +56,22 @@ export async function probeServer(input: string, signal?: AbortSignal) {
 			return { url, version: status.serverVersion };
 		} catch (e) {
 			if (signal?.aborted || e instanceof ProbeError) throw e;
-			if (e instanceof AbsError) failure = 'not-abs';
-			else if (!isTauri && !isDesktop && (await reachableWithoutCors(url, signal)))
-				failure = 'cors';
+			if (e instanceof AbsError) {
+				failure = 'not-abs';
+				continue;
+			}
+			// When direct browser fetch is blocked by CORS, try the container's dynamic ABS proxy.
+			if (!isTauri && !isDesktop) {
+				try {
+					const proxied = `/_abs/${encodeURIComponent(url)}`;
+					const status = await getServerStatus(proxied, fetchFn, signal);
+					assertLocalLogin(status.authMethods);
+					return { url: proxied, version: status.serverVersion };
+				} catch (proxyErr) {
+					if (signal?.aborted || proxyErr instanceof ProbeError) throw proxyErr;
+				}
+				if (await reachableWithoutCors(url, signal)) failure = 'cors';
+			}
 		}
 	}
 	throw new ProbeError(failure);
@@ -65,7 +92,7 @@ export async function probeProxy(signal?: AbortSignal) {
 /** Same server regardless of scheme, case or trailing slash ("nas:13378" == "http://NAS:13378/"). */
 export function sameServer(a: string, b: string) {
 	const key = (u: string) =>
-		normalizeBaseUrl(u)
+		normalizeBaseUrl(unwrapServerUrl(u))
 			.replace(/^https?:\/\//i, '')
 			.toLowerCase();
 	return key(a) === key(b);
@@ -82,7 +109,8 @@ export function recentServers(): string[] {
 }
 
 export function rememberServer(url: string) {
-	const list = [url, ...recentServers().filter((s) => s !== url)].slice(0, 5);
+	const clean = unwrapServerUrl(url);
+	const list = [clean, ...recentServers().filter((s) => s !== clean)].slice(0, 5);
 	try {
 		localStorage.setItem(RECENT_KEY, JSON.stringify(list));
 	} catch {

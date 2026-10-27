@@ -29,12 +29,15 @@ LABEL org.opencontainers.image.title="KoalaShelf" \
 # carries is dropped (it would also stop the container under no-new-privileges).
 # Alpine packages also get their pending security fixes at build time.
 RUN apk upgrade --no-cache \
- && apk add --no-cache libcap \
+ && apk add --no-cache libcap nodejs \
  && setcap -r /usr/bin/caddy \
  && apk del libcap \
  && addgroup -S -g 10001 koalashelf && adduser -S -u 10001 -G koalashelf -H koalashelf \
  && chown -R koalashelf:koalashelf /config /data
 COPY apps/web/docker/Caddyfile /etc/caddy/Caddyfile
+COPY apps/web/docker/proxy.mjs /etc/caddy/proxy.mjs
+COPY apps/web/docker/entrypoint.sh /etc/caddy/entrypoint.sh
+RUN sed -i 's/\r$//' /etc/caddy/entrypoint.sh && chmod +x /etc/caddy/entrypoint.sh
 COPY --from=build /repo/apps/web/build /srv
 USER koalashelf
 # ABS_URL: where Caddy reaches Audiobookshelf. ABS_PUBLIC_URL: the address users know it by
@@ -42,3 +45,4 @@ USER koalashelf
 ENV ABS_URL=http://audiobookshelf:80     ABS_PUBLIC_URL=""
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:8080/manifest.webmanifest >/dev/null || exit 1
+CMD ["/etc/caddy/entrypoint.sh"]

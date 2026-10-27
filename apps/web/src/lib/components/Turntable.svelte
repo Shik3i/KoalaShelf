@@ -47,7 +47,9 @@
 	let lastAngle = 0;
 	let scratchAccum = 0;
 	let totalScratchSeconds = $state(0);
-	let scratchRotateDeg = $state(0);
+	let scratchRotateDeg = 0;
+	let rafId: number | null = null;
+	let pendingDt = 0;
 
 	const angle = $derived(
 		playing || isScratching ? 18 + Math.min(1, Math.max(0, progress)) * 22 : REST
@@ -68,6 +70,8 @@
 		lastAngle = getPointerAngle(e);
 		scratchAccum = 0;
 		totalScratchSeconds = 0;
+		scratchRotateDeg = 0;
+		pendingDt = 0;
 		haptic.needleDrop();
 		onScratchStart?.();
 	}
@@ -87,21 +91,45 @@
 		// 360 degrees = 30 seconds of audio => 1 deg = 30/360 = 0.0833s
 		const SECONDS_PER_DEG = 30 / 360;
 		const dt = deltaDeg * SECONDS_PER_DEG;
-		totalScratchSeconds += dt;
-		onScratch?.(dt);
+		pendingDt += dt;
 
-		// Tactile tick every ~12 degrees of spin
-		if (Math.abs(scratchAccum) >= 12) {
+		// Tactile tick every ~18 degrees of spin
+		if (Math.abs(scratchAccum) >= 18) {
 			haptic.grooveTick();
 			scratchAccum = 0;
+		}
+
+		if (rafId === null) {
+			rafId = requestAnimationFrame(() => {
+				rafId = null;
+				if (platterEl) {
+					platterEl.style.transform = `rotate(${scratchRotateDeg}deg)`;
+				}
+				if (pendingDt !== 0) {
+					totalScratchSeconds += pendingDt;
+					onScratch?.(pendingDt);
+					pendingDt = 0;
+				}
+			});
 		}
 	}
 
 	function onPointerUp() {
 		if (!isScratching) return;
+		if (rafId !== null) {
+			cancelAnimationFrame(rafId);
+			rafId = null;
+		}
+		if (pendingDt !== 0) {
+			onScratch?.(pendingDt);
+			pendingDt = 0;
+		}
 		isScratching = false;
 		scratchRotateDeg = 0;
 		totalScratchSeconds = 0;
+		if (platterEl) {
+			platterEl.style.transform = '';
+		}
 		onScratchEnd?.();
 		haptic.needleDrop();
 	}
@@ -139,7 +167,6 @@
 					haptic.tick();
 				}
 			}}
-			style:transform={isScratching ? `rotate(${scratchRotateDeg}deg)` : undefined}
 			in:placeRecord
 		>
 			<Vinyl playing={playing && !isScratching} {...rest} />

@@ -85,8 +85,8 @@
 			fetchpriority={eager ? 'high' : 'auto'}
 			decoding="async"
 			class:loaded
-			onload={() => (loadedFor = key)}
-			onerror={() => (failedFor = key)}
+			onload={(e) => (loadedFor = e.currentTarget.getAttribute('src'))}
+			onerror={(e) => (failedFor = e.currentTarget.getAttribute('src'))}
 		/>
 	{/if}
 </div>

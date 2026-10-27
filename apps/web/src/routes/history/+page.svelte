@@ -113,8 +113,26 @@
 	}
 
 	/** YYYY-MM-DD in the listener's local time. */
-	const day = (d: Date) =>
-		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	const day = (d: Date) => {
+		if (isNaN(d.getTime())) return 'unknown';
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	};
+
+	function parseSessionDate(s: ListeningSession): Date {
+		if (typeof s?.startedAt === 'number') {
+			const d = new Date(s.startedAt);
+			if (!isNaN(d.getTime())) return d;
+		}
+		if (typeof s?.startedAt === 'string') {
+			const parsed = Date.parse(s.startedAt);
+			if (!isNaN(parsed)) return new Date(parsed);
+		}
+		if (typeof s?.date === 'string') {
+			const parsed = Date.parse(s.date);
+			if (!isNaN(parsed)) return new Date(parsed);
+		}
+		return new Date();
+	}
 
 	const days = $derived.by(() => {
 		const today = new Date();
@@ -126,17 +144,27 @@
 		});
 		const groups: { date: string; label: string; total: number; list: ListeningSession[] }[] = [];
 		for (const s of sessions) {
+			if (!s) continue;
 			// The listener's own day: the server's `date` is in the server's time zone.
-			const when = new Date(s.startedAt);
+			const when = parseSessionDate(s);
 			const date = day(when);
 			let g = groups.at(-1);
 			if (g?.date !== date) {
-				const label =
-					date === day(today) ? t.today : date === day(yesterday) ? t.yesterday : fmt.format(when);
+				const label = (() => {
+					try {
+						return date === day(today)
+							? t.today
+							: date === day(yesterday)
+								? t.yesterday
+								: fmt.format(when);
+					} catch {
+						return date;
+					}
+				})();
 				g = { date, label, total: 0, list: [] };
 				groups.push(g);
 			}
-			g.total += s.timeListening;
+			g.total += s.timeListening ?? 0;
 			g.list.push(s);
 		}
 		return groups;

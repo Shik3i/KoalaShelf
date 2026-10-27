@@ -1,5 +1,13 @@
 # Changelog
 
+## Web 1.1.2
+
+- **Universal Multi-Server Dynamic CORS Proxy**: Added a lightweight, SSRF-protected streaming reverse proxy daemon listening on loopback behind Caddy inside the Docker container. This allows the web app to connect to any user-specified Audiobookshelf server (including `https://audio.shik3i.net`) from any web origin (such as `https://shelf.koalastuff.net`) without requiring custom CORS headers on the Audiobookshelf server. Features automatic direct fetch probing with fallback to proxy, and domain unwrapping in the UI.
+- **Turntable Scratching 120 FPS Performance**: Decoupled vinyl platter rotation from reactive component re-renders via direct DOM style manipulation and batched audio seek events through `requestAnimationFrame`, achieving fluid 120 FPS scratching without audio stutter.
+- **History & Stats Crash Prevention**: Hardened date parsing and locale formatting against unexpected or malformed session timestamp formats (`parseSessionDate`), preventing runtime `RangeError: Invalid time value` crashes on `/history` and `/stats`.
+- **Permissions-Policy Modernization**: Removed deprecated `interest-cohort` directive from Caddy HTTP security headers.
+- **Svelte 5 Reactive Cleanliness**: Eliminated `derived_inert` warnings in `Cover.svelte` by reading image attributes directly in load/error callbacks.
+
 ## Web 1.1.1
 
 - **Atomic Library Preload on Sign-In**: Prefetches accessible book libraries before activating the client session, preventing transient null-library states during navigation from `/signin` to the home dashboard.

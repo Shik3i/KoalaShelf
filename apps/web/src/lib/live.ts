@@ -20,7 +20,11 @@ export function startLive() {
 	starting = (async () => {
 		const { io } = await import('socket.io-client');
 		if (session.client !== api) return;
-		const s = io(api.baseUrl || undefined, { path: '/socket.io', transports: ['websocket'] });
+		const isSubpath = api.baseUrl.startsWith('/');
+		const s = io(isSubpath ? undefined : api.baseUrl || undefined, {
+			path: `${isSubpath ? api.baseUrl : ''}/socket.io`,
+			transports: ['websocket']
+		});
 		let retried = false;
 
 		s.on('connect', () => s.emit('auth', api.accessToken));

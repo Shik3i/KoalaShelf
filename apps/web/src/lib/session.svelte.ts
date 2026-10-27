@@ -11,6 +11,7 @@ import {
 } from '@koalashelf/abs-client';
 import { apiFetch, isDesktop, vault } from './platform.ts';
 import { invalidate } from './cache.ts';
+import { unwrapServerUrl } from './server-probe.ts';
 
 /**
  * Saved accounts, one of them active. Privacy: only what is needed to resume a session is
@@ -99,8 +100,9 @@ function save(s: Stored) {
  */
 export function serverLabel(baseUrl: string) {
 	try {
+		const clean = unwrapServerUrl(baseUrl);
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- parsed once, not state
-		return new URL(baseUrl || session.presetUrl || location.origin).host;
+		return new URL(clean || session.presetUrl || location.origin).host;
 	} catch {
 		return baseUrl;
 	}
@@ -127,10 +129,8 @@ export async function presetServer(): Promise<string | null> {
 		const res = await fetch('/koalashelf.json', { signal: AbortSignal.timeout(2500) });
 		if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null;
 		const { server } = (await res.json()) as { server?: string };
-		if (typeof server !== 'string') return null;
-		if (server.trim()) return normalizeBaseUrl(server);
-		await getServerStatus('', fetch, AbortSignal.timeout(2000));
-		return normalizeBaseUrl(location.origin);
+		if (typeof server !== 'string' || !server.trim()) return null;
+		return normalizeBaseUrl(server);
 	} catch {
 		return null;
 	}

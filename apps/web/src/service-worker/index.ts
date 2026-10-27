@@ -78,7 +78,7 @@ self.addEventListener('fetch', (event) => {
 	if (isCover(url)) return event.respondWith(cover(request));
 	if (url.origin !== location.origin) return;
 	if (request.mode === 'navigate') return event.respondWith(navigate(request));
-	if (/^\/(api|auth|hls|socket\.io|status)\b/.test(url.pathname)) return;
+	if (/^\/(_abs|api|auth|hls|socket\.io|status)\b/.test(url.pathname)) return;
 
 	if (SHELL_FILES.includes(url.pathname)) {
 		event.respondWith(caches.match(request).then((hit) => hit ?? fetch(request)));

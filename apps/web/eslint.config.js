@@ -34,6 +34,12 @@ export default defineConfig(
 		}
 	},
 	{
+		files: ['docker/**'],
+		rules: {
+			'@typescript-eslint/ban-ts-comment': 'off'
+		}
+	},
+	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
 		rules: {
