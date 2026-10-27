@@ -128,7 +128,9 @@ export async function presetServer(): Promise<string | null> {
 		if (!res.ok || !res.headers.get('content-type')?.includes('json')) return null;
 		const { server } = (await res.json()) as { server?: string };
 		if (typeof server !== 'string') return null;
-		return normalizeBaseUrl(server || location.origin);
+		if (server.trim()) return normalizeBaseUrl(server);
+		await getServerStatus('', fetch, AbortSignal.timeout(2000));
+		return normalizeBaseUrl(location.origin);
 	} catch {
 		return null;
 	}
