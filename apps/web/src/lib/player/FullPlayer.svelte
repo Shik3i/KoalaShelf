@@ -146,12 +146,10 @@
 	// Clock and "time left" within the scope (chapter or book), at the displayed speed.
 	const scope = $derived(player.scope);
 	const left = (to: number) => clock(Math.max(0, to - player.currentTime) / player.displayRate);
-	const other = $derived(
-		scope.chapter
-			? t.remainingBook(left(player.duration))
-			: player.chapter
-				? t.remainingChapter(left(player.chapter.end))
-				: t.remainingBook(left(player.duration))
+	const remainingLabel = $derived(
+		scope.chapter && player.chapter
+			? t.remainingChapter(left(player.chapter.end))
+			: t.remainingBook(left(player.duration))
 	);
 
 	const timerLabel = $derived.by(() => {
@@ -320,7 +318,7 @@
 									{scope.chapter ? t.scopeChapter : t.scopeBook}
 								</button>
 							{/if}
-							<span class="muted tabular">{other}</span>
+							<span class="muted tabular">{remainingLabel}</span>
 							<span class="muted tabular ends"
 								>{t.endsAt(endsAt(scope.chapter ? scope.end : player.duration))}</span
 							>
@@ -555,28 +553,57 @@
 	}
 
 	dialog[open] {
-		animation: rise var(--motion-slow) var(--motion-out);
+		animation: rise var(--motion-slow) cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	dialog.closing {
-		animation: sink 220ms var(--motion-ease) forwards;
+		animation: sink 220ms cubic-bezier(0.4, 0, 1, 1) forwards;
 	}
 
 	@keyframes sink {
 		to {
-			translate: 0 8%;
+			translate: 0 40px;
+			scale: 0.98;
 			opacity: 0;
 		}
 	}
 
 	dialog::backdrop {
-		background: transparent;
+		background: rgba(0, 0, 0, 0.5);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
+		animation: backdrop-fade 280ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	dialog.closing::backdrop {
+		animation: backdrop-sink 220ms cubic-bezier(0.4, 0, 1, 1) forwards;
+	}
+
+	@keyframes backdrop-fade {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes backdrop-sink {
+		to {
+			opacity: 0;
+		}
 	}
 
 	@keyframes rise {
 		from {
-			translate: 0 6%;
+			translate: 0 40px;
+			scale: 0.97;
 			opacity: 0;
+		}
+		to {
+			translate: 0 0;
+			scale: 1;
+			opacity: 1;
 		}
 	}
 
@@ -727,9 +754,36 @@
 		gap: var(--sp-32);
 	}
 
+	.deck {
+		animation: deck-in 420ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	@keyframes deck-in {
+		from {
+			scale: 0.93;
+			opacity: 0.6;
+		}
+		to {
+			scale: 1;
+			opacity: 1;
+		}
+	}
+
 	.controls {
 		display: grid;
 		gap: var(--sp-20);
+		animation: controls-in 360ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	@keyframes controls-in {
+		from {
+			translate: 0 16px;
+			opacity: 0;
+		}
+		to {
+			translate: 0 0;
+			opacity: 1;
+		}
 	}
 
 	.meta h2 {
@@ -909,6 +963,29 @@
 		padding: var(--sp-16);
 		border-radius: var(--r-card-lg);
 		background: var(--c-card);
+		animation: panel-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+		transform-origin: right center;
+	}
+
+	@keyframes panel-in {
+		from {
+			opacity: 0;
+			translate: 20px 0;
+			scale: 0.98;
+		}
+		to {
+			opacity: 1;
+			translate: 0 0;
+			scale: 1;
+		}
+	}
+
+	.ctl:active,
+	.action:active,
+	.scope:active,
+	.big:active {
+		scale: 0.93;
+		transition: scale 80ms ease-out;
 	}
 
 	.list {

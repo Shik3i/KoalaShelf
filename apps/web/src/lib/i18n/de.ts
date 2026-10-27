@@ -115,13 +115,15 @@ export const de: Messages = {
 		orAnother: 'oder mit einem anderen Konto anmelden:',
 		intro: 'Melde dich mit deinem Audiobookshelf-Konto an.',
 		server: 'Audiobookshelf-Server',
-		serverPlaceholder: 'https://hoerbuch.example.org',
+		serverPlaceholder: 'hoerbuch.example.org',
 		serverChecking: 'Prüfe Server …',
 		serverOk: (version) => `Audiobookshelf ${version} gefunden`,
 		serverRecent: 'Zuletzt genutzte Server',
 		serverForget: 'Aus der Liste entfernen',
 		errCors: (origin) =>
 			`Der Server erlaubt diese App nicht. Trage in Audiobookshelf unter Einstellungen ${origin} bei „Allowed Origins“ ein – oder betreibe KoalaShelf per Docker vor deinem Server.`,
+		errInsecureHttp:
+			'Unsichere HTTP-Verbindungen werden nicht unterstützt. Bitte eine verschlüsselte HTTPS-Adresse angeben.',
 		username: 'Benutzername',
 		password: 'Passwort',
 		submit: 'Anmelden',

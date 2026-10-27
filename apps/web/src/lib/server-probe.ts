@@ -2,7 +2,7 @@
 import { AbsError, getServerStatus, normalizeBaseUrl } from '@koalashelf/abs-client';
 import { apiFetch, isTauri, isDesktop } from './platform.ts';
 
-export type ProbeFailure = 'not-abs' | 'cors' | 'unreachable' | 'local-disabled';
+export type ProbeFailure = 'not-abs' | 'cors' | 'unreachable' | 'local-disabled' | 'insecure-http';
 
 export class ProbeError extends Error {
 	constructor(readonly kind: ProbeFailure) {
@@ -26,11 +26,14 @@ export function unwrapServerUrl(url: string): string {
 	return url;
 }
 
-/** "nas:13378" -> try https first, then http (home servers often run without TLS). */
+/** Prepares HTTPS candidate; explicitly rejects insecure HTTP connections. */
 function candidates(input: string) {
-	const raw = normalizeBaseUrl(unwrapServerUrl(input));
-	if (/^https?:\/\//i.test(raw)) return [raw];
-	return [`https://${raw}`, `http://${raw}`];
+	const raw = normalizeBaseUrl(unwrapServerUrl(input.trim()));
+	if (/^http:\/\//i.test(raw)) {
+		throw new ProbeError('insecure-http');
+	}
+	if (/^https:\/\//i.test(raw)) return [raw];
+	return [`https://${raw}`];
 }
 
 /**

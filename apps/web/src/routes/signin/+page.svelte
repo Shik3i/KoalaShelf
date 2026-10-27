@@ -73,32 +73,44 @@
 		passwordInput?.focus();
 	}
 
-	// Live server check while typing (debounced), so problems show up before signing in.
+	let probeTimer: ReturnType<typeof setTimeout> | undefined;
+	let probeCtrl: AbortController | undefined;
+
+	function runProbe(target: string) {
+		const input = target.trim();
+		if (preset === undefined || input.length < 3) return;
+		probeCtrl?.abort();
+		clearTimeout(probeTimer);
+		const ctrl = new AbortController();
+		probeCtrl = ctrl;
+		check = { state: 'checking' };
+		const proxy = viaProxy;
+		(proxy ? probeProxy(ctrl.signal) : probeServer(input, ctrl.signal))
+			.then((r) => {
+				if (!ctrl.signal.aborted) check = { state: 'ok', ...r, input };
+			})
+			.catch((e) => {
+				if (!ctrl.signal.aborted) check = { state: 'error', error: e };
+			});
+	}
+
+	// Live server check while typing (debounced 2s), or immediately on Enter / blur.
 	$effect(() => {
 		const input = server.trim();
-		const proxy = viaProxy;
-		// A result for the previous input must never stay on screen (or be used to sign in).
 		check = { state: 'idle' };
+		clearTimeout(probeTimer);
 		if (preset === undefined || input.length < 3) return;
-		const ctrl = new AbortController();
-		const timer = setTimeout(async () => {
-			check = { state: 'checking' };
-			try {
-				const r = proxy ? await probeProxy(ctrl.signal) : await probeServer(input, ctrl.signal);
-				check = { state: 'ok', ...r, input };
-			} catch (e) {
-				if (!ctrl.signal.aborted) check = { state: 'error', error: e };
-			}
-		}, 450);
+		probeTimer = setTimeout(() => runProbe(input), 2000);
 		return () => {
-			clearTimeout(timer);
-			ctrl.abort();
+			clearTimeout(probeTimer);
+			probeCtrl?.abort();
 		};
 	});
 
 	function describe(e: unknown) {
 		if (e instanceof ServerTooOldError) return t.errTooOld(e.version, e.min);
 		if (e instanceof ProbeError) {
+			if (e.kind === 'insecure-http') return t.errInsecureHttp;
 			if (e.kind === 'cors') return t.errCors(location.origin);
 			if (e.kind === 'not-abs') return t.errNotAbs;
 			if (e.kind === 'local-disabled') return t.errLocalDisabled;
@@ -130,6 +142,9 @@
 		busy = true;
 		error = null;
 		try {
+			const trimmed = server.trim();
+			const normalized = trimmed && !/^https?:\/\//i.test(trimmed) ? `https://${trimmed}` : trimmed;
+			if (server !== normalized) server = normalized;
 			const url = viaProxy
 				? ''
 				: check.state === 'ok' && check.input === server.trim()
@@ -199,6 +214,22 @@
 					autocapitalize="none"
 					spellcheck="false"
 					placeholder={t.serverPlaceholder}
+					onblur={() => {
+						const trimmed = server.trim();
+						if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+							server = `https://${trimmed}`;
+						}
+						runProbe(server);
+					}}
+					onkeydown={(e) => {
+						if (e.key === 'Enter') {
+							const trimmed = server.trim();
+							if (trimmed && !/^https?:\/\//i.test(trimmed)) {
+								server = `https://${trimmed}`;
+							}
+							runProbe(server);
+						}
+					}}
 					required
 				/>
 			</label>

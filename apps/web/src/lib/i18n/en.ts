@@ -115,13 +115,15 @@ export const en = {
 		signInAgain: 'Sign in again',
 		orAnother: 'or sign in with another account:',
 		server: 'Audiobookshelf server',
-		serverPlaceholder: 'https://audiobooks.example.org',
+		serverPlaceholder: 'audiobooks.example.org',
 		serverChecking: 'Checking server …',
 		serverOk: (version: string) => `Audiobookshelf ${version} found`,
 		serverRecent: 'Recent servers',
 		serverForget: 'Remove from list',
 		errCors: (origin: string) =>
 			`The server does not allow this app. In Audiobookshelf open Settings and add ${origin} to “Allowed origins” – or run KoalaShelf with Docker in front of your server.`,
+		errInsecureHttp:
+			'Insecure HTTP connections are not supported. Please use a secure HTTPS address.',
 		username: 'Username',
 		password: 'Password',
 		submit: 'Sign in',

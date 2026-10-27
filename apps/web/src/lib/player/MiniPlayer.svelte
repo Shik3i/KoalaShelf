@@ -133,6 +133,11 @@
 		color: inherit;
 		text-align: left;
 		padding: 0;
+		transition: scale var(--motion-fast) var(--motion-ease);
+	}
+
+	.open:active {
+		scale: 0.985;
 	}
 
 	.disc {

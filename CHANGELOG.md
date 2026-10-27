@@ -1,5 +1,12 @@
 # Changelog
 
+## Web 1.1.3
+
+- **HTTPS-Only Server Enforcement & Auto-Prefix**: Server input automatically defaults to secure HTTPS if no protocol is entered (e.g. `audio.example.org`), and explicitly rejects insecure `http://` connections with a dedicated error message.
+- **Throttled Server Probing & Instant Feedback**: Replaced eager keystroke probing with a 2-second idle debounce to protect servers against excessive traffic, while supporting instant probing upon pressing Enter or leaving (blur) the server address field.
+- **Aligned Chapter & Book Remaining Times**: Fixed inverted scope time display in `FullPlayer.svelte` so chapter scope displays remaining chapter time and book scope displays remaining book time, in exact alignment with the Android application.
+- **Smooth Fullscreen Player Transitions & Motion Polish**: Added fluid cubic-bezier modal transitions with backdrop blur, coordinated deck/turntable entrance scaling, smooth side-panel slide reveals, and tactile active button press feedback.
+
 ## Web 1.1.2
 
 - **Universal Multi-Server Dynamic CORS Proxy**: Added a lightweight, SSRF-protected streaming reverse proxy daemon listening on loopback behind Caddy inside the Docker container. This allows the web app to connect to any user-specified Audiobookshelf server (including `https://audio.shik3i.net`) from any web origin (such as `https://shelf.koalastuff.net`) without requiring custom CORS headers on the Audiobookshelf server. Features automatic direct fetch probing with fallback to proxy, and domain unwrapping in the UI.
