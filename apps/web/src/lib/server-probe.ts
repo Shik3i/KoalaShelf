@@ -26,8 +26,15 @@ export function unwrapServerUrl(url: string): string {
 	return url;
 }
 
-function isLoopback(urlOrHost: string): boolean {
+export function isLoopback(urlOrHost: string): boolean {
 	return /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(urlOrHost);
+}
+
+export function normalizeServerInput(input: string): string {
+	const trimmed = input.trim();
+	if (!trimmed) return '';
+	if (/^https?:\/\//i.test(trimmed)) return trimmed;
+	return isLoopback(trimmed) ? `http://${trimmed}` : `https://${trimmed}`;
 }
 
 /** Prepares HTTPS candidate; rejects insecure HTTP for remote servers while allowing local loopback in dev/tests. */

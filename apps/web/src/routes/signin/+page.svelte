@@ -8,6 +8,7 @@
 	import KeyRound from '@lucide/svelte/icons/key-round';
 	import {
 		forgetServer,
+		normalizeServerInput,
 		ProbeError,
 		probeProxy,
 		probeServer,
@@ -143,7 +144,7 @@
 		error = null;
 		try {
 			const trimmed = server.trim();
-			const normalized = trimmed && !/^https?:\/\//i.test(trimmed) ? `https://${trimmed}` : trimmed;
+			const normalized = normalizeServerInput(trimmed);
 			if (server !== normalized) server = normalized;
 			const url = viaProxy
 				? ''
@@ -215,18 +216,12 @@
 					spellcheck="false"
 					placeholder={t.serverPlaceholder}
 					onblur={() => {
-						const trimmed = server.trim();
-						if (trimmed && !/^https?:\/\//i.test(trimmed)) {
-							server = `https://${trimmed}`;
-						}
+						server = normalizeServerInput(server);
 						runProbe(server);
 					}}
 					onkeydown={(e) => {
 						if (e.key === 'Enter') {
-							const trimmed = server.trim();
-							if (trimmed && !/^https?:\/\//i.test(trimmed)) {
-								server = `https://${trimmed}`;
-							}
+							server = normalizeServerInput(server);
 							runProbe(server);
 						}
 					}}

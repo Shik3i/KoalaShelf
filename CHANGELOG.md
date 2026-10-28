@@ -1,5 +1,14 @@
 # Changelog
 
+## Android 1.1.2
+
+- **Player Modal & Haptic Touch Architecture**: Replaced awkward downward-expanding drawers with clean Material 3 modal bottom sheets with tactile haptics. Single tap toggles sound profile and sleep timer on/off, single tap cycles playback speeds, and long-press opens fine-grained configuration sheets.
+- **Customizable Player Layout Presets**: Added one-tap layout presets (`compact`, `standard`, `detailed`) selectable directly in the player top bar and settings: Compact minimalist turntable, Standard balanced view, and Detailed audiophile view featuring audio codec/bitrate badge, simultaneous chapter and total book remaining times, ends-at clock, and silence-saved pill.
+- **Live Daily Listening Goal & Real-Time Progress**: Live session listening seconds delta tracks listening progress second-by-second while playing audio, resolving the static 1/30 min display bug, accompanied by background 45s stats synchronization.
+- **Full Settings Feature Parity with Web**: Added complete configuration suites for player presets, playback scope (chapter vs book), clock readout mode (remaining vs elapsed), speed-adjusted remaining time, auto-queue next book, headset media keys, sound processing engine (voice boost, mono downmix, volume leveling, skip silence, turntable vinyl crackle, needle drop cues), sleep timer (smooth fade-out, fade duration, post-sleep rewind, auto-sleep smart windows), and daily goal picker.
+- **Dynamic Year in Review & Stats Selection**: Fixed non-functional year selector by dynamically parsing available years from listening history, reloading year statistics on selection, and surfacing longest book finished, top authors, and top genres.
+- **Instant Cold-Start Cache Hydration**: Home shelves disk caching and Room database preloading provide instantaneous 0 ms first-frame painting on cold launch without blank screen loading delays.
+
 ## Web 1.1.3
 
 - **HTTPS-Only Server Enforcement & Auto-Prefix**: Server input automatically defaults to secure HTTPS if no protocol is entered (e.g. `audio.example.org`), and explicitly rejects insecure `http://` connections with a dedicated error message.
