@@ -1,5 +1,7 @@
 package net.koalastuff.koalashelf.core.data.repository
 
+import android.content.Context
+import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -109,6 +111,7 @@ data class ChapterSearchHit(
  * matching `apps/web/src/lib/library-query.ts` and `apps/web/src/routes/`.
  */
 class LibraryRepository(
+    private val context: Context,
     private val dao: KoalaDao,
     private val sessionRepository: SessionRepository,
     private val progressRepository: ProgressRepository,
@@ -118,9 +121,45 @@ class LibraryRepository(
     private val api: AbsApiClient?
         get() = sessionRepository.apiClient
 
+    private fun shelvesCacheFile(libraryId: String): File {
+        val accountKey = sessionRepository.activeKey.value ?: "offline"
+        val safeLib = libraryId.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+        val safeAcc = accountKey.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+        return File(context.cacheDir, "shelves_${safeAcc}_${safeLib}.json")
+    }
+
+    suspend fun getCachedHomeShelves(libraryId: String): List<Shelf> = withContext(Dispatchers.IO) {
+        val file = shelvesCacheFile(libraryId)
+        if (!file.exists()) return@withContext emptyList()
+        runCatching {
+            AbsJson.decodeFromString<List<Shelf>>(file.readText())
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun getCachedBooks(
+        libraryId: String,
+        query: LibraryQueryState = LibraryQueryState(),
+    ): List<LibraryItem> = withContext(Dispatchers.IO) {
+        val accountKey = sessionRepository.activeKey.value ?: "offline"
+        loadCachedBooks(accountKey, libraryId, query)
+    }
+
     suspend fun getHomeShelves(libraryId: String): List<Shelf> = withContext(Dispatchers.IO) {
-        val client = api ?: return@withContext emptyList()
-        client.personalized(libraryId, limit = 16)
+        val client = api ?: return@withContext getCachedHomeShelves(libraryId)
+        try {
+            val fresh = client.personalized(libraryId, limit = 16)
+            if (fresh.isNotEmpty()) {
+                runCatching {
+                    val file = shelvesCacheFile(libraryId)
+                    file.writeText(AbsJson.encodeToString(fresh))
+                }
+            }
+            fresh
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            getCachedHomeShelves(libraryId)
+        }
     }
 
     suspend fun getFilterData(libraryId: String): FilterData = withContext(Dispatchers.IO) {

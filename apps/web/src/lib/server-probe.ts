@@ -26,13 +26,21 @@ export function unwrapServerUrl(url: string): string {
 	return url;
 }
 
-/** Prepares HTTPS candidate; explicitly rejects insecure HTTP connections. */
+function isLoopback(urlOrHost: string): boolean {
+	return /^(https?:\/\/)?(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(urlOrHost);
+}
+
+/** Prepares HTTPS candidate; rejects insecure HTTP for remote servers while allowing local loopback in dev/tests. */
 function candidates(input: string) {
 	const raw = normalizeBaseUrl(unwrapServerUrl(input.trim()));
 	if (/^http:\/\//i.test(raw)) {
+		if (isLoopback(raw)) return [raw];
 		throw new ProbeError('insecure-http');
 	}
 	if (/^https:\/\//i.test(raw)) return [raw];
+	if (isLoopback(raw)) {
+		return [`http://${raw}`, `https://${raw}`];
+	}
 	return [`https://${raw}`];
 }
 

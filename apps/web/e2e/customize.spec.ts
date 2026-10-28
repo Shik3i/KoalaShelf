@@ -190,7 +190,7 @@ test.describe('customization', () => {
 		await expect(range).toHaveAttribute('max', String(chapter.end));
 		// The clock counts from the start of the chapter.
 		await expect(dialog.locator('button.big')).toHaveText(/^0:0\d$/);
-		await expect(dialog.getByText(/left in book/)).toBeVisible();
+		await expect(dialog.getByText(/left in chapter/)).toBeVisible();
 		expect(await player<boolean>(page, 'scope.chapter')).toBe(true);
 
 		await dialog.getByRole('button', { name: /Timeline shows: Chapter/ }).click();

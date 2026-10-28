@@ -12,12 +12,12 @@ describe('server-probe', () => {
 		expect(unwrapServerUrl('https://direct.example.org')).toBe('https://direct.example.org');
 	});
 
-	it('rejects insecure http:// URLs with ProbeError insecure-http', async () => {
+	it('rejects insecure http:// URLs with ProbeError insecure-http for remote hosts', async () => {
 		await expect(probeServer('http://insecure.example.com')).rejects.toThrowError(
 			expect.objectContaining({ kind: 'insecure-http' })
 		);
 		await expect(probeServer('http://insecure.example.com')).rejects.toBeInstanceOf(ProbeError);
-		await expect(probeServer('http://localhost:13378')).rejects.toThrowError(
+		await expect(probeServer('http://audiobookshelf.other-domain.net:8080')).rejects.toThrowError(
 			expect.objectContaining({ kind: 'insecure-http' })
 		);
 	});

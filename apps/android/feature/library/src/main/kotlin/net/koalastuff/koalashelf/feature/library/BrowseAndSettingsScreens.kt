@@ -1498,6 +1498,11 @@ fun StatsAndHistoryScreen(
             if (selectedUserId == null) {
                 item {
                     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
+                    val availableYears = remember(stats.days) {
+                        val yearsFromStats = stats.days.keys.mapNotNull { it.take(4).toIntOrNull() }.distinct().sortedDescending()
+                        if (yearsFromStats.isNotEmpty()) yearsFromStats else listOf(currentYear, currentYear - 1)
+                    }
+
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = colors.card,
@@ -1518,8 +1523,8 @@ fun StatsAndHistoryScreen(
                                     text = "${strings.statsYearInReview} $selectedYear",
                                     style = MaterialTheme.typography.titleMedium,
                                 )
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    listOf(currentYear - 1, currentYear).forEach { y ->
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    items(availableYears) { y ->
                                         FilterChip(
                                             selected = selectedYear == y,
                                             onClick = { onSelectYear(y) },
@@ -1528,11 +1533,44 @@ fun StatsAndHistoryScreen(
                                     }
                                 }
                             }
-                            if (yearInReview != null) {
+
+                            if (yearInReview != null && yearInReview.totalListeningTime > 0.0) {
                                 Text(
-                                    text = "${strings.statsTotal}: ${formatDuration(yearInReview.totalListeningTime, strings)} · ${strings.filterFinished}: ${yearInReview.numBooksFinished}",
+                                    text = "${strings.statsTotal}: ${formatDuration(yearInReview.totalListeningTime, strings)} · ${strings.filterFinished}: ${yearInReview.numBooksFinished} Bücher",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = colors.accent,
+                                )
+
+                                yearInReview.longestAudiobookFinished?.let { longest ->
+                                    if (longest.title.isNotBlank()) {
+                                        Text(
+                                            text = "Längstes Hörbuch: ${longest.title} (${formatDuration(longest.duration, strings)})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colors.ink,
+                                        )
+                                    }
+                                }
+
+                                if (yearInReview.topAuthors.isNotEmpty()) {
+                                    Text(
+                                        text = "Top Autoren: " + yearInReview.topAuthors.take(3).joinToString(", ") { "${it.name} (${formatDuration(it.time, strings)})" },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.muted,
+                                    )
+                                }
+
+                                if (yearInReview.topGenres.isNotEmpty()) {
+                                    Text(
+                                        text = "Top Genres: " + yearInReview.topGenres.take(3).joinToString(", ") { "${it.genre} (${formatDuration(it.time, strings)})" },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.muted,
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "Keine Hörstatistiken für $selectedYear vorhanden.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.muted,
                                 )
                             }
                         }
@@ -1940,6 +1978,66 @@ fun SettingsScreen(
         // Playback Settings Section
         item {
             SettingsCard(title = strings.settingsPlayback) {
+                // Player Layout Preset
+                Text(if (strings.isGerman) "Player-Layout" else "Player layout", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "standard" to (if (strings.isGerman) "Standard" else "Standard"),
+                        "compact" to (if (strings.isGerman) "Kompakt" else "Compact"),
+                        "detailed" to (if (strings.isGerman) "Detailliert" else "Detailed"),
+                    ).forEach { (id, label) ->
+                        FilterChip(
+                            selected = prefs.playerPreset == id,
+                            onClick = { prefsRepository.update { it.copy(playerPreset = id) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                // Progress Scope
+                Text(if (strings.isGerman) "Fortschrittsbereich" else "Progress scope", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "book" to strings.playerScopeBook,
+                        "chapter" to strings.playerScopeChapter,
+                    ).forEach { (id, label) ->
+                        FilterChip(
+                            selected = prefs.progressScope == id,
+                            onClick = { prefsRepository.update { it.copy(progressScope = id) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                // Clock Mode
+                Text(if (strings.isGerman) "Zeitanzeige" else "Clock readout", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        true to (if (strings.isGerman) "Restzeit" else "Remaining"),
+                        false to (if (strings.isGerman) "Verstrichen" else "Elapsed"),
+                    ).forEach { (isRem, label) ->
+                        FilterChip(
+                            selected = prefs.remainingTime == isRem,
+                            onClick = { prefsRepository.update { it.copy(remainingTime = isRem) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(if (strings.isGerman) "Geschwindigkeitsangepasste Restzeit" else "Speed-adjusted remaining time", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Switch(
+                        checked = prefs.speedAdjusted,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(speedAdjusted = v) } },
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2003,6 +2101,227 @@ fun SettingsScreen(
                     Switch(
                         checked = prefs.rememberRate,
                         onCheckedChange = { v -> prefsRepository.update { it.copy(rememberRate = v) } },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(if (strings.isGerman) "Nächstes Hörbuch automatisch einreihen" else "Auto-queue next book", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Switch(
+                        checked = prefs.autoQueue,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(autoQueue = v) } },
+                    )
+                }
+
+                Text(strings.settingsMediaKeys, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "chapter" to (if (strings.isGerman) "Kapitel springen" else "Skip chapter"),
+                        "skip" to (if (strings.isGerman) "Sekunden spulen" else "Skip seconds"),
+                    ).forEach { (id, label) ->
+                        FilterChip(
+                            selected = prefs.mediaKeys == id,
+                            onClick = { prefsRepository.update { it.copy(mediaKeys = id) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+            }
+        }
+
+        // Sound & Audio Effects Section
+        item {
+            SettingsCard(title = strings.soundTitle) {
+                Text(strings.soundProfileLabel, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "off" to strings.soundProfileOff,
+                        "voice" to strings.soundProfileVoice,
+                        "night" to strings.soundProfileNight,
+                        "commute" to strings.soundProfileCommute,
+                        "warmth" to strings.soundProfileWarmth,
+                    ).forEach { (id, label) ->
+                        FilterChip(
+                            selected = prefs.soundProfile == id,
+                            onClick = { prefsRepository.update { it.copy(soundProfile = id) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.soundVoiceBoost, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.voiceBoost,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(voiceBoost = v) } },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.soundLeveling, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.leveling,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(leveling = v) } },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.soundMono, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.mono,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(mono = v) } },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.soundSkipSilence, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.skipSilence,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(skipSilence = v) } },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.soundNeedleDrop, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.needleDrop,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(needleDrop = v) } },
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.soundVinylCrackle, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.vinylCrackle,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(vinylCrackle = v) } },
+                    )
+                }
+            }
+        }
+
+        // Sleep Timer Section
+        item {
+            SettingsCard(title = strings.playerTimer) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.settingsSleepFade, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.sleepFade,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(sleepFade = v) } },
+                    )
+                }
+
+                Text(if (strings.isGerman) "Ausblend-Dauer" else "Fade duration", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(10, 30, 60).forEach { sec ->
+                        FilterChip(
+                            selected = prefs.sleepFadeDuration == sec,
+                            onClick = { prefsRepository.update { it.copy(sleepFadeDuration = sec) } },
+                            label = { Text("${sec}s") },
+                        )
+                    }
+                }
+
+                Text(if (strings.isGerman) "Rückspulen nach Einschlafen" else "Rewind after sleep", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0, 15, 30).forEach { sec ->
+                        FilterChip(
+                            selected = prefs.sleepRewind == sec,
+                            onClick = { prefsRepository.update { it.copy(sleepRewind = sec) } },
+                            label = { Text(if (sec == 0) (if (strings.isGerman) "Aus" else "Off") else "${sec}s") },
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.settingsAutoSleep, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.autoSleep,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(autoSleep = v) } },
+                    )
+                }
+
+                Text(if (strings.isGerman) "Auto-Sleep Modus" else "Auto-sleep mode", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "smart" to (if (strings.isGerman) "Smart-Fenster" else "Smart window"),
+                        "minutes" to (if (strings.isGerman) "Minuten" else "Minutes"),
+                        "chapter" to (if (strings.isGerman) "Kapitelende" else "End of chapter"),
+                    ).forEach { (id, label) ->
+                        FilterChip(
+                            selected = prefs.autoSleepKind == id,
+                            onClick = { prefsRepository.update { it.copy(autoSleepKind = id) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+            }
+        }
+
+        // Daily Goal Section
+        item {
+            SettingsCard(title = strings.dailyGoalLabel) {
+                Text(if (strings.isGerman) "Tägliches Hörziel festlegen" else "Set daily listening goal", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0, 15, 30, 45, 60, 90).forEach { mins ->
+                        FilterChip(
+                            selected = prefs.dailyGoal == mins,
+                            onClick = { prefsRepository.update { it.copy(dailyGoal = mins) } },
+                            label = { Text(if (mins == 0) (if (strings.isGerman) "Aus" else "Off") else "${mins}m") },
+                        )
+                    }
+                }
+            }
+        }
+
+        // Downloads & Storage Section
+        item {
+            SettingsCard(title = strings.navDownloads) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(strings.settingsRemoveFinished, style = MaterialTheme.typography.bodyMedium)
+                    Switch(
+                        checked = prefs.removeFinished,
+                        onCheckedChange = { v -> prefsRepository.update { it.copy(removeFinished = v) } },
                     )
                 }
             }

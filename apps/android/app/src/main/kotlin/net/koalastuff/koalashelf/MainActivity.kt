@@ -86,6 +86,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.koalastuff.koalashelf.core.data.i18n.AppLocale
@@ -246,6 +247,7 @@ private fun KoalaAppShell(
     val playingItem by playerController.item.collectAsStateWithLifecycle()
     val isPlaying by playerController.playing.collectAsStateWithLifecycle()
     val playerExpanded by playerController.expanded.collectAsStateWithLifecycle()
+    val liveSessionDelta by playerController.liveSessionListenedSeconds.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val initialRoute = remember {
@@ -356,6 +358,21 @@ private fun KoalaAppShell(
         }
     }
 
+    // Periodic stats polling while playing to keep listening stats fresh and reset delta
+    LaunchedEffect(isPlaying) {
+        if (!isPlaying) return@LaunchedEffect
+        while (isActive) {
+            delay(45_000L)
+            runCatching {
+                val freshStats = libraryRepository.getListeningStats(selectedStatsUserId)
+                if (freshStats != null) {
+                    listeningStats = freshStats
+                    playerController.resetLiveSessionDelta()
+                }
+            }
+        }
+    }
+
     // Reset admin user selection when active account changes
     LaunchedEffect(activeKey) {
         selectedStatsUserId = null
@@ -367,15 +384,30 @@ private fun KoalaAppShell(
     }
 
     // Load library shelves, filterData, and stats when authenticated or active library changes
+    // Paint immediately from disk cache so cold start is instantaneous
     LaunchedEffect(activeKey, activeLibraryId) {
         val libId = activeLibraryId ?: return@LaunchedEffect
         addingAccountFromAuthed = false
+        val cachedShelves = libraryRepository.getCachedHomeShelves(libId)
+        if (cachedShelves.isNotEmpty() && homeShelves.isEmpty()) {
+            homeShelves = cachedShelves
+        }
+        val cachedBooks = libraryRepository.getCachedBooks(libId)
+        if (cachedBooks.isNotEmpty() && libraryBooks.isEmpty()) {
+            libraryBooks = cachedBooks
+        }
         refreshActiveLibraryData(libId, includeBooks = false)
     }
 
     // Query library items when active library or queryState changes
     LaunchedEffect(activeKey, activeLibraryId, libraryQueryState) {
         val libId = activeLibraryId ?: return@LaunchedEffect
+        if (libraryBooks.isEmpty()) {
+            val cachedBooks = libraryRepository.getCachedBooks(libId)
+            if (cachedBooks.isNotEmpty()) {
+                libraryBooks = cachedBooks
+            }
+        }
         runCatching {
             libraryBooks = libraryRepository.queryLibraryItems(libId, libraryQueryState)
         }.onFailure { err ->
@@ -385,7 +417,7 @@ private fun KoalaAppShell(
     }
 
     // Load route-specific data
-    LaunchedEffect(currentRoute, activeLibraryId) {
+    LaunchedEffect(currentRoute, activeLibraryId, selectedYear) {
         val libId = activeLibraryId ?: return@LaunchedEffect
         runCatching {
             when (val r = currentRoute) {
@@ -623,7 +655,8 @@ private fun KoalaAppShell(
                 when (route) {
                 is KoalaRoute.Home -> {
                     val todayKey = remember { formatLocalDay(System.currentTimeMillis()) }
-                    val todayListeningSeconds = listeningStats.days[todayKey] ?: listeningStats.today
+                    val baseTodaySeconds = listeningStats.days[todayKey] ?: listeningStats.today
+                    val todayListeningSeconds = baseTodaySeconds + liveSessionDelta
 
                     HomeScreen(
                         username = activeAccount?.user?.username ?: "",

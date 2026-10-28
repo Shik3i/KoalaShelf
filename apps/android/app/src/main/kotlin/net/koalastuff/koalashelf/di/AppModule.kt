@@ -23,7 +23,7 @@ val koalaAppModule = module {
     single { ProgressRepository(get(), get()) }
     single { QueueRepository(get(), get()) }
     single { DownloadRepository(androidContext(), get(), get()) }
-    single { LibraryRepository(get(), get(), get()) }
+    single { LibraryRepository(androidContext(), get(), get(), get()) }
     single {
         KoalaPlayerController(
             context = androidContext(),

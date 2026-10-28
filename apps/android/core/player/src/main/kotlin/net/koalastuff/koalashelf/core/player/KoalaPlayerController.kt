@@ -156,6 +156,13 @@ class KoalaPlayerController(
     private val _toastEvents = MutableSharedFlow<PlayerToastEvent>(extraBufferCapacity = 8)
     val toastEvents: SharedFlow<PlayerToastEvent> = _toastEvents.asSharedFlow()
 
+    private val _liveSessionListenedSeconds = MutableStateFlow(0.0)
+    val liveSessionListenedSeconds: StateFlow<Double> = _liveSessionListenedSeconds.asStateFlow()
+
+    fun resetLiveSessionDelta() {
+        _liveSessionListenedSeconds.value = 0.0
+    }
+
     private var activeSession: PlaybackSession? = null
     private var activeLocalSession: LocalSessionPayload? = null
     private var tracks: List<AudioTrack> = emptyList()
@@ -751,7 +758,10 @@ class KoalaPlayerController(
         val now = System.currentTimeMillis()
         if (_playing.value && lastTickMillis > 0L) {
             val dtSec = min(2.0, (now - lastTickMillis) / 1000.0)
-            if (dtSec > 0.0) listenedSecondsAccum += dtSec
+            if (dtSec > 0.0) {
+                listenedSecondsAccum += dtSec
+                _liveSessionListenedSeconds.value += dtSec
+            }
         }
         lastTickMillis = now
 
