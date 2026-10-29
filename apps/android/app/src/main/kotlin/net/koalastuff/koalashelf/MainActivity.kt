@@ -417,7 +417,7 @@ private fun KoalaAppShell(
     }
 
     // Load route-specific data
-    LaunchedEffect(currentRoute, activeLibraryId, selectedYear) {
+    LaunchedEffect(currentRoute, activeLibraryId) {
         val libId = activeLibraryId ?: return@LaunchedEffect
         runCatching {
             when (val r = currentRoute) {
@@ -1027,6 +1027,7 @@ private fun KoalaAppShell(
                         },
                         onSelectYear = { year ->
                             selectedYear = year
+                            yearInReview = null
                             scope.launch { yearInReview = libraryRepository.getYearStats(year) }
                         },
                         onOpenBook = { bid -> navigateTo(KoalaRoute.BookDetail(bid)) },

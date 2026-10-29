@@ -13,6 +13,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
@@ -64,6 +65,26 @@ enum class KoalaFontChoice(val id: String) {
     DYSLEXIC("dyslexic"),
     MONO("mono"),
     SYSTEM("system");
+
+    fun displayFontFamily(): FontFamily = when (this) {
+        STANDARD -> FontFamily(Font(R.font.gloock_regular, FontWeight.Normal))
+        LITERARY -> FontFamily(Font(R.font.literata_regular, FontWeight.Normal))
+        VINTAGE -> FontFamily(Font(R.font.fraunces_regular, FontWeight.Normal))
+        READABLE -> FontFamily(Font(R.font.atkinson_regular, FontWeight.Normal))
+        DYSLEXIC -> FontFamily(Font(R.font.opendyslexic_regular, FontWeight.Normal))
+        MONO -> FontFamily(Font(R.font.jetbrains_mono_regular, FontWeight.Normal))
+        SYSTEM -> FontFamily.Default
+    }
+
+    fun bodyFontFamily(): FontFamily = when (this) {
+        STANDARD -> FontFamily(Font(R.font.manrope_regular, FontWeight.Normal))
+        LITERARY -> FontFamily(Font(R.font.literata_regular, FontWeight.Normal))
+        VINTAGE -> FontFamily(Font(R.font.fraunces_regular, FontWeight.Normal))
+        READABLE -> FontFamily(Font(R.font.atkinson_regular, FontWeight.Normal))
+        DYSLEXIC -> FontFamily(Font(R.font.opendyslexic_regular, FontWeight.Normal))
+        MONO -> FontFamily(Font(R.font.jetbrains_mono_regular, FontWeight.Normal))
+        SYSTEM -> FontFamily.Default
+    }
 
     companion object {
         fun fromId(id: String): KoalaFontChoice = entries.find { it.id == id } ?: STANDARD
@@ -430,15 +451,7 @@ fun KoalaShelfTheme(
     val baseColors = if (isDark) DarkKoalaColors else LightKoalaColors
     val koalaColors = baseColors.withAccent(accentPreset, isDark, customAccentHex)
 
-    val (displayFamily, bodyFamily) = when (fontChoice) {
-        KoalaFontChoice.STANDARD -> FontFamily.Serif to FontFamily.SansSerif
-        KoalaFontChoice.LITERARY -> FontFamily.Serif to FontFamily.Serif
-        KoalaFontChoice.VINTAGE -> FontFamily.Serif to FontFamily.Monospace
-        KoalaFontChoice.READABLE -> FontFamily.SansSerif to FontFamily.SansSerif
-        KoalaFontChoice.DYSLEXIC -> FontFamily.SansSerif to FontFamily.SansSerif
-        KoalaFontChoice.MONO -> FontFamily.Monospace to FontFamily.Monospace
-        KoalaFontChoice.SYSTEM -> FontFamily.Default to FontFamily.Default
-    }
+    val (displayFamily, bodyFamily) = fontChoice.displayFontFamily() to fontChoice.bodyFontFamily()
 
     val koalaTypography = KoalaTypography(
         displayFamily = displayFamily,

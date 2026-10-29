@@ -17,7 +17,10 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -106,6 +109,15 @@ class KoalaPlayerController(
     val audioEffectsController = AudioEffectsController()
     val ambienceEngine = AmbienceEngine(scope)
     val sleepTimerEngine = SleepTimerEngine { prefsRepository.prefs.value }
+
+    init {
+        scope.launch {
+            prefsRepository.prefs.collect { prefs ->
+                exoPlayer?.let { applySoundEffects(it) }
+                updateVinylCrackleLoop()
+            }
+        }
+    }
 
     private val _item = MutableStateFlow<LibraryItem?>(null)
     val item: StateFlow<LibraryItem?> = _item.asStateFlow()
@@ -223,12 +235,29 @@ class KoalaPlayerController(
             .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
             .build()
 
-        val player = ExoPlayer.Builder(context)
+        val renderersFactory = object : DefaultRenderersFactory(context) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean,
+            ): AudioSink {
+                return DefaultAudioSink.Builder(context)
+                    .setAudioProcessors(arrayOf(audioEffectsController.channelMixingAudioProcessor))
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .build()
+            }
+        }
+
+        val player = ExoPlayer.Builder(context, renderersFactory)
             .setAudioAttributes(audioAttributes, true)
             .setHandleAudioBecomingNoisy(true)
             .build()
 
         player.addListener(object : Player.Listener {
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                applySoundEffects(player)
+            }
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 _playing.value = isPlaying
                 if (isPlaying) {

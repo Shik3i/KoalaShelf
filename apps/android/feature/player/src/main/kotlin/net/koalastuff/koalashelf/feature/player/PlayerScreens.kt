@@ -1267,6 +1267,32 @@ private fun SoundEnginePanel(
             )
         }
 
+        // Leveling toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(strings.soundLeveling, style = MaterialTheme.typography.bodyMedium)
+            Switch(
+                checked = prefs.leveling,
+                onCheckedChange = { v -> onUpdatePrefs { it.copy(leveling = v) } },
+            )
+        }
+
+        // Mono toggle
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(strings.soundMono, style = MaterialTheme.typography.bodyMedium)
+            Switch(
+                checked = prefs.mono,
+                onCheckedChange = { v -> onUpdatePrefs { it.copy(mono = v) } },
+            )
+        }
+
         // Skip Silence
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1312,6 +1338,25 @@ private fun SoundEnginePanel(
             Switch(
                 checked = prefs.vinylCrackle,
                 onCheckedChange = { v -> onUpdatePrefs { it.copy(vinylCrackle = v) } },
+            )
+        }
+
+        if (prefs.vinylCrackle) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(strings.soundVinylVolumeLabel, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                Text(
+                    text = "${(prefs.vinylCrackleVolume * 800f).roundToInt()}%",
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                    color = colors.accent,
+                )
+            }
+            Slider(
+                value = prefs.vinylCrackleVolume,
+                onValueChange = { v -> onUpdatePrefs { it.copy(vinylCrackleVolume = v) } },
+                valueRange = 0.01f..0.12f,
             )
         }
     }

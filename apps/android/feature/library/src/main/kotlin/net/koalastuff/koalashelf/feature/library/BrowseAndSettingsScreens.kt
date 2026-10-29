@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -44,6 +45,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SupervisorAccount
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -71,6 +73,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import net.koalastuff.koalashelf.core.designsystem.KoalaMotionMode
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import net.koalastuff.koalashelf.core.data.i18n.AppLocale
@@ -1499,8 +1503,8 @@ fun StatsAndHistoryScreen(
                 item {
                     val currentYear = Calendar.getInstance().get(Calendar.YEAR)
                     val availableYears = remember(stats.days) {
-                        val yearsFromStats = stats.days.keys.mapNotNull { it.take(4).toIntOrNull() }.distinct().sortedDescending()
-                        if (yearsFromStats.isNotEmpty()) yearsFromStats else listOf(currentYear, currentYear - 1)
+                        val yearsFromStats = stats.days.keys.mapNotNull { it.take(4).toIntOrNull() }
+                        (yearsFromStats + listOf(currentYear, currentYear - 1, currentYear - 2)).distinct().sortedDescending()
                     }
 
                     Surface(
@@ -1534,7 +1538,23 @@ fun StatsAndHistoryScreen(
                                 }
                             }
 
-                            if (yearInReview != null && yearInReview.totalListeningTime > 0.0) {
+                            if (yearInReview == null) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = colors.accent,
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(strings.statsLoading, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                                }
+                            } else if (yearInReview.totalListeningTime > 0.0) {
                                 Text(
                                     text = "${strings.statsTotal}: ${formatDuration(yearInReview.totalListeningTime, strings)} · ${strings.filterFinished}: ${yearInReview.numBooksFinished} Bücher",
                                     style = MaterialTheme.typography.bodyMedium,
@@ -1566,9 +1586,29 @@ fun StatsAndHistoryScreen(
                                         color = colors.muted,
                                     )
                                 }
+
+                                yearInReview.mostListenedMonth?.let { m ->
+                                    if (m.month > 0 && m.time > 0.0) {
+                                        Text(
+                                            text = "Stärkster Monat: Monat ${m.month} (${formatDuration(m.time, strings)})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colors.muted,
+                                        )
+                                    }
+                                }
+
+                                yearInReview.mostListenedNarrator?.let { n ->
+                                    if (n.name.isNotBlank() && n.time > 0.0) {
+                                        Text(
+                                            text = "Meistgehörte/r Sprecher:in: ${n.name} (${formatDuration(n.time, strings)})",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = colors.muted,
+                                        )
+                                    }
+                                }
                             } else {
                                 Text(
-                                    text = "Keine Hörstatistiken für $selectedYear vorhanden.",
+                                    text = strings.statsYearEmpty(selectedYear),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.muted,
                                 )
@@ -1920,13 +1960,64 @@ fun SettingsScreen(
 
                 // Font Choice
                 Text(strings.settingsFont, style = MaterialTheme.typography.bodySmall, color = colors.muted)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     KoalaFontChoice.entries.forEach { fc ->
-                        FilterChip(
-                            selected = prefs.font == fc.id,
-                            onClick = { prefsRepository.update { it.copy(font = fc.id) } },
-                            label = { Text(fc.id.replaceFirstChar { it.uppercase() }) },
-                        )
+                        val isSelected = prefs.font == fc.id
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) colors.card else colors.panel,
+                            border = BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) colors.accent else colors.line,
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { prefsRepository.update { it.copy(font = fc.id) } },
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = strings.fontLabel(fc.id),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontFamily = fc.displayFontFamily(),
+                                            fontWeight = FontWeight.Bold,
+                                        ),
+                                        color = if (isSelected) colors.accent else colors.ink,
+                                    )
+                                    if (isSelected) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = colors.accent,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
+                                val desc = strings.fontDescription(fc.id)
+                                if (desc.isNotBlank()) {
+                                    Text(
+                                        text = desc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = colors.muted,
+                                    )
+                                }
+                                Text(
+                                    text = strings.fontSample,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = fc.bodyFontFamily(),
+                                    ),
+                                    color = colors.ink.copy(alpha = 0.85f),
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -1938,6 +2029,22 @@ fun SettingsScreen(
                             selected = prefs.textSize == ts.id,
                             onClick = { prefsRepository.update { it.copy(textSize = ts.id) } },
                             label = { Text(ts.id.uppercase()) },
+                        )
+                    }
+                }
+
+                // Motion Mode
+                Text(if (strings.isGerman) "Animationen & Bewegung" else "Motion & animations", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        KoalaMotionMode.SYSTEM.id to (if (strings.isGerman) "System" else "System"),
+                        KoalaMotionMode.REDUCE.id to (if (strings.isGerman) "Reduziert" else "Reduced"),
+                        KoalaMotionMode.FULL.id to (if (strings.isGerman) "Vollständig" else "Full"),
+                    ).forEach { (id, label) ->
+                        FilterChip(
+                            selected = prefs.motion == id,
+                            onClick = { prefsRepository.update { it.copy(motion = id) } },
+                            label = { Text(label) },
                         )
                     }
                 }
@@ -2154,6 +2261,21 @@ fun SettingsScreen(
                     }
                 }
 
+                Text(strings.soundBoostLabel, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        1.0f to (if (strings.isGerman) "Aus" else "Off"),
+                        1.5f to "+50 %",
+                        2.0f to "+100 %",
+                    ).forEach { (b, label) ->
+                        FilterChip(
+                            selected = kotlin.math.abs(prefs.boost - b) < 0.05f,
+                            onClick = { prefsRepository.update { it.copy(boost = b) } },
+                            label = { Text(label) },
+                        )
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -2223,6 +2345,25 @@ fun SettingsScreen(
                     Switch(
                         checked = prefs.vinylCrackle,
                         onCheckedChange = { v -> prefsRepository.update { it.copy(vinylCrackle = v) } },
+                    )
+                }
+
+                if (prefs.vinylCrackle) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(strings.soundVinylVolumeLabel, style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                        Text(
+                            text = "${(prefs.vinylCrackleVolume * 800f).roundToInt()}%",
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                            color = colors.accent,
+                        )
+                    }
+                    Slider(
+                        value = prefs.vinylCrackleVolume,
+                        onValueChange = { v -> prefsRepository.update { it.copy(vinylCrackleVolume = v) } },
+                        valueRange = 0.01f..0.12f,
                     )
                 }
             }

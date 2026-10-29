@@ -258,6 +258,35 @@ data class KoalaStrings(
     val activeDevices: String = if (isGerman) "Angemeldete Geräte" else "Signed-in devices",
     val thisDevice: String = if (isGerman) "dieses Gerät" else "this device",
     val signOutDevice: String = if (isGerman) "Abmelden" else "Sign out",
+    val fontLabel: (String) -> String = { id ->
+        when (id) {
+            "standard" -> "Standard"
+            "literary" -> if (isGerman) "Literarisch" else "Literary"
+            "vintage" -> "Vintage Vinyl"
+            "readable" -> if (isGerman) "Gut lesbar" else "Easy read"
+            "dyslexic" -> if (isGerman) "Legasthenie" else "Dyslexia"
+            "mono" -> if (isGerman) "Schreibmaschine" else "Typewriter"
+            "system" -> "System"
+            else -> id.replaceFirstChar { it.uppercase() }
+        }
+    },
+    val fontDescription: (String) -> String = { id ->
+        when (id) {
+            "standard" -> if (isGerman) "Gloock & Manrope – Plattenladen-Ästhetik" else "Gloock & Manrope – Record shop aesthetic"
+            "literary" -> if (isGerman) "Literata – Klassische Buch-Serife für langes Lesen" else "Literata – Classic book serif crafted for reading"
+            "vintage" -> if (isGerman) "Fraunces – 70er-Jahre-Vinyl-Flair mit analoger Wärme" else "Fraunces – 70s vinyl flair with analog warmth"
+            "readable" -> if (isGerman) "Atkinson Hyperlegible – Vom Braille Institute für Sehschwäche" else "Atkinson Hyperlegible – Braille Institute low-vision design"
+            "dyslexic" -> if (isGerman) "OpenDyslexic – Beschwerte Buchstaben gegen Vertauschen" else "OpenDyslexic – Weighted letters to prevent swapping"
+            "mono" -> if (isGerman) "JetBrains Mono – Technischer Archiv- & Notizen-Look" else "JetBrains Mono – Technical archive & studio note look"
+            "system" -> if (isGerman) "System – Native Geräteschriftart" else "System – Native device font"
+            else -> ""
+        }
+    },
+    val fontSample: String = if (isGerman) "Aa Bb Gg 123 · Hörgenuss ohne Grenzen" else "Aa Bb Gg 123 · Endless listening bliss",
+    val statsYearEmpty: (Int) -> String = { y -> if (isGerman) "Keine Hörzeit im Jahr $y verzeichnet." else "No listening activity recorded for $y." },
+    val statsLoading: String = if (isGerman) "Statistik wird geladen …" else "Loading statistics …",
+    val soundBoostLabel: String = if (isGerman) "Lautstärke-Verstärkung" else "Volume boost",
+    val soundVinylVolumeLabel: String = if (isGerman) "Knistern-Lautstärke" else "Crackle volume",
     val accountSwitch: String = if (isGerman) "Wechseln" else "Switch",
     val librarySwitch: String = if (isGerman) "Bibliothek wechseln" else "Switch library",
 )

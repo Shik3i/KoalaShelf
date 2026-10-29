@@ -1,5 +1,13 @@
 # Changelog
 
+## Android 1.1.3
+
+- **Authentic Font Bundling & Typography Previews**: Bundled genuine Atkinson Hyperlegible Next, Literata, Fraunces, OpenDyslexic, JetBrains Mono, Gloock, and Manrope typefaces directly into the Android application (`res/font/`), replacing generic system-font fallbacks. Added rich font preview cards in Settings displaying each typeface's distinct aesthetic, sample text, and purpose.
+- **Hardware & Software Audio Pipeline (True Mono & DSP Effects)**: Integrated Media3 `ChannelMixingAudioProcessor` directly into ExoPlayer's audio sink for true downmixed mono listening. Rebuilt `AudioEffectsController` to reliably apply Voice Boost (+5.5dB presence, low-rumble high-pass), Analog Tape Warmth (low-shelf boost, high roll-off), Night Whisper, and Commute profiles via native `Equalizer` and `LoudnessEnhancer`.
+- **Immediate Prefs Re-activity**: Connected `KoalaPlayerController` to a reactive Flow collector on `PrefsRepository`, ensuring that toggling Voice Boost, Leveling, Mono, Sound Profiles, Vinyl Crackle, or Volume Boost in Settings or Player bottom sheets immediately updates the audio stream in real-time.
+- **Reliable Year in Review & Stats Year Switching**: Fixed year selector responsiveness by eliminating conflicting route queries, adding instant loading feedback and empty-state messaging, expanding selectable years, and surfacing top authors, genres, strongest month, and most listened narrator.
+- **Enhanced Settings Parity**: Added Motion mode control (`system`, `reduce`, `full`), volume boost chips (+0%, +50%, +100%), and vinyl crackle volume slider to the Settings screen.
+
 ## Android 1.1.2
 
 - **Player Modal & Haptic Touch Architecture**: Replaced awkward downward-expanding drawers with clean Material 3 modal bottom sheets with tactile haptics. Single tap toggles sound profile and sleep timer on/off, single tap cycles playback speeds, and long-press opens fine-grained configuration sheets.
