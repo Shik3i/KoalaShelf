@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -83,8 +84,10 @@ import net.koalastuff.koalashelf.core.designsystem.KoalaThemeMode
 import net.koalastuff.koalashelf.core.designsystem.VinylDisc
 import net.koalastuff.koalashelf.core.network.AbsError
 import net.koalastuff.koalashelf.core.network.MIN_SERVER_VERSION
+import net.koalastuff.koalashelf.core.network.isLoopbackHost
 import net.koalastuff.koalashelf.core.network.isVersionAtLeast
 import net.koalastuff.koalashelf.core.network.normalizeBaseUrl
+import net.koalastuff.koalashelf.core.network.normalizeServerInput
 import net.koalastuff.koalashelf.core.network.serverLabel
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -122,17 +125,27 @@ fun SignInScreen(
     var submitting by remember { mutableStateOf(false) }
     var submitError by remember { mutableStateOf<String?>(null) }
 
-    // Debounced live server probe (/status)
+    // Debounced live server probe (/status) - 2000ms debounce matching web
     LaunchedEffect(serverUrl) {
         serverVersionFound = null
         serverProbeError = null
-        val cleaned = normalizeBaseUrl(serverUrl)
-        if (cleaned.length < 8 || (!cleaned.startsWith("http://") && !cleaned.startsWith("https://"))) {
+        val trimmed = serverUrl.trim()
+        if (trimmed.isEmpty()) {
+            checkingServer = false
+            return@LaunchedEffect
+        }
+        if (trimmed.startsWith("http://", ignoreCase = true) && !isLoopbackHost(trimmed)) {
+            serverProbeError = strings.errInsecureHttp
+            checkingServer = false
+            return@LaunchedEffect
+        }
+        val cleaned = normalizeServerInput(serverUrl)
+        if (cleaned.length < 8) {
             checkingServer = false
             return@LaunchedEffect
         }
         checkingServer = true
-        delay(450L)
+        delay(2000L)
         runCatching {
             sessionRepository.probeServer(cleaned)
         }.onSuccess { status ->
@@ -148,7 +161,12 @@ fun SignInScreen(
     }
 
     fun performSignIn() {
-        val cleanUrl = normalizeBaseUrl(serverUrl)
+        val trimmed = serverUrl.trim()
+        if (trimmed.startsWith("http://", ignoreCase = true) && !isLoopbackHost(trimmed)) {
+            submitError = strings.errInsecureHttp
+            return
+        }
+        val cleanUrl = normalizeServerInput(serverUrl)
         if (cleanUrl.isBlank() || username.isBlank() || password.isBlank() || submitting) return
         submitting = true
         submitError = null
@@ -453,7 +471,7 @@ fun SignInScreen(
                             onClick = onCancelAdd,
                             shape = RoundedCornerShape(KoalaRadius.pill),
                             modifier = Modifier
-                                .height(48.dp)
+                                .defaultMinSize(minHeight = 48.dp)
                                 .weight(1f),
                         ) {
                             Text(text = strings.playerClose)
@@ -469,7 +487,7 @@ fun SignInScreen(
                             contentColor = colors.onAccent,
                         ),
                         modifier = Modifier
-                            .height(48.dp)
+                            .defaultMinSize(minHeight = 48.dp)
                             .weight(1.4f),
                     ) {
                         if (submitting) {
@@ -590,6 +608,7 @@ fun AccountSwitcherSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = KoalaSpacing.s24, vertical = KoalaSpacing.s16),
             verticalArrangement = Arrangement.spacedBy(KoalaSpacing.s16),
         ) {

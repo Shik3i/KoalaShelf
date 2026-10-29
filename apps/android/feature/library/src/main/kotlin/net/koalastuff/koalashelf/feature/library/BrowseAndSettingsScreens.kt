@@ -31,7 +31,9 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -705,7 +707,10 @@ fun CollectionsAndPlaylistsScreen(
             onDismissRequest = { showCreateDialog = false },
             title = { Text(if (isPlaylistsMode) strings.navPlaylists else strings.navCollections) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     OutlinedTextField(
                         value = nameInput,
                         onValueChange = { nameInput = it },
@@ -2563,7 +2568,10 @@ fun SettingsScreen(
             onDismissRequest = { showPasswordDialog = false },
             title = { Text(strings.changePassword) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
                     OutlinedTextField(
                         value = currentPasswordInput,
                         onValueChange = { currentPasswordInput = it },

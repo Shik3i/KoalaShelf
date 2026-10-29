@@ -32,6 +32,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
@@ -670,7 +671,10 @@ private fun DailyGoalDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.dailyGoalLabel) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text(
                     text = "${strings.statsToday}: $todayMin / $currentGoalMinutes ${strings.unitMinutes}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -745,6 +749,7 @@ private fun CrateDiggerDialog(
         },
         text = {
             Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {

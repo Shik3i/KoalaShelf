@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,7 +20,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -249,7 +252,7 @@ fun BookDetailScreen(
                     onClick = { onPlayBook(null) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .defaultMinSize(minHeight = 52.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colors.accent,
                         contentColor = colors.onAccent,
@@ -705,16 +708,23 @@ fun BookDetailScreen(
             onDismissRequest = { showCollectionPicker = false },
             title = { Text(strings.bookAddToCollection) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    collections.forEach { col ->
-                        TextButton(
-                            onClick = {
-                                onAddToCollection(col.id)
-                                showCollectionPicker = false
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(col.name)
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (collections.isEmpty()) {
+                        Text(strings.libraryEmpty, style = MaterialTheme.typography.bodyMedium, color = colors.muted)
+                    } else {
+                        collections.forEach { col ->
+                            TextButton(
+                                onClick = {
+                                    onAddToCollection(col.id)
+                                    showCollectionPicker = false
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(col.name)
+                            }
                         }
                     }
                 }
@@ -732,16 +742,23 @@ fun BookDetailScreen(
             onDismissRequest = { showPlaylistPicker = false },
             title = { Text(strings.bookAddToPlaylist) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    playlists.forEach { pl ->
-                        TextButton(
-                            onClick = {
-                                onAddToPlaylist(pl.id)
-                                showPlaylistPicker = false
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(pl.name)
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (playlists.isEmpty()) {
+                        Text(strings.libraryEmpty, style = MaterialTheme.typography.bodyMedium, color = colors.muted)
+                    } else {
+                        playlists.forEach { pl ->
+                            TextButton(
+                                onClick = {
+                                    onAddToPlaylist(pl.id)
+                                    showPlaylistPicker = false
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(pl.name)
+                            }
                         }
                     }
                 }

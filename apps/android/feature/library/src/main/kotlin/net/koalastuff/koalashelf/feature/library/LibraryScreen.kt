@@ -12,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -808,7 +809,10 @@ private fun FacetFilterDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.filterAll) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Text(strings.filterLength, style = MaterialTheme.typography.titleMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(

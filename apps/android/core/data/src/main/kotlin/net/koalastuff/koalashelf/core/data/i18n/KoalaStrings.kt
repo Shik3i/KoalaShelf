@@ -289,6 +289,7 @@ data class KoalaStrings(
     val soundVinylVolumeLabel: String = if (isGerman) "Knistern-Lautstärke" else "Crackle volume",
     val accountSwitch: String = if (isGerman) "Wechseln" else "Switch",
     val librarySwitch: String = if (isGerman) "Bibliothek wechseln" else "Switch library",
+    val errInsecureHttp: String = if (isGerman) "Unsichere HTTP-Verbindungen werden nicht unterstützt. Bitte eine verschlüsselte HTTPS-Adresse angeben." else "Insecure HTTP connections are not supported. Please use a secure HTTPS address.",
 )
 
 val DeKoalaStrings = KoalaStrings(

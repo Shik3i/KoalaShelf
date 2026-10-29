@@ -1,5 +1,19 @@
 # Changelog
 
+## Android 1.1.5
+
+- **Comprehensive UI/UX & Large-Text Accessibility Hardening**:
+  - **Scrollable Dialogs & Modal Protection**: Added `verticalScroll(rememberScrollState())` to all dialogs and bottom sheets that previously risked clipping or pushing action buttons off-screen under large font scaling (`prefs.textSize = "lg"` / `"xl"` or accessibility scaling):
+    - `FacetFilterDialog`: Scrollable container accommodating all duration, genre, and narrator chips without pushing "OK" off-screen.
+    - `AccountSwitcherSheet`: Scrollable multi-account and server list preventing vertical truncation.
+    - `CollectionPicker` & `PlaylistPicker`: Scrollable lists with empty-state feedback.
+    - `CrateDiggerDialog` & `DailyGoalDialog`: Scrollable layouts preventing vinyl artwork or presets from clipping confirm buttons on smaller viewports.
+    - `ChaptersPanel`, `BookmarksPanel`, `SoundEnginePanel`, and `QueuePanel`: Added scroll containers so audiobooks with dozens of chapters or bookmarks remain completely accessible.
+  - **Player Status Badges Flow Wrapping**: Refactored jump-back undo, sleep countdown, and silence-saved status badges in `FullPlayerSheet` to responsive `FlowRow` to prevent horizontal clipping on narrow viewports.
+  - **HTTPS Auto-Prefixing & Insecure HTTP Rejection**: Aligned Android `SignInScreen` with the web client by auto-prepending `https://` if no scheme is provided, rejecting insecure remote `http://` with a localized warning, increasing probe debounce to 2000ms, and handling IME actions.
+  - **Flexible Minimum Touch Targets**: Replaced rigid height constraints on primary play and sign-in buttons with `defaultMinSize(minHeight = 52.dp / 48.dp)` to prevent text clipping with long translations at elevated font scales.
+
+
 ## Android 1.1.4
 
 - **Responsive & Accessible Library Header**: Completely redesigned the library header to prevent viewport crowding at Large and Extra Large text sizes (`prefs.textSize = "lg"` / `"xl"` or OS accessibility scaling).

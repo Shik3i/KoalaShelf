@@ -642,10 +642,10 @@ fun FullPlayerSheet(
             }
 
             // Jump-back undo & Sleep timer status pills & Silence saved badge
-            Row(
+            FlowRow(
                 modifier = Modifier.padding(top = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 lastJump?.let { target ->
                     Surface(
@@ -963,6 +963,7 @@ fun FullPlayerSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                 ) {
                     when (activePanel) {

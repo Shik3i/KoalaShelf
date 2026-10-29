@@ -35,6 +35,30 @@ fun normalizeBaseUrl(url: String): String {
 }
 
 /**
+ * Checks if a host/URL points to a local loopback device (for dev or local testing).
+ */
+fun isLoopbackHost(hostOrUrl: String): Boolean {
+    val clean = hostOrUrl.trim().lowercase().removePrefix("http://").removePrefix("https://").substringBefore('/').substringBefore(':')
+    return clean == "localhost" || clean == "127.0.0.1" || clean == "::1" || clean == "10.0.2.2"
+}
+
+/**
+ * Normalizes user input for server address: auto-prefixes https:// if no scheme is provided,
+ * while allowing http:// only on local loopback. Matches web `normalizeServerInput`.
+ */
+fun normalizeServerInput(input: String): String {
+    val trimmed = input.trim()
+    if (trimmed.isEmpty()) return ""
+    val hasScheme = trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true)
+    val withScheme = if (hasScheme) {
+        trimmed
+    } else {
+        if (isLoopbackHost(trimmed)) "http://$trimmed" else "https://$trimmed"
+    }
+    return normalizeBaseUrl(withScheme)
+}
+
+/**
  * Extracts host label ("audio.example.org") from a server URL.
  */
 fun serverLabel(baseUrl: String): String {
