@@ -1,5 +1,14 @@
 # Changelog
 
+## Android 1.1.4
+
+- **Responsive & Accessible Library Header**: Completely redesigned the library header to prevent viewport crowding at Large and Extra Large text sizes (`prefs.textSize = "lg"` / `"xl"` or OS accessibility scaling).
+  - Search bar is now collapsible via a top bar search icon, remaining closed by default and smoothly animating open when activated, freeing up the top half of the screen.
+  - Filter chips, saved views, and series groupings now scroll smoothly with the content (`LazyVerticalGrid` / `LazyColumn`), allowing book covers to occupy over 85%–95% of the viewport.
+  - Added dedicated one-tap "Clear Filters" chip and empty-state messaging when filters yield zero books.
+- **Series & Authors Viewport Optimization**: Moved search bars in Series and Authors screens into scrollable list headers, eliminating static screen blockage across all browsing sections on large font settings.
+
+
 ## Android 1.1.3
 
 - **Authentic Font Bundling & Typography Previews**: Bundled genuine Atkinson Hyperlegible Next, Literata, Fraunces, OpenDyslexic, JetBrains Mono, Gloock, and Manrope typefaces directly into the Android application (`res/font/`), replacing generic system-font fallbacks. Added rich font preview cards in Settings displaying each typeface's distinct aesthetic, sample text, and purpose.

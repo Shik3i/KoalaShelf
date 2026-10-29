@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -52,14 +54,19 @@ import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -72,6 +79,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import net.koalastuff.koalashelf.core.data.i18n.currentKoalaStrings
@@ -122,257 +130,313 @@ fun LibraryScreen(
     var showFacetDialog by remember { mutableStateOf(false) }
     var showSaveViewDialog by remember { mutableStateOf(false) }
     var saveViewName by remember { mutableStateOf("") }
+    var isSearchExpanded by remember { mutableStateOf(false) }
 
     var multiSelectMode by remember { mutableStateOf(false) }
     var selectedBookIds by remember { mutableStateOf(setOf<String>()) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        // Header + Search + Controls
-        Column(
+        // Slim Top Bar (pinned, compact ~44dp height)
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f),
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f),
+                Text(
+                    text = strings.libraryTitle,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Surface(
+                    shape = CircleShape,
+                    color = colors.panel,
+                    border = BorderStroke(1.dp, colors.line),
                 ) {
                     Text(
-                        text = strings.libraryTitle,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = colors.ink,
-                    )
-                    Text(
-                        text = strings.libraryCount(books.size),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "${books.size}",
+                        style = MaterialTheme.typography.labelSmall,
                         color = colors.muted,
+                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp),
                     )
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    IconButton(onClick = {
-                        multiSelectMode = !multiSelectMode
-                        if (!multiSelectMode) selectedBookIds = emptySet()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Checklist,
-                            contentDescription = null,
-                            tint = if (multiSelectMode) colors.accent else colors.muted,
-                        )
-                    }
-                    IconButton(onClick = { showFacetDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.FilterList,
-                            contentDescription = strings.filterAll,
-                            tint = if (queryState.activeFilterCount > 0) colors.accent else colors.muted,
-                        )
-                    }
-                    Box {
-                        IconButton(onClick = { showSortMenu = true }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = strings.sortLabel,
-                                tint = colors.muted,
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false },
-                        ) {
-                            listOf(
-                                LibrarySortOption.TITLE to strings.sortTitle,
-                                LibrarySortOption.AUTHOR to strings.sortAuthor,
-                                LibrarySortOption.ADDED to strings.sortAdded,
-                                LibrarySortOption.PLAYED to strings.sortProgress,
-                                LibrarySortOption.DURATION to strings.sortDuration,
-                                LibrarySortOption.PUBLISHED to strings.sortPublished,
-                                LibrarySortOption.RANDOM to strings.sortRandom,
-                            ).forEach { (opt, label) ->
-                                DropdownMenuItem(
-                                    text = { Text(label) },
-                                    onClick = {
-                                        val nextDesc = if (queryState.sort == opt) !queryState.desc else opt.defaultDesc
-                                        onQueryStateChange(
-                                            queryState.copy(
-                                                sort = opt,
-                                                desc = nextDesc,
-                                                shuffleSeed = if (opt == LibrarySortOption.RANDOM) queryState.shuffleSeed + 1 else queryState.shuffleSeed,
-                                            ),
-                                        )
-                                        showSortMenu = false
-                                    },
-                                    trailingIcon = {
-                                        if (queryState.sort == opt) {
-                                            Icon(
-                                                imageVector = if (queryState.desc) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(16.dp),
-                                            )
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    IconButton(onClick = { isGridView = !isGridView }) {
-                        Icon(
-                            imageVector = if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
-                            contentDescription = if (isGridView) strings.viewList else strings.viewShelf,
-                            tint = colors.muted,
-                        )
-                    }
                 }
             }
 
-            // Search bar with natural duration support (< 6h, 5-10h, etc.)
-            OutlinedTextField(
-                value = queryState.textQuery,
-                onValueChange = { onQueryStateChange(queryState.copy(textQuery = it)) },
-                placeholder = { Text(strings.textFilterPlaceholder) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (queryState.textQuery.isNotEmpty()) {
-                        IconButton(onClick = { onQueryStateChange(queryState.copy(textQuery = "")) }) {
-                            Icon(Icons.Default.Close, contentDescription = strings.clearFilters)
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            // Status filter chips + collapse series + saved views
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                listOf(
-                    LibraryStatusFilter.ALL to strings.filterAll,
-                    LibraryStatusFilter.IN_PROGRESS to strings.filterInProgress,
-                    LibraryStatusFilter.NOT_STARTED to strings.filterNotStarted,
-                    LibraryStatusFilter.FINISHED to strings.filterFinished,
-                ).forEach { (filter, label) ->
-                    FilterChip(
-                        selected = queryState.status == filter,
-                        onClick = { onQueryStateChange(queryState.copy(status = filter)) },
-                        label = { Text(label) },
-                    )
-                }
-
-                FilterChip(
-                    selected = queryState.groupSeries,
-                    onClick = { onQueryStateChange(queryState.copy(groupSeries = !queryState.groupSeries)) },
-                    label = { Text(strings.groupSeries) },
-                )
-
-                prefs.savedViews.forEach { sv ->
-                    FilterChip(
-                        selected = false,
-                        onClick = {
-                            onQueryStateChange(queryState.copy(textQuery = sv.query))
-                        },
-                        label = { Text(sv.name) },
-                        trailingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clickable { onDeleteSavedView(sv.id) },
-                            )
-                        },
+                val isSearchActive = isSearchExpanded || queryState.textQuery.isNotEmpty()
+                IconButton(
+                    onClick = {
+                        if (isSearchActive) {
+                            isSearchExpanded = false
+                            if (queryState.textQuery.isNotEmpty()) {
+                                onQueryStateChange(queryState.copy(textQuery = ""))
+                            }
+                        } else {
+                            isSearchExpanded = true
+                        }
+                    },
+                    modifier = Modifier.size(38.dp),
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = strings.navSearch,
+                        tint = if (isSearchActive) colors.accent else colors.muted,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
 
                 IconButton(
-                    onClick = { showSaveViewDialog = true },
-                    modifier = Modifier.size(32.dp),
+                    onClick = {
+                        multiSelectMode = !multiSelectMode
+                        if (!multiSelectMode) selectedBookIds = emptySet()
+                    },
+                    modifier = Modifier.size(38.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Default.BookmarkAdd,
+                        imageVector = Icons.Default.Checklist,
                         contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(18.dp),
+                        tint = if (multiSelectMode) colors.accent else colors.muted,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+
+                IconButton(
+                    onClick = { showFacetDialog = true },
+                    modifier = Modifier.size(38.dp),
+                ) {
+                    BadgedBox(
+                        badge = {
+                            if (queryState.activeFilterCount > 0) {
+                                Badge(
+                                    containerColor = colors.accent,
+                                    contentColor = colors.onAccent,
+                                ) {
+                                    Text("${queryState.activeFilterCount}")
+                                }
+                            }
+                        },
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterList,
+                            contentDescription = strings.filterAll,
+                            tint = if (queryState.activeFilterCount > 0) colors.accent else colors.muted,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                }
+
+                Box {
+                    IconButton(
+                        onClick = { showSortMenu = true },
+                        modifier = Modifier.size(38.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = strings.sortLabel,
+                            tint = colors.muted,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showSortMenu,
+                        onDismissRequest = { showSortMenu = false },
+                    ) {
+                        listOf(
+                            LibrarySortOption.TITLE to strings.sortTitle,
+                            LibrarySortOption.AUTHOR to strings.sortAuthor,
+                            LibrarySortOption.ADDED to strings.sortAdded,
+                            LibrarySortOption.PLAYED to strings.sortProgress,
+                            LibrarySortOption.DURATION to strings.sortDuration,
+                            LibrarySortOption.PUBLISHED to strings.sortPublished,
+                            LibrarySortOption.RANDOM to strings.sortRandom,
+                        ).forEach { (opt, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = {
+                                    val nextDesc = if (queryState.sort == opt) !queryState.desc else opt.defaultDesc
+                                    onQueryStateChange(
+                                        queryState.copy(
+                                            sort = opt,
+                                            desc = nextDesc,
+                                            shuffleSeed = if (opt == LibrarySortOption.RANDOM) queryState.shuffleSeed + 1 else queryState.shuffleSeed,
+                                        ),
+                                    )
+                                    showSortMenu = false
+                                },
+                                trailingIcon = {
+                                    if (queryState.sort == opt) {
+                                        Icon(
+                                            imageVector = if (queryState.desc) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    }
+                }
+
+                IconButton(
+                    onClick = { isGridView = !isGridView },
+                    modifier = Modifier.size(38.dp),
+                ) {
+                    Icon(
+                        imageVector = if (isGridView) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView,
+                        contentDescription = if (isGridView) strings.viewList else strings.viewShelf,
+                        tint = colors.muted,
+                        modifier = Modifier.size(20.dp),
                     )
                 }
             }
+        }
 
-            // Multi-select batch action bar
-            AnimatedVisibility(
-                visible = multiSelectMode,
-                enter = expandVertically(tween(220)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(180)) + fadeOut(tween(150)),
+        // Collapsible Search Bar (only shown when toggled or query exists)
+        AnimatedVisibility(
+            visible = isSearchExpanded || queryState.textQuery.isNotEmpty(),
+            enter = expandVertically(tween(200)) + fadeIn(tween(180)),
+            exit = shrinkVertically(tween(180)) + fadeOut(tween(150)),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = colors.sel,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                OutlinedTextField(
+                    value = queryState.textQuery,
+                    onValueChange = { onQueryStateChange(queryState.copy(textQuery = it)) },
+                    placeholder = {
                         Text(
-                            text = "${selectedBookIds.size}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = colors.selInk,
+                            strings.textFilterPlaceholder,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            val selectedItems = books.filter { it.id in selectedBookIds }
+                    },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    trailingIcon = {
+                        if (queryState.textQuery.isNotEmpty()) {
                             IconButton(
-                                onClick = {
-                                    onBatchQueue(selectedItems)
-                                    multiSelectMode = false
-                                    selectedBookIds = emptySet()
-                                },
-                                enabled = selectedItems.isNotEmpty(),
+                                onClick = { onQueryStateChange(queryState.copy(textQuery = "")) },
+                                modifier = Modifier.size(32.dp),
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = strings.bookAddToQueue)
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = strings.clearFilters,
+                                    modifier = Modifier.size(18.dp),
+                                )
                             }
-                            IconButton(
-                                onClick = {
-                                    onBatchMarkFinished(selectedItems, true)
-                                    multiSelectMode = false
-                                    selectedBookIds = emptySet()
-                                },
-                                enabled = selectedItems.isNotEmpty(),
-                            ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = strings.bookMarkFinished)
-                            }
-                            IconButton(
-                                onClick = {
-                                    onBatchMarkFinished(selectedItems, false)
-                                    multiSelectMode = false
-                                    selectedBookIds = emptySet()
-                                },
-                                enabled = selectedItems.isNotEmpty(),
-                            ) {
-                                Icon(Icons.Default.Restore, contentDescription = strings.bookMarkUnfinished)
-                            }
-                            IconButton(
-                                onClick = {
-                                    onBatchDownload(selectedItems)
-                                    multiSelectMode = false
-                                    selectedBookIds = emptySet()
-                                },
-                                enabled = selectedItems.isNotEmpty(),
-                            ) {
-                                Icon(Icons.Default.Download, contentDescription = strings.downloadAction)
-                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = {
+                        isSearchExpanded = false
+                        if (queryState.textQuery.isNotEmpty()) {
+                            onQueryStateChange(queryState.copy(textQuery = ""))
+                        }
+                    },
+                    modifier = Modifier.size(36.dp),
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = null,
+                        tint = colors.muted,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+        }
+
+        // Multi-select batch action bar
+        AnimatedVisibility(
+            visible = multiSelectMode,
+            enter = expandVertically(tween(220)) + fadeIn(tween(200)),
+            exit = shrinkVertically(tween(180)) + fadeOut(tween(150)),
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = colors.sel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "${selectedBookIds.size}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = colors.selInk,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val selectedItems = books.filter { it.id in selectedBookIds }
+                        IconButton(
+                            onClick = {
+                                onBatchQueue(selectedItems)
+                                multiSelectMode = false
+                                selectedBookIds = emptySet()
+                            },
+                            enabled = selectedItems.isNotEmpty(),
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = strings.bookAddToQueue)
+                        }
+                        IconButton(
+                            onClick = {
+                                onBatchMarkFinished(selectedItems, true)
+                                multiSelectMode = false
+                                selectedBookIds = emptySet()
+                            },
+                            enabled = selectedItems.isNotEmpty(),
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = strings.bookMarkFinished)
+                        }
+                        IconButton(
+                            onClick = {
+                                onBatchMarkFinished(selectedItems, false)
+                                multiSelectMode = false
+                                selectedBookIds = emptySet()
+                            },
+                            enabled = selectedItems.isNotEmpty(),
+                        ) {
+                            Icon(Icons.Default.Restore, contentDescription = strings.bookMarkUnfinished)
+                        }
+                        IconButton(
+                            onClick = {
+                                onBatchDownload(selectedItems)
+                                multiSelectMode = false
+                                selectedBookIds = emptySet()
+                            },
+                            enabled = selectedItems.isNotEmpty(),
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = strings.downloadAction)
                         }
                     }
                 }
@@ -398,33 +462,52 @@ fun LibraryScreen(
                     columns = GridCells.Adaptive(minSize = minGridCellSize),
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(books, key = { it.id }) { book ->
-                        val prog = progressMap[book.id] ?: book.userMediaProgress
-                        val isDownloaded = downloadedBooks.containsKey(book.id)
-                        val isSelected = book.id in selectedBookIds
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        LibraryFilterChipsRow(
+                            queryState = queryState,
+                            onQueryStateChange = onQueryStateChange,
+                            prefs = prefs,
+                            onSaveViewClick = { showSaveViewDialog = true },
+                            onDeleteSavedView = onDeleteSavedView,
+                        )
+                    }
 
-                        Box(modifier = Modifier.animateItem()) {
-                            LibraryGridItem(
-                                book = book,
-                                progress = prog,
-                                isDownloaded = isDownloaded,
-                                coverUrl = coverUrlProvider(book),
-                                inPlayer = isPlayingItemId == book.id,
-                                isPlaying = isPlaying && isPlayingItemId == book.id,
-                                multiSelectMode = multiSelectMode,
-                                isSelected = isSelected,
-                                onClick = {
-                                    if (multiSelectMode) {
-                                        selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
-                                    } else {
-                                        onOpenBook(book.id)
-                                    }
-                                },
-                                onPlay = { onPlayBook(book.id) },
+                    if (books.isEmpty()) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            LibraryEmptyView(
+                                queryState = queryState,
+                                onQueryStateChange = onQueryStateChange,
                             )
+                        }
+                    } else {
+                        items(books, key = { it.id }) { book ->
+                            val prog = progressMap[book.id] ?: book.userMediaProgress
+                            val isDownloaded = downloadedBooks.containsKey(book.id)
+                            val isSelected = book.id in selectedBookIds
+
+                            Box(modifier = Modifier.animateItem()) {
+                                LibraryGridItem(
+                                    book = book,
+                                    progress = prog,
+                                    isDownloaded = isDownloaded,
+                                    coverUrl = coverUrlProvider(book),
+                                    inPlayer = isPlayingItemId == book.id,
+                                    isPlaying = isPlaying && isPlayingItemId == book.id,
+                                    multiSelectMode = multiSelectMode,
+                                    isSelected = isSelected,
+                                    onClick = {
+                                        if (multiSelectMode) {
+                                            selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
+                                        } else {
+                                            onOpenBook(book.id)
+                                        }
+                                    },
+                                    onPlay = { onPlayBook(book.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -434,28 +517,47 @@ fun LibraryScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    items(books, key = { it.id }) { book ->
-                        val prog = progressMap[book.id] ?: book.userMediaProgress
-                        val isDownloaded = downloadedBooks.containsKey(book.id)
-                        val isSelected = book.id in selectedBookIds
+                    item {
+                        LibraryFilterChipsRow(
+                            queryState = queryState,
+                            onQueryStateChange = onQueryStateChange,
+                            prefs = prefs,
+                            onSaveViewClick = { showSaveViewDialog = true },
+                            onDeleteSavedView = onDeleteSavedView,
+                        )
+                    }
 
-                        Box(modifier = Modifier.animateItem()) {
-                            LibraryListItem(
-                                book = book,
-                                progress = prog,
-                                isDownloaded = isDownloaded,
-                                coverUrl = coverUrlProvider(book),
-                                multiSelectMode = multiSelectMode,
-                                isSelected = isSelected,
-                                onClick = {
-                                    if (multiSelectMode) {
-                                        selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
-                                    } else {
-                                        onOpenBook(book.id)
-                                    }
-                                },
-                                onPlay = { onPlayBook(book.id) },
+                    if (books.isEmpty()) {
+                        item {
+                            LibraryEmptyView(
+                                queryState = queryState,
+                                onQueryStateChange = onQueryStateChange,
                             )
+                        }
+                    } else {
+                        items(books, key = { it.id }) { book ->
+                            val prog = progressMap[book.id] ?: book.userMediaProgress
+                            val isDownloaded = downloadedBooks.containsKey(book.id)
+                            val isSelected = book.id in selectedBookIds
+
+                            Box(modifier = Modifier.animateItem()) {
+                                LibraryListItem(
+                                    book = book,
+                                    progress = prog,
+                                    isDownloaded = isDownloaded,
+                                    coverUrl = coverUrlProvider(book),
+                                    multiSelectMode = multiSelectMode,
+                                    isSelected = isSelected,
+                                    onClick = {
+                                        if (multiSelectMode) {
+                                            selectedBookIds = if (isSelected) selectedBookIds - book.id else selectedBookIds + book.id
+                                        } else {
+                                            onOpenBook(book.id)
+                                        }
+                                    },
+                                    onPlay = { onPlayBook(book.id) },
+                                )
+                            }
                         }
                     }
                 }
@@ -779,4 +881,165 @@ private fun FacetFilterDialog(
             }
         },
     )
+}
+
+@Composable
+private fun LibraryFilterChipsRow(
+    queryState: LibraryQueryState,
+    onQueryStateChange: (LibraryQueryState) -> Unit,
+    prefs: KoalaPrefs,
+    onSaveViewClick: () -> Unit,
+    onDeleteSavedView: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = currentKoalaStrings
+    val colors = KoalaTheme.colors
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        listOf(
+            LibraryStatusFilter.ALL to strings.filterAll,
+            LibraryStatusFilter.IN_PROGRESS to strings.filterInProgress,
+            LibraryStatusFilter.NOT_STARTED to strings.filterNotStarted,
+            LibraryStatusFilter.FINISHED to strings.filterFinished,
+        ).forEach { (filter, label) ->
+            FilterChip(
+                selected = queryState.status == filter,
+                onClick = { onQueryStateChange(queryState.copy(status = filter)) },
+                label = { Text(label) },
+            )
+        }
+
+        FilterChip(
+            selected = queryState.groupSeries,
+            onClick = { onQueryStateChange(queryState.copy(groupSeries = !queryState.groupSeries)) },
+            label = { Text(strings.groupSeries) },
+        )
+
+        if (queryState.activeFilterCount > 0) {
+            FilterChip(
+                selected = true,
+                onClick = {
+                    onQueryStateChange(
+                        queryState.copy(
+                            status = LibraryStatusFilter.ALL,
+                            genres = emptySet(),
+                            tags = emptySet(),
+                            narrators = emptySet(),
+                            languages = emptySet(),
+                            authorId = "",
+                            seriesId = "",
+                            publisher = "",
+                            decade = "",
+                            durationPreset = DurationPreset.ALL,
+                            textQuery = "",
+                        ),
+                    )
+                },
+                label = { Text(strings.clearFilters) },
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                    )
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = colors.accent.copy(alpha = 0.15f),
+                    selectedLabelColor = colors.accent,
+                ),
+            )
+        }
+
+        prefs.savedViews.forEach { sv ->
+            FilterChip(
+                selected = queryState.textQuery == sv.query,
+                onClick = {
+                    onQueryStateChange(queryState.copy(textQuery = sv.query))
+                },
+                label = { Text(sv.name) },
+                trailingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clickable { onDeleteSavedView(sv.id) },
+                    )
+                },
+            )
+        }
+
+        IconButton(
+            onClick = onSaveViewClick,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.BookmarkAdd,
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LibraryEmptyView(
+    queryState: LibraryQueryState,
+    onQueryStateChange: (LibraryQueryState) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val strings = currentKoalaStrings
+    val colors = KoalaTheme.colors
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 48.dp, horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.SearchOff,
+            contentDescription = null,
+            tint = colors.muted.copy(alpha = 0.6f),
+            modifier = Modifier.size(48.dp),
+        )
+        Text(
+            text = strings.libraryEmpty,
+            style = MaterialTheme.typography.bodyLarge,
+            color = colors.muted,
+        )
+        if (queryState.activeFilterCount > 0) {
+            OutlinedButton(
+                onClick = {
+                    onQueryStateChange(
+                        queryState.copy(
+                            status = LibraryStatusFilter.ALL,
+                            genres = emptySet(),
+                            tags = emptySet(),
+                            narrators = emptySet(),
+                            languages = emptySet(),
+                            authorId = "",
+                            seriesId = "",
+                            publisher = "",
+                            decade = "",
+                            durationPreset = DurationPreset.ALL,
+                            textQuery = "",
+                        ),
+                    )
+                },
+                modifier = Modifier.padding(top = 4.dp),
+            ) {
+                Text(strings.clearFilters)
+            }
+        }
+    }
 }

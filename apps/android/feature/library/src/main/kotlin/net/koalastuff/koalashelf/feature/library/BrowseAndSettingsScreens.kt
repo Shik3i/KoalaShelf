@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -149,37 +150,39 @@ fun SeriesScreen(
         else seriesList.filter { it.name.lowercase().contains(q) }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Text(
-                text = "${strings.navSeries} (${filtered.size})",
-                style = MaterialTheme.typography.headlineMedium,
-                color = colors.ink,
-            )
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text(strings.textFilterPlaceholder) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 148.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
+        modifier = modifier.fillMaxSize(),
+    ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "${strings.navSeries} (${filtered.size})",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink,
+                )
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text(strings.textFilterPlaceholder) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
 
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 148.dp),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            items(filtered, key = { it.id }) { series ->
+        items(filtered, key = { it.id }) { series ->
                 val ordered = remember(series.books, series.name) {
                     inSeriesOrder(series.books, series.name)
                 }
@@ -203,7 +206,6 @@ fun SeriesScreen(
             }
         }
     }
-}
 
 @Composable
 fun SeriesDetailScreen(
@@ -348,10 +350,10 @@ fun AuthorsScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(strings.navAuthors, style = MaterialTheme.typography.headlineMedium)
+            Text(strings.navAuthors, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             TabRow(selectedTabIndex = selectedTab, containerColor = colors.bg) {
                 Tab(
                     selected = selectedTab == 0,
@@ -364,15 +366,6 @@ fun AuthorsScreen(
                     text = { Text("${strings.filterNarrator} (${narrators.size})") },
                 )
             }
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                placeholder = { Text(strings.textFilterPlaceholder) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
 
         AnimatedContent(
@@ -390,11 +383,23 @@ fun AuthorsScreen(
                 }
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 160.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            placeholder = { Text(strings.textFilterPlaceholder) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        )
+                    }
+
                     items(filteredAuthors, key = { it.id }) { author ->
                         Surface(
                             shape = RoundedCornerShape(14.dp),
@@ -441,11 +446,23 @@ fun AuthorsScreen(
                 }
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 160.dp),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 120.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxSize(),
                 ) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        OutlinedTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            placeholder = { Text(strings.textFilterPlaceholder) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+                        )
+                    }
+
                     items(filteredNarrators, key = { it.name }) { narrator ->
                         Surface(
                             shape = RoundedCornerShape(14.dp),
