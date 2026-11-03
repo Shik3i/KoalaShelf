@@ -25,9 +25,13 @@ test('only the vinyl disc spins while playing — book covers and sleeves never 
 	});
 	expect(heroAnimations).toEqual({ art: 'none', cover: 'none', sleeve: 'none' });
 
-	// 2. On the library overview page: the `.tile .cover` wrapper and `figure.cover` must never spin;
-	//    only `.disc.spinning` inside the active tile rotates.
-	await page.goto('/library');
+	// 2. On the library overview page (client-side navigation so playback continues):
+	//    the `.tile .cover` wrapper and `figure.cover` must never spin; only `.disc.spinning` rotates.
+	await page
+		.getByRole('navigation', { name: 'Main navigation' })
+		.getByRole('link', { name: 'Library' })
+		.click();
+	await expect(page).toHaveURL(/\/library/);
 	const activeTile = page.locator('.tile', { hasText: 'Der lange Weg' }).first();
 	await expect(activeTile.locator('.disc.spinning')).toBeVisible();
 	const tileAnimations = await activeTile.evaluate((tile) => {
