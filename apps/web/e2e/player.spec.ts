@@ -121,15 +121,41 @@ test.describe('player', () => {
 		expect(await player<string>(page, 'sleep.kind')).toBe('off');
 	});
 
-	test('multi-file book continues seamlessly into the next file', async ({ page }) => {
+	test('multi-file book continues seamlessly into the next file without needle drop or tonearm lift', async ({
+		page
+	}) => {
 		needsDevServer(); // reads player internals: skip before any playback starts
 		await startPlaying(page, 'Nachtzug');
+		// Spy on needle drops and `player.playing` transitions across the MP3 track boundary (at 45s).
+		await page.evaluate(async () => {
+			const mod = '/src/lib/player/player.svelte.ts';
+			const { player } = await import(/* @vite-ignore */ mod);
+			const w = window as unknown as { __needleDrops: number; __pausedDuringTransition: boolean };
+			w.__needleDrops = 0;
+			w.__pausedDuringTransition = false;
+			const origNeedle = player.leveler.playNeedleDrop.bind(player.leveler);
+			player.leveler.playNeedleDrop = async () => {
+				w.__needleDrops++;
+				return origNeedle();
+			};
+			player.audio.addEventListener('pause', () => {
+				if (!player.playing) w.__pausedDuringTransition = true;
+			});
+		});
 		await seek(page, 43);
 		await expect.poll(() => time(page), { timeout: 15_000 }).toBeGreaterThan(46.5);
 		expect(await playing(page)).toBe(true);
-		// Seeking backwards across the boundary loads the previous file again.
+		const transitionStats = await page.evaluate(() => {
+			const w = window as unknown as { __needleDrops: number; __pausedDuringTransition: boolean };
+			return { needleDrops: w.__needleDrops, paused: w.__pausedDuringTransition };
+		});
+		expect(transitionStats).toEqual({ needleDrops: 0, paused: false });
+		// Seeking backwards across the boundary loads the previous file again without dropping the needle.
 		await seek(page, 30);
 		await expect.poll(() => time(page)).toBeLessThan(35);
+		expect(
+			await page.evaluate(() => (window as unknown as { __needleDrops: number }).__needleDrops)
+		).toBe(0);
 	});
 
 	test('end of book marks it finished; playing again starts over', async ({ page }) => {

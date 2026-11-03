@@ -271,7 +271,7 @@
 {:else}
 	<article>
 		<section class="hero">
-			<div class="art" class:spinning={isCurrent && player.playing}>
+			<div class="art" class:playing={isCurrent && player.playing}>
 				<div class="vinyl">
 					<Vinyl
 						title={v.title}
@@ -635,7 +635,7 @@
 	}
 
 	.art:hover .vinyl,
-	.art.spinning .vinyl {
+	.art.playing .vinyl {
 		left: calc(var(--size) * 0.5);
 	}
 

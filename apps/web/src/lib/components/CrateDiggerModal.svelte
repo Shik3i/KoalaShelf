@@ -143,7 +143,7 @@
 					aria-label={t.digNew}
 					disabled={loading}
 				>
-					<RotateCw size={16} class={loading ? 'spinning' : ''} />
+					<RotateCw size={16} class={loading ? 'digger-spin' : ''} />
 					<span>{t.digNew}</span>
 				</button>
 				<button class="btn-close" onclick={close} aria-label="Close">
@@ -185,7 +185,7 @@
 
 		{#if loading && items.length === 0}
 			<div class="loading-state">
-				<Disc size={36} class="spinning" />
+				<Disc size={36} class="digger-spin" />
 				<p class="muted">{i18n.m.common.loading}</p>
 			</div>
 		{:else if error}
@@ -325,7 +325,7 @@
 		font-weight: var(--fw-bold);
 	}
 
-	:global(.accent-icon) {
+	.title-row :global(.accent-icon) {
 		color: var(--c-accent);
 	}
 
@@ -583,7 +583,7 @@
 		min-height: 220px;
 	}
 
-	:global(.spinning) {
+	.digger-dialog :global(.digger-spin) {
 		animation: spin 1.5s linear infinite;
 	}
 

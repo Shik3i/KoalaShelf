@@ -65,10 +65,13 @@
 	<div
 		class="cover"
 		class:in-player={inPlayer}
-		class:spinning={inPlayer && player.playing && prefs.spin}
 		style:view-transition-name={group || selecting ? undefined : `cover-${item.id}`}
 	>
-		{#if !group && !selecting}<span class="disc sleeve-disc" aria-hidden="true"></span>{/if}
+		{#if !group && !selecting}<span
+				class="disc sleeve-disc"
+				class:spinning={inPlayer && player.playing && prefs.spin}
+				aria-hidden="true"
+			></span>{/if}
 		<Cover
 			title={v.title}
 			author={v.author}
@@ -199,7 +202,7 @@
 		translate: 0 -20px;
 	}
 
-	.spinning .disc {
+	.disc.spinning {
 		animation: spin 1.8s linear infinite;
 	}
 

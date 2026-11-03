@@ -270,7 +270,7 @@
 		font-size: var(--fs-15);
 	}
 
-	:global(.accent-icon) {
+	.radar-title :global(.accent-icon) {
 		color: var(--c-accent);
 	}
 

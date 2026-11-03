@@ -1,5 +1,24 @@
 # Changelog
 
+## Web 1.1.4
+
+- **Overview & Book Detail Vinyl Spin Fix**: Scoped `:global(.spinning)` in `CrateDiggerModal.svelte` and moved `.spinning` strictly onto `.disc.spinning` in `BookTile.svelte` so only the vinyl record spins while book covers and sleeves remain stationary.
+- **Authentic Vinyl Crackle & Needle Drop Synthesis**: Replaced continuous pink/white noise floor in `sound.ts` with zero-noise-floor physical transient synthesis (diamond-stylus micro-ticks, warm damped dust pops, and rotational groove-scratch wisps), eliminating background static hiss during spoken-word playback.
+- **Seamless Multi-File MP3 Track Transitions**: Prevented HTML5 `<audio>` track-boundary `pause` and `playing` events from briefly dropping `player.playing` to `false` or re-triggering `playNeedleDrop()` and tonearm lift/drop animations between MP3 files.
+- **Offline Audiobook Seeking Fix**: Enabled timeline seeking, 30-second skips, and chapter jumps during offline playback of downloaded books (`#local` session).
+- **Security & Dependency Updates**: Resolved `minimatch` and `glob` moderate advisories and updated Svelte, SvelteKit, Vite, `hls.js`, and ESLint.
+
+## Desktop 1.1.2
+
+- **Synchronized Web 1.1.4 Audio & UI Engine**: Includes the overview vinyl spin scoping fix, zero-hiss vinyl crackle and needle-drop transient synthesis, seamless multi-file MP3 track transitions without tonearm lift or needle-drop re-triggers, and offline seek support.
+- **Electron Runtime Update**: Updated Electron runtime to 45.2.1 with patched transitive dependencies (`minimatch >=11.0.1`, `glob >=14.0.2`).
+
+## Android 1.1.6
+
+- **Zero-Hiss Vinyl Crackle & Needle Drop Synthesis**: Rebuilt `AmbienceEngine` to synthesize discrete diamond-stylus micro-ticks, warm analog dust pops, and groove-catch transients over a silent background floor, removing continuous white-noise hiss.
+- **Single Needle Drop on Play/Resume Only**: Guarded `playNeedleDropCue()` in `KoalaPlayerController` with `wantNeedleDrop` so buffer recoveries, seeks, and multi-track transitions never re-trigger the needle drop sound.
+- **Release Pipeline Security Gate**: Aligned `release-android.yml` with Web and Desktop by enforcing full CI and CodeQL release security gates (`scripts/release.mjs gate`) and adding Gradle to Dependabot.
+
 ## Android 1.1.5
 
 - **Comprehensive UI/UX & Large-Text Accessibility Hardening**:

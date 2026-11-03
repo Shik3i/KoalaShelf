@@ -1,7 +1,51 @@
 import { expect, test } from '@playwright/test';
-import { api, itemId } from './helpers.ts';
+import { api, itemId, needsDevServer, player, stopPlayer } from './helpers.ts';
 
 // The record-shop touches: they must land in the right place and never get in the way.
+
+test('only the vinyl disc spins while playing — book covers and sleeves never rotate', async ({
+	page
+}) => {
+	needsDevServer();
+	const id = await itemId('Der lange Weg');
+	await page.goto(`/book/${id}`);
+	await page.locator('.cta .btn.primary').click();
+	await expect.poll(() => player<boolean>(page, 'playing')).toBe(true);
+
+	// 1. On the book detail page: the hero `.art` container and `.cover` sleeve must never animate.
+	const heroAnimations = await page.evaluate(() => {
+		const art = document.querySelector('.hero .art');
+		const cover = document.querySelector('.hero .cover');
+		const sleeve = document.querySelector('.hero .sleeve-card');
+		return {
+			art: art ? getComputedStyle(art).animationName : null,
+			cover: cover ? getComputedStyle(cover).animationName : null,
+			sleeve: sleeve ? getComputedStyle(sleeve).animationName : null
+		};
+	});
+	expect(heroAnimations).toEqual({ art: 'none', cover: 'none', sleeve: 'none' });
+
+	// 2. On the library overview page: the `.tile .cover` wrapper and `figure.cover` must never spin;
+	//    only `.disc.spinning` inside the active tile rotates.
+	await page.goto('/library');
+	const activeTile = page.locator('.tile', { hasText: 'Der lange Weg' }).first();
+	await expect(activeTile.locator('.disc.spinning')).toBeVisible();
+	const tileAnimations = await activeTile.evaluate((tile) => {
+		const coverWrapper = tile.querySelector('.cover');
+		const coverFigure = tile.querySelector('figure.cover');
+		const disc = tile.querySelector('.disc');
+		return {
+			coverWrapper: coverWrapper ? getComputedStyle(coverWrapper).animationName : null,
+			coverFigure: coverFigure ? getComputedStyle(coverFigure).animationName : null,
+			disc: disc ? getComputedStyle(disc).animationName : null
+		};
+	});
+	expect(tileAnimations.coverWrapper).toBe('none');
+	expect(tileAnimations.coverFigure).toBe('none');
+	expect(tileAnimations.disc).not.toBe('none');
+
+	await stopPlayer(page);
+});
 
 test('the navigation highlight glides to the current page and sits under it', async ({ page }) => {
 	await page.goto('/library');

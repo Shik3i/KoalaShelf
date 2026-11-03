@@ -20,21 +20,19 @@ updates:
       # Types follow the lowest supported Node.js (engines: >=24), not the newest.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
-      # Must match the tauri-plugin-http crate; both are bumped together by hand.
-      - dependency-name: '@tauri-apps/plugin-http'
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
 
-  - package-ecosystem: cargo
-    directory: /apps/desktop/src-tauri
+  - package-ecosystem: gradle
+    directory: /apps/android
     schedule:
       interval: weekly
       day: monday
     cooldown:
       default-days: 7
     groups:
-      cargo-minor-patch:
+      gradle-minor-patch:
         update-types: [minor, patch]
 
   - package-ecosystem: docker

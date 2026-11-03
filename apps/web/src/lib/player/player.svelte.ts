@@ -168,6 +168,10 @@ class Player {
 	#syncTimer: ReturnType<typeof setInterval> | null = null;
 	#retries = 0;
 	#pendingSeek: number | null = null;
+	/** True while switching between multi-file tracks so transient pause/playing events don't flicker state or re-drop the needle. */
+	#switchingTrack = false;
+	/** True only when starting or resuming playback from a stopped/paused state. */
+	#wantNeedleDrop = false;
 
 	readonly chapter = $derived(
 		this.chapters.find((c) => this.currentTime >= c.start && this.currentTime < c.end) ??
@@ -276,6 +280,7 @@ class Player {
 			a.preload = 'auto';
 			a.addEventListener('timeupdate', () => this.#onTime());
 			a.addEventListener('playing', () => {
+				this.#switchingTrack = false;
 				this.playing = true;
 				this.buffering = false;
 				this.loadingId = null;
@@ -287,12 +292,20 @@ class Player {
 				this.sleepPausedLeft = null;
 				void this.#sound.resume();
 				this.#sound.setPlaybackState(true);
-				if (prefs.needleDrop) void this.#sound.playNeedleDrop();
+				if (this.#wantNeedleDrop) {
+					this.#wantNeedleDrop = false;
+					if (prefs.needleDrop) void this.#sound.playNeedleDrop();
+				}
 				if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 				this.#positionState();
 				this.#notifyDesktopMedia();
 			});
 			a.addEventListener('pause', () => {
+				// Browser fires `pause` right before `ended` at the end of each MP3 track, and
+				// when swapping `audio.src` for the next file. Keep `playing = true` across track transitions.
+				const moreTracks = a.ended && this.#track < this.#tracks.length - 1;
+				if (this.#switchingTrack || moreTracks) return;
+				this.#wantNeedleDrop = false;
 				this.#onSilence(false);
 				this.playing = false;
 				this.#sound.setPlaybackState(false);
@@ -468,16 +481,21 @@ class Player {
 	async #start() {
 		this.#autoSleep();
 		if (this.#audio && this.sleep.kind === 'off') this.#audio.volume = prefs.volume;
+		if (!this.playing) this.#wantNeedleDrop = true;
 		try {
 			await this.#sound.resume();
 			await this.audio.play();
 		} catch {
+			this.#wantNeedleDrop = false;
+			this.#switchingTrack = false;
 			this.loadingId = null;
 			this.buffering = false;
 		}
 	}
 
 	pause() {
+		this.#switchingTrack = false;
+		this.#wantNeedleDrop = false;
 		this.#audio?.pause();
 	}
 
@@ -508,9 +526,9 @@ class Player {
 	seek(time: number) {
 		const t = Math.min(Math.max(0, time), Math.max(0, this.duration - 0.5));
 		this.currentTime = t;
-		if (!this.#session) return;
+		if (!this.#session && !this.#local) return;
 		const idx = this.#trackIndexAt(t);
-		if (idx !== this.#track) this.#loadTrackAt(t, !this.audio.paused);
+		if (idx !== this.#track) this.#loadTrackAt(t, this.playing);
 		else this.audio.currentTime = t - this.#tracks[idx].startOffset;
 		this.#positionState();
 	}
@@ -834,13 +852,18 @@ class Player {
 		if (!track) return;
 		this.#track = idx;
 		this.#pendingSeek = t - track.startOffset;
+		this.#switchingTrack = autoplay;
 		this.#prepareSound();
 		const local = this.#localUrls?.get(track.index);
 		if (local) {
 			this.#hls?.destroy();
 			this.#hls = null;
 			this.audio.src = local;
-			if (autoplay) void this.audio.play().catch(() => undefined);
+			if (autoplay)
+				void this.audio.play().catch(() => {
+					this.#switchingTrack = false;
+					this.playing = false;
+				});
 			return;
 		}
 		const url = session.api.trackUrl(track.contentUrl);
@@ -853,13 +876,18 @@ class Player {
 		this.#hls?.destroy();
 		this.#hls = null;
 		this.audio.src = url;
-		if (autoplay) void this.audio.play().catch(() => undefined);
+		if (autoplay)
+			void this.audio.play().catch(() => {
+				this.#switchingTrack = false;
+				this.playing = false;
+			});
 	}
 
 	/** hls.js is only downloaded when a transcoded stream actually needs it. */
 	async #attachHls(url: string, autoplay: boolean) {
 		const { default: Hls } = await import('hls.js');
 		if (!Hls.isSupported()) {
+			this.#switchingTrack = false;
 			this.error = 'fatal';
 			return;
 		}
@@ -871,7 +899,11 @@ class Player {
 		hls.loadSource(url);
 		hls.attachMedia(this.audio);
 		this.#hls = hls;
-		if (autoplay) void this.audio.play().catch(() => undefined);
+		if (autoplay)
+			void this.audio.play().catch(() => {
+				this.#switchingTrack = false;
+				this.playing = false;
+			});
 	}
 
 	#onTime() {
@@ -1081,6 +1113,9 @@ class Player {
 
 	async #close() {
 		this.#clearTimer();
+		this.#switchingTrack = false;
+		this.#wantNeedleDrop = false;
+		this.playing = false;
 		if (this.#local) {
 			this.#syncLocal();
 			this.#local = null;

@@ -24,11 +24,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Gate: nothing is published unless the full CI passes.
+  checks:
+    uses: ./.github/workflows/ci.yml
+
   preflight:
     name: Version, changelog and release policy
+    needs: checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      security-events: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,6 +50,11 @@ jobs:
         run: |
           node scripts/release.mjs policy
           if [ "$GITHUB_REF_TYPE" = tag ]; then node scripts/release.mjs version "$TAG" android; fi
+      - name: Security gate (release commit is main, CodeQL green, no open alerts)
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release.mjs gate
 
   build:
     name: Build Android APK

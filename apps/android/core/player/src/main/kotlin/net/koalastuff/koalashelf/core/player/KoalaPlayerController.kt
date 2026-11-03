@@ -183,6 +183,7 @@ class KoalaPlayerController(
     private var lastTickMillis: Long = 0L
     private var playRequestGen: Int = 0
     private var retryCount: Int = 0
+    private var wantNeedleDrop: Boolean = false
     private var tickJob: Job? = null
     private var syncJob: Job? = null
 
@@ -270,8 +271,11 @@ class KoalaPlayerController(
                         sleepTimerEngine.shiftBy(System.currentTimeMillis() - pausedAt)
                     }
                     sleepTimerEngine.pausedAtMillis = null
-                    if (prefsRepository.prefs.value.needleDrop) {
-                        ambienceEngine.playNeedleDropCue()
+                    if (wantNeedleDrop) {
+                        wantNeedleDrop = false
+                        if (prefsRepository.prefs.value.needleDrop) {
+                            ambienceEngine.playNeedleDropCue()
+                        }
                     }
                     updateVinylCrackleLoop()
                 } else {
@@ -356,6 +360,7 @@ class KoalaPlayerController(
                 pausedAtMillis = 0L
                 checkAutoSleepOnStart()
                 p.volume = prefs.volume
+                if (!_playing.value) wantNeedleDrop = true
                 p.play()
                 return@launch
             }
@@ -440,6 +445,7 @@ class KoalaPlayerController(
         loadBookmarksFor(libItem.id)
         prepareExoPlayerTracks(libItem, localFiles, start)
         checkAutoSleepOnStart()
+        wantNeedleDrop = true
         getOrCreateExoPlayer().play()
     }
 
@@ -497,6 +503,7 @@ class KoalaPlayerController(
         applyBookSpeed(itemId)
         prepareExoPlayerTracks(libItem, localFiles, start)
         checkAutoSleepOnStart()
+        wantNeedleDrop = true
         getOrCreateExoPlayer().play()
     }
 
@@ -540,6 +547,7 @@ class KoalaPlayerController(
     }
 
     fun pause() {
+        wantNeedleDrop = false
         exoPlayer?.pause()
     }
 

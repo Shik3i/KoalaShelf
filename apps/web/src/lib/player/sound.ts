@@ -144,7 +144,7 @@ export class SoundChain {
 		this.#updateCrackleState();
 	}
 
-	/** Plays a subtle authentic 1.2s vintage stylus needle drop sound cue. */
+	/** Plays a subtle authentic 0.48s vintage stylus needle drop sound cue without static hiss. */
 	async playNeedleDrop() {
 		let ctx = this.#ctx;
 		if (!ctx) {
@@ -160,25 +160,16 @@ export class SoundChain {
 		}
 		try {
 			const now = ctx.currentTime;
-			const duration = 1.2;
+			const duration = 0.48;
 			const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate);
-			const data = buffer.getChannelData(0);
-			for (let i = 0; i < data.length; i++) {
-				const t = i / ctx.sampleRate;
-				const thud = t < 0.08 ? Math.sin(2 * Math.PI * 65 * t) * Math.exp(-t * 40) * 0.4 : 0;
-				const scratch =
-					t >= 0.04 && t < 0.3 ? (Math.random() * 2 - 1) * Math.exp(-(t - 0.04) * 12) * 0.25 : 0;
-				const hiss = t >= 0.2 ? (Math.random() * 2 - 1) * 0.08 * (1 - (t - 0.2) / 1.0) : 0;
-				const pop = Math.random() < 8 / ctx.sampleRate ? (Math.random() - 0.5) * 0.3 : 0;
-				data[i] = thud + scratch + hiss + pop;
-			}
+			synthesizeNeedleDrop(buffer.getChannelData(0), ctx.sampleRate);
 			const source = ctx.createBufferSource();
 			source.buffer = buffer;
 			const filter = ctx.createBiquadFilter();
 			filter.type = 'lowpass';
-			filter.frequency.value = 3500;
+			filter.frequency.value = 4800;
 			const gain = ctx.createGain();
-			gain.gain.setValueAtTime(0.18, now);
+			gain.gain.setValueAtTime(0.24, now);
 			source.connect(filter);
 			filter.connect(gain);
 			gain.connect(ctx.destination);
@@ -212,19 +203,19 @@ export class SoundChain {
 				const t = i / ctx.sampleRate;
 				const fade = Math.max(0, 1 - t / duration);
 				const revPos = i % samplesPerRev;
+				const dt = revPos / ctx.sampleRate;
 				const thump =
-					revPos < 500
-						? Math.sin(2 * Math.PI * 45 * (revPos / ctx.sampleRate)) *
-							Math.exp(-(revPos / ctx.sampleRate) * 20) *
-							0.35
+					dt < 0.045 ? Math.sin(2 * Math.PI * (52 - dt * 280) * dt) * Math.exp(-dt * 55) * 0.42 : 0;
+				const click =
+					dt >= 0.002 && dt < 0.005
+						? Math.sin(2 * Math.PI * 2400 * (dt - 0.002)) * Math.exp(-(dt - 0.002) * 1800) * 0.18
 						: 0;
-				const hiss = (Math.random() * 2 - 1) * 0.02;
-				data[i] = (thump + hiss) * fade;
+				data[i] = (thump + click) * fade;
 			}
 			const source = ctx.createBufferSource();
 			source.buffer = buffer;
 			const gain = ctx.createGain();
-			gain.gain.setValueAtTime(0.15, now);
+			gain.gain.setValueAtTime(0.18, now);
 			source.connect(gain);
 			gain.connect(ctx.destination);
 			source.start(now);
@@ -265,41 +256,19 @@ export class SoundChain {
 		if (!this.#crackleSource) {
 			try {
 				const sampleRate = ctx.sampleRate;
-				const length = sampleRate * 4;
+				// 4 vinyl revolutions at 33 1/3 RPM (1.8s per revolution = 7.2s loop)
+				const length = Math.floor(sampleRate * 7.2);
 				const buffer = ctx.createBuffer(1, length, sampleRate);
-				const data = buffer.getChannelData(0);
-				let b0 = 0,
-					b1 = 0,
-					b2 = 0,
-					b3 = 0,
-					b4 = 0,
-					b5 = 0,
-					b6 = 0;
-				for (let i = 0; i < length; i++) {
-					const white = Math.random() * 2 - 1;
-					b0 = 0.99886 * b0 + white * 0.0555179;
-					b1 = 0.99332 * b1 + white * 0.0750759;
-					b2 = 0.969 * b2 + white * 0.153852;
-					b3 = 0.8665 * b3 + white * 0.3104856;
-					b4 = 0.55 * b4 + white * 0.5329522;
-					b5 = -0.7616 * b5 - white * 0.016898;
-					const pink = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.06;
-					b6 = white * 0.115926;
-					let sample = pink;
-					if (Math.random() < 14 / sampleRate) {
-						sample += (Math.random() * 0.7 + 0.3) * (Math.random() > 0.5 ? 1 : -1);
-					}
-					data[i] = sample;
-				}
+				synthesizeVinylCrackle(buffer.getChannelData(0), sampleRate);
 
 				const src = ctx.createBufferSource();
 				src.buffer = buffer;
 				src.loop = true;
 
 				const filter = ctx.createBiquadFilter();
-				filter.type = 'bandpass';
-				filter.frequency.value = 1800;
-				filter.Q.value = 0.6;
+				filter.type = 'lowpass';
+				filter.frequency.value = 5200;
+				filter.Q.value = 0.7;
 
 				const gain = ctx.createGain();
 				gain.gain.value = 0;
@@ -393,5 +362,134 @@ export class SoundChain {
 			src.connect(this.#detector);
 			this.#detector.connect(ctx.destination);
 		} else if (!s.silence) this.onSilence?.(false);
+	}
+}
+
+/**
+ * Synthesizes authentic analog vinyl surface crackle, warm dust pops, and subtle
+ * rotational groove-scratch wisps with zero continuous white/pink noise hiss.
+ */
+export function synthesizeVinylCrackle(
+	data: Float32Array,
+	sampleRate: number,
+	rng: () => number = Math.random
+) {
+	data.fill(0);
+	const length = data.length;
+	if (length === 0 || sampleRate <= 0) return;
+	const durationSec = length / sampleRate;
+
+	// 1. Fine surface micro-ticks (crisp diamond-stylus dust transients, ~22/sec)
+	const tickCount = Math.max(1, Math.round(durationSec * 22));
+	const tickLen = Math.max(4, Math.ceil(sampleRate * 0.0012));
+	for (let n = 0; n < tickCount; n++) {
+		const start = Math.floor(rng() * Math.max(1, length - tickLen));
+		const freq = 2600 + rng() * 2200;
+		const decay = 3200 + rng() * 2400;
+		const sign = rng() < 0.5 ? -1 : 1;
+		const amp = (0.18 + rng() * 0.42) * sign;
+		for (let k = 0; k < tickLen && start + k < length; k++) {
+			const dt = k / sampleRate;
+			data[start + k] += Math.sin(2 * Math.PI * freq * dt) * Math.exp(-dt * decay) * amp;
+		}
+	}
+
+	// 2. Warm analog vinyl dust pops (lower-mid damped groove impulses, ~4.5/sec)
+	const popCount = Math.max(1, Math.round(durationSec * 4.5));
+	const popLen = Math.max(8, Math.ceil(sampleRate * 0.0038));
+	for (let n = 0; n < popCount; n++) {
+		const start = Math.floor(rng() * Math.max(1, length - popLen));
+		const freq = 520 + rng() * 580;
+		const decay = 950 + rng() * 650;
+		const sign = rng() < 0.5 ? -1 : 1;
+		const amp = (0.35 + rng() * 0.55) * sign;
+		for (let k = 0; k < popLen && start + k < length; k++) {
+			const dt = k / sampleRate;
+			data[start + k] += Math.sin(2 * Math.PI * freq * dt) * Math.exp(-dt * decay) * amp;
+		}
+	}
+
+	// 3. Subtle rotational groove-scratch wisps (1 brief hairline scuff per 1.8s revolution)
+	const revolutions = Math.max(1, Math.floor(durationSec / 1.8));
+	for (let rev = 0; rev < revolutions; rev++) {
+		const revStartSec = rev * 1.8 + 0.25 + rng() * 1.2;
+		const burstCount = 5 + Math.floor(rng() * 4);
+		for (let b = 0; b < burstCount; b++) {
+			const offsetSec = revStartSec + b * (0.0014 + rng() * 0.0012);
+			const start = Math.floor(offsetSec * sampleRate);
+			const env = Math.sin(((b + 0.5) / burstCount) * Math.PI);
+			const freq = 1500 + rng() * 1300;
+			const decay = 2200 + rng() * 1200;
+			const amp = (0.16 + rng() * 0.18) * env * (b % 2 === 0 ? 1 : -1);
+			const grainLen = Math.ceil(sampleRate * 0.0015);
+			for (let k = 0; k < grainLen && start + k < length; k++) {
+				const dt = k / sampleRate;
+				data[start + k] += Math.sin(2 * Math.PI * freq * dt) * Math.exp(-dt * decay) * amp;
+			}
+		}
+	}
+
+	for (let i = 0; i < length; i++) {
+		if (data[i] > 1) data[i] = 1;
+		else if (data[i] < -1) data[i] = -1;
+	}
+}
+
+/**
+ * Synthesizes a clean ~0.48s analog stylus needle drop (tip contact click, damped
+ * tonearm thump, brief groove-catch scratch, and sparse vinyl ticks) with zero static hiss.
+ */
+export function synthesizeNeedleDrop(
+	data: Float32Array,
+	sampleRate: number,
+	rng: () => number = Math.random
+) {
+	data.fill(0);
+	const length = data.length;
+	if (length === 0 || sampleRate <= 0) return;
+
+	// 1. Stylus tip contact click + warm tonearm body resonance thump at t = 12ms
+	const contactStart = Math.min(length - 1, Math.floor(sampleRate * 0.012));
+	const thumpLen = Math.min(length - contactStart, Math.ceil(sampleRate * 0.075));
+	for (let k = 0; k < thumpLen; k++) {
+		const dt = k / sampleRate;
+		const freq = Math.max(36, 68 - dt * 320);
+		const thump = Math.sin(2 * Math.PI * freq * dt) * Math.exp(-dt * 42) * 0.55;
+		const click = dt < 0.0025 ? Math.sin(2 * Math.PI * 2900 * dt) * Math.exp(-dt * 1800) * 0.45 : 0;
+		data[contactStart + k] += thump + click;
+	}
+
+	// 2. Brief groove-wall catch micro-scratch (t = 40ms..66ms, discrete stylus impulses)
+	const scratchImpulses = 7;
+	for (let s = 0; s < scratchImpulses; s++) {
+		const onsetSec = 0.04 + s * 0.0034 + rng() * 0.001;
+		const start = Math.floor(onsetSec * sampleRate);
+		const env = Math.sin(((s + 0.5) / scratchImpulses) * Math.PI);
+		const freq = 1700 + rng() * 1500;
+		const amp = (0.22 + rng() * 0.14) * env * (s % 2 === 0 ? 1 : -1);
+		const grainLen = Math.ceil(sampleRate * 0.0018);
+		for (let k = 0; k < grainLen && start + k < length; k++) {
+			const dt = k / sampleRate;
+			data[start + k] += Math.sin(2 * Math.PI * freq * dt) * Math.exp(-dt * 2100) * amp;
+		}
+	}
+
+	// 3. Lead-in groove dust ticks (4 sparse vinyl ticks before audio begins)
+	const leadInTicks = [0.12, 0.21, 0.31, 0.4];
+	for (const sec of leadInTicks) {
+		const start = Math.floor((sec + rng() * 0.02) * sampleRate);
+		const freq = 900 + rng() * 2400;
+		const decay = 1600 + rng() * 1800;
+		const amp = (0.2 + rng() * 0.25) * (rng() < 0.5 ? -1 : 1);
+		const tickLen = Math.ceil(sampleRate * 0.0025);
+		for (let k = 0; k < tickLen && start + k < length; k++) {
+			const dt = k / sampleRate;
+			data[start + k] += Math.sin(2 * Math.PI * freq * dt) * Math.exp(-dt * decay) * amp;
+		}
+	}
+
+	for (let i = 0; i < length; i++) {
+		if (data[i] > 1) data[i] = 1;
+		else if (data[i] < -1) data[i] = -1;
 	}
 }
