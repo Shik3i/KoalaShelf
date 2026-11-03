@@ -35,17 +35,17 @@ test('only the vinyl disc spins while playing — book covers and sleeves never 
 	const activeTile = page.locator('.tile', { hasText: 'Der lange Weg' }).first();
 	await expect(activeTile.locator('.disc.spinning')).toBeVisible();
 	const tileAnimations = await activeTile.evaluate((tile) => {
-		const coverWrapper = tile.querySelector('.cover');
-		const coverFigure = tile.querySelector('figure.cover');
+		const coverWrapper = tile.querySelector(':scope > .cover');
+		const coverInner = tile.querySelector(':scope > .cover > .cover');
 		const disc = tile.querySelector('.disc');
 		return {
 			coverWrapper: coverWrapper ? getComputedStyle(coverWrapper).animationName : null,
-			coverFigure: coverFigure ? getComputedStyle(coverFigure).animationName : null,
+			coverInner: coverInner ? getComputedStyle(coverInner).animationName : null,
 			disc: disc ? getComputedStyle(disc).animationName : null
 		};
 	});
 	expect(tileAnimations.coverWrapper).toBe('none');
-	expect(tileAnimations.coverFigure).toBe('none');
+	expect(tileAnimations.coverInner).toBe('none');
 	expect(tileAnimations.disc).not.toBe('none');
 
 	await stopPlayer(page);
